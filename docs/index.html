@@ -138,12 +138,42 @@ section:first-child { margin-top: 0; }
 #tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
 footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 36px; }
 .loading { opacity: .55; transition: opacity .15s; }
+/* 로그인 */
+body.locked header.top, body.locked main { display: none; }
+#gate { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px 16px; background: var(--page); }
+body.locked #gate { display: flex; }
+.gate-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.gate-card .gh { background: var(--header); color: var(--header-ink); padding: 22px 24px 18px; }
+.gate-card .gh h1 { margin: 0; font-size: 19px; font-weight: 700; }
+.gate-card .gh p { margin: 4px 0 0; font-size: 13px; color: var(--header-sub); }
+.gate-card form { padding: 22px 24px 24px; display: grid; gap: 10px; }
+.gate-card label { font-size: 13px; font-weight: 600; }
+.gate-card input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid var(--axis); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.gate-card input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.gate-card .remember { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); font-weight: 400; }
+.gate-card button { font: inherit; font-size: 15px; font-weight: 600; padding: 10px 12px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; margin-top: 4px; }
+.gate-card button:disabled { opacity: .6; cursor: progress; }
+.gate-msg { min-height: 18px; font-size: 13px; color: var(--down); }
+.gate-note { font-size: 11.5px; color: var(--muted); margin: 0; }
 @media (max-width: 1080px) { .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 480px) { .wrap { padding: 0 16px; } .kpi .value { font-size: 24px; } }
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="gate">
+  <div class="gate-card">
+    <div class="gh"><h1>닥터빌 회원 대시보드</h1><p>플랫폼운영팀 내부용 · 비밀번호를 입력하세요</p></div>
+    <form id="gateForm" autocomplete="off">
+      <label for="pw">비밀번호</label>
+      <input id="pw" type="password" autocomplete="current-password" required autofocus>
+      <label class="remember"><input id="remember" type="checkbox"> 이 탭을 닫을 때까지 로그인 유지</label>
+      <div class="gate-msg" id="gateMsg" role="alert"></div>
+      <button type="submit" id="gateBtn">접속</button>
+      <p class="gate-note">데이터는 암호화되어 있으며 올바른 비밀번호로만 열립니다.</p>
+    </form>
+  </div>
+</div>
 <header class="top">
   <div class="wrap">
     <div>
@@ -154,6 +184,7 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
       <label for="weekSel">기준 주차</label>
       <select id="weekSel" aria-label="기준 주차 선택"></select>
       <button class="btn" id="themeBtn" type="button" aria-label="화면 테마 전환">테마</button>
+      <button class="btn" id="logoutBtn" type="button">로그아웃</button>
     </div>
   </div>
 </header>
@@ -251,16 +282,60 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
     }).join('');
   }
 
-  // ---- 데이터 로드 -------------------------------------------------------
-  function getJson(u) { return fetch(u, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); }); }
+  // ---- 암호화 데이터 (AES-256-GCM / PBKDF2-SHA256, scripts/crypto.mjs와 동일 형식) ----
+  var KEY = null, META = null, SS = 'mv-key';
+  var subtle = window.crypto && window.crypto.subtle;
+  function unb64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  function b64(buf) { var u = new Uint8Array(buf), s = ''; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+  function fetchJson(u) { return fetch(u, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); }); }
+  function decryptBox(key, box) {
+    return subtle.decrypt({ name: 'AES-GCM', iv: unb64(box.iv) }, key, unb64(box.ct))
+      .then(function (pt) { return JSON.parse(new TextDecoder().decode(pt)); });
+  }
+  function getJson(u) { return fetchJson(u).then(function (box) { return decryptBox(KEY, box); }); }
+  function deriveKey(pw) {
+    return subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']).then(function (base) {
+      return subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: unb64(META.salt), iterations: META.iter }, base,
+        { name: 'AES-GCM', length: 256 }, true, ['decrypt']);
+    });
+  }
+  function useKey(key) { return decryptBox(key, META.check).then(function () { KEY = key; return key; }); }
+  function unlock() { document.body.classList.remove('locked'); $('#pw').value = ''; start(); }
+  function lock(msg) {
+    KEY = null; try { sessionStorage.removeItem(SS); } catch (e) {}
+    document.body.classList.add('locked'); $('#gateMsg').textContent = msg || ''; $('#pw').focus();
+  }
+
+  $('#gateForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var btn = $('#gateBtn'), pw = $('#pw').value;
+    if (!META) { $('#gateMsg').textContent = '데이터 정보를 불러오지 못했습니다. 새로고침 해주세요.'; return; }
+    btn.disabled = true; btn.textContent = '확인 중…'; $('#gateMsg').textContent = '';
+    deriveKey(pw).then(useKey).then(function (key) {
+      if ($('#remember').checked) subtle.exportKey('raw', key).then(function (raw) { try { sessionStorage.setItem(SS, b64(raw)); } catch (e) {} });
+      unlock();
+    }).catch(function () {
+      $('#gateMsg').textContent = '비밀번호가 올바르지 않습니다.';
+      $('#pw').select();
+    }).then(function () { btn.disabled = false; btn.textContent = '접속'; });
+  });
+  $('#logoutBtn').addEventListener('click', function () { try { sessionStorage.removeItem(SS); } catch (e) {} location.reload(); });
+
+  if (!subtle) { $('#gateMsg').textContent = '이 브라우저는 암호화 기능을 지원하지 않습니다. 최신 Chrome/Edge/Safari를 사용해주세요.'; }
+  else fetchJson('data/meta.json').then(function (m) {
+    META = m;
+    var saved = null; try { saved = sessionStorage.getItem(SS); } catch (e) {}
+    if (!saved) return;
+    return subtle.importKey('raw', unb64(saved), { name: 'AES-GCM' }, false, ['decrypt']).then(useKey).then(unlock).catch(function () { lock(); });
+  }).catch(function () { $('#gateMsg').textContent = '데이터 정보를 불러오지 못했습니다.'; });
 
   function load(week) {
     var list = state.index.snapshots;
     var i = list.findIndex(function (s) { return s.week === week; });
     $('#app').classList.add('loading');
     return Promise.all([
-      getJson('data/snapshots/' + week + '.json'),
-      i > 0 ? getJson('data/snapshots/' + list[i - 1].week + '.json').catch(function () { return null; }) : Promise.resolve(null)
+      getJson('data/snapshots/' + week + '.enc.json'),
+      i > 0 ? getJson('data/snapshots/' + list[i - 1].week + '.enc.json').catch(function () { return null; }) : Promise.resolve(null)
     ]).then(function (res) {
       state.snap = res[0]; state.prev = res[1];
       $('#app').classList.remove('loading');
@@ -268,7 +343,10 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
     });
   }
 
-  getJson('data/index.json').then(function (idx) {
+  var started = false;
+  function start() {
+  if (started) return; started = true;
+  getJson('data/index.enc.json').then(function (idx) {
     state.index = idx;
     var sel = $('#weekSel');
     idx.snapshots.slice().reverse().forEach(function (s) {
@@ -281,6 +359,7 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
   }).catch(function (e) {
     $('#subtitle').textContent = '데이터를 불러오지 못했습니다: ' + e.message;
   });
+  }
 
   document.querySelectorAll('.seg button').forEach(function (b) {
     b.addEventListener('click', function () {
