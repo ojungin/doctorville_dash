@@ -1,0 +1,8 @@
+# 원본 회원 데이터는 절대 커밋하지 않습니다
+*.csv
+*.xlsx
+raw/
+service-account*.json
+.env
+node_modules/
+.DS_Store
