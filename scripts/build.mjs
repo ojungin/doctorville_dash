@@ -10,13 +10,15 @@
  *   GOOGLE_SERVICE_ACCOUNT_JSON  서비스 계정 키 JSON 전체 문자열
  *   SHEET_ID                     구글시트 ID
  *   SHEET_RANGE                  (선택) 읽을 시트/범위, 기본값 '시트1'
+ *   DASHBOARD_PASSWORD           대시보드 접속 비밀번호 (데이터 암호화 키)
  *
- * 출력 (docs/data/)
- *   latest.json               최신 스냅샷
- *   snapshots/<YYYY-Www>.json 주차별 스냅샷 (같은 주 재실행 시 덮어씀)
- *   index.json                스냅샷 목록 + 주간 KPI 이력
+ * 출력 (docs/data/, 모두 AES-256-GCM 암호화 — 평문 데이터는 저장소에 남지 않음)
+ *   meta.json                     키 유도 정보 + 비밀번호 검증값 (데이터 없음)
+ *   index.enc.json                스냅샷 목록 + 주간 KPI 이력
+ *   snapshots/<YYYY-Www>.enc.json 주차별 스냅샷 (같은 주 재실행 시 덮어씀)
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { createMeta, openMeta, encryptJson, decryptJson } from './crypto.mjs';
 import { createSign } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -84,16 +86,22 @@ async function main() {
   const text = JSON.stringify(snap);
   if (/@[a-z0-9-]+\.[a-z]/i.test(text)) throw new Error('집계 결과에 이메일 형태 문자열이 포함되어 중단합니다.');
 
-  writeJson(join(OUT, 'latest.json'), snap);
-  writeJson(join(OUT, 'snapshots', `${snap.week}.json`), snap);
+  const password = process.env.DASHBOARD_PASSWORD;
+  if (!password) throw new Error('DASHBOARD_PASSWORD 환경 변수가 필요합니다.');
+  const metaPath = join(OUT, 'meta.json');
+  let key;
+  if (existsSync(metaPath)) key = await openMeta(readJson(metaPath), password);
+  else { const m = await createMeta(password); key = m.key; writeJson(metaPath, m.meta); }
 
-  const idxPath = join(OUT, 'index.json');
-  const index = readJson(idxPath, { snapshots: [] });
+  writeJson(join(OUT, 'snapshots', `${snap.week}.enc.json`), await encryptJson(key, snap));
+
+  const idxPath = join(OUT, 'index.enc.json');
+  const index = existsSync(idxPath) ? await decryptJson(key, readJson(idxPath)) : { snapshots: [] };
   index.snapshots = index.snapshots.filter((s) => s.week !== snap.week);
   index.snapshots.push(historyEntry(snap));
   index.snapshots.sort((a, b) => a.week.localeCompare(b.week));
   index.updatedAt = snap.generatedAt;
-  writeJson(idxPath, index);
+  writeJson(idxPath, await encryptJson(key, index));
 
   console.log(`스냅샷 ${snap.week} (${snap.weekStart}~${snap.weekEnd}) 생성: 총 ${snap.kpi.total.toLocaleString()}명, 주간 신규 ${snap.kpi.newWeek}명`);
 }
