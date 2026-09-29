@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>닥터빌 회원 대시보드</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f4f6f9;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --header: #0d2a52;
+  --header-ink: #ffffff;
+  --header-sub: #b7cbe6;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #7d7b75;
+  --grid: #e6e5df;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.09);
+  --accent: #2a78d6;
+  --accent-soft: #cde2fb;
+  --marker: #0d366b;
+  --up: #006300;
+  --down: #b42f2f;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300;
+  --seq-0: #f0f5fc; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95;
+  --shadow: 0 1px 2px rgba(13,42,82,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #222220;
+    --header: #0f1e36; --header-ink: #ffffff; --header-sub: #9fb6d6;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #95938c; --grid: #2c2c2a; --axis: #45453f;
+    --border: rgba(255,255,255,0.10); --accent: #3987e5; --accent-soft: #1c3b63; --marker: #cde2fb;
+    --up: #2fbf2f; --down: #e66767;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
+    --seq-0: #1f2530; --seq-1: #184f95; --seq-2: #1c5cab; --seq-3: #256abf; --seq-4: #2a78d6; --seq-5: #5598e7; --seq-6: #9ec5f4;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #222220;
+  --header: #0f1e36; --header-ink: #ffffff; --header-sub: #9fb6d6;
+  --ink: #ffffff; --ink-2: #c3c2b7; --muted: #95938c; --grid: #2c2c2a; --axis: #45453f;
+  --border: rgba(255,255,255,0.10); --accent: #3987e5; --accent-soft: #1c3b63; --marker: #cde2fb;
+  --up: #2fbf2f; --down: #e66767;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
+  --seq-0: #1f2530; --seq-1: #184f95; --seq-2: #1c5cab; --seq-3: #256abf; --seq-4: #2a78d6; --seq-5: #5598e7; --seq-6: #9ec5f4;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--page); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+header.top { background: var(--header); color: var(--header-ink); }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+.top .wrap { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; padding-top: 22px; padding-bottom: 20px; }
+.top h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.top .sub { color: var(--header-sub); font-size: 13px; margin-top: 4px; }
+.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.controls label { font-size: 12px; color: var(--header-sub); }
+select, .seg button, .btn {
+  font: inherit; font-size: 13px; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; cursor: pointer;
+}
+.top select { background: rgba(255,255,255,0.1); color: var(--header-ink); border-color: rgba(255,255,255,0.25); }
+.top select option { color: #0b0b0b; }
+.top .btn { background: transparent; color: var(--header-ink); border-color: rgba(255,255,255,0.25); }
+main .wrap { padding-top: 20px; padding-bottom: 48px; }
+section { margin-top: 28px; }
+section:first-child { margin-top: 0; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.sec-head h2 { margin: 0; font-size: 16px; font-weight: 700; }
+.sec-head p { margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; border-radius: 0; padding: 6px 12px; background: transparent; color: var(--ink-2); }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 16px 18px; min-width: 0; }
+.card h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.card .desc { margin: 2px 0 10px; color: var(--muted); font-size: 12px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.kpi .label { font-size: 12px; color: var(--ink-2); }
+.kpi .value { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-top: 2px; line-height: 1.2; }
+.kpi .value small { font-size: 14px; font-weight: 600; color: var(--ink-2); margin-left: 2px; }
+.kpi .meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.delta { font-weight: 600; }
+.delta.up { color: var(--up); } .delta.down { color: var(--down); } .delta.flat { color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin: 0 0 8px; padding: 0; list-style: none; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legend i.line { height: 2px; border-radius: 1px; vertical-align: 3px; width: 14px; }
+.empty { color: var(--muted); font-size: 13px; padding: 28px 8px; text-align: center; background: var(--surface-2); border-radius: 8px; }
+/* 항목 카드 */
+.dim table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.dim th { text-align: right; font-weight: 500; color: var(--muted); font-size: 11px; padding: 0 0 6px 8px; white-space: nowrap; }
+.dim th:first-child { text-align: left; padding-left: 0; }
+.dim td { padding: 4px 0 4px 8px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.dim td.name { text-align: left; padding-left: 0; color: var(--ink); max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+.dim td.barcell { width: 42%; padding-left: 10px; }
+.bar { position: relative; height: 12px; }
+.bar .fill { position: absolute; left: 0; top: 1px; bottom: 1px; background: var(--accent); border-radius: 0 4px 4px 0; min-width: 2px; }
+.bar .mk { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: var(--marker); border-radius: 1px; }
+.dim tr:hover td { background: var(--surface-2); }
+.dim .more { margin-top: 6px; font-size: 12px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+.key .sw { width: 22px; height: 10px; background: var(--accent); border-radius: 0 3px 3px 0; }
+.key .mk { width: 2px; height: 14px; background: var(--marker); }
+/* 히트맵 */
+.heat { width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 12px; }
+.heat th { font-weight: 500; color: var(--muted); font-size: 11px; padding: 4px; }
+.heat th.row { text-align: left; color: var(--ink); font-size: 12px; white-space: nowrap; }
+.heat td { text-align: center; padding: 7px 4px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.heat td.na { color: var(--muted); background: var(--surface-2); }
+.scale { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); margin-top: 8px; }
+.scale b { display: inline-block; width: 22px; height: 10px; }
+#tip {
+  position: fixed; pointer-events: none; z-index: 20; opacity: 0; transition: opacity .08s;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); padding: 8px 10px; font-size: 12px; min-width: 120px;
+}
+#tip .t { font-weight: 600; margin-bottom: 4px; }
+#tip .r { display: flex; justify-content: space-between; gap: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+#tip .r b { color: var(--ink); font-weight: 600; }
+#tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 36px; }
+.loading { opacity: .55; transition: opacity .15s; }
+@media (max-width: 1080px) { .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .wrap { padding: 0 16px; } .kpi .value { font-size: 24px; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>닥터빌 회원 대시보드</h1>
+      <div class="sub" id="subtitle">데이터를 불러오는 중…</div>
+    </div>
+    <div class="controls">
+      <label for="weekSel">기준 주차</label>
+      <select id="weekSel" aria-label="기준 주차 선택"></select>
+      <button class="btn" id="themeBtn" type="button" aria-label="화면 테마 전환">테마</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap" id="app">
+    <section>
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <div>
+          <h2>주간 추이</h2>
+          <p>가입일시 기준 주간(월~일) 집계입니다. 활성·동의율은 매주 쌓이는 스냅샷으로 추적합니다.</p>
+        </div>
+        <div class="seg" role="group" aria-label="추이 기간">
+          <button type="button" data-range="12">12주</button>
+          <button type="button" data-range="26" aria-pressed="true">26주</button>
+          <button type="button" data-range="52">52주</button>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>주간 신규 가입</h3><p class="desc">막대: 주간 신규 · 선: 4주 이동평균</p>
+          <ul class="legend"><li><i style="background:var(--s1)"></i>주간 신규</li><li><i class="line" style="background:var(--s2)"></i>4주 이동평균</li></ul>
+          <div class="chart" id="chNew"></div></div>
+        <div class="card"><h3>누적 회원 수</h3><p class="desc">각 주 일요일 기준 누적 가입자</p><div class="chart" id="chCum"></div></div>
+        <div class="card"><h3>가입경로별 주간 신규</h3><p class="desc">52주 합계 상위 5개 경로 · 그 외(기타·미입력 포함)</p><ul class="legend" id="lgRoute"></ul><div class="chart" id="chRoute"></div></div>
+        <div class="card"><h3>활성·동의율 스냅샷 추이</h3><p class="desc">주간 스냅샷 시점의 비율 (%)</p><ul class="legend" id="lgRate"></ul><div class="chart" id="chRate"></div></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <div>
+          <h2>항목별 특성</h2>
+          <p id="dimSub">전체 회원 구성과 이번 주 변화를 함께 보여줍니다.</p>
+        </div>
+      </div>
+      <div class="key">
+        <span><b class="sw"></b>전체 회원 중 비중</span>
+        <span><b class="mk"></b>최근 4주 신규 가입자 중 비중 (막대보다 오른쪽이면 최근 유입이 늘어난 항목)</span>
+        <span id="keyDelta">증감: 직전 스냅샷 대비 회원 수 변화</span>
+      </div>
+      <div class="grid3" id="dims"></div>
+    </section>
+
+    <section>
+      <div class="sec-head"><div><h2>진료과별 연령 구성</h2><p>회원 수 상위 12개 진료과, 행 기준 비율 (%)</p></div></div>
+      <div class="card" style="overflow-x:auto"><div id="heat"></div></div>
+    </section>
+
+    <footer>
+      이 페이지는 집계 수치만 게시합니다. 회원 USN·이메일·면허번호·병원명 등 개인 식별 정보는 포함하지 않으며,
+      <span id="minCell">3</span>명 미만 항목은 "기타(소수)"로 합쳐 표시합니다. 데이터는 매주 월요일 09:00(KST) 자동 갱신됩니다.
+    </footer>
+  </div>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  var fmt = function (n) { return typeof n === 'number' ? n.toLocaleString('ko-KR') : String(n); };
+  var css = function (v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var NS = 'http://www.w3.org/2000/svg';
+  var state = { index: null, snap: null, prev: null, range: 26 };
+
+  // ---- 테마 --------------------------------------------------------------
+  try { var t = localStorage.getItem('mv-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  $('#themeBtn').addEventListener('click', function () {
+    var cur = document.documentElement.getAttribute('data-theme') ||
+      (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('mv-theme', next); } catch (e) {}
+    renderAll();
+  });
+
+  // ---- 툴팁 --------------------------------------------------------------
+  var tip = $('#tip');
+  function showTip(html, ev) {
+    tip.innerHTML = html; tip.style.opacity = 1;
+    var x = ev.clientX + 14, y = ev.clientY + 14, w = tip.offsetWidth, h = tip.offsetHeight;
+    if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+    if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  function hideTip() { tip.style.opacity = 0; }
+  function tipRows(title, rows) {
+    return '<div class="t">' + esc(title) + '</div>' + rows.map(function (r) {
+      return '<div class="r"><span>' + (r.color ? '<i style="background:' + r.color + '"></i>' : '') + esc(r.k) + '</span><b>' + esc(r.v) + '</b></div>';
+    }).join('');
+  }
+
+  // ---- 데이터 로드 -------------------------------------------------------
+  function getJson(u) { return fetch(u, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); }); }
+
+  function load(week) {
+    var list = state.index.snapshots;
+    var i = list.findIndex(function (s) { return s.week === week; });
+    $('#app').classList.add('loading');
+    return Promise.all([
+      getJson('data/snapshots/' + week + '.json'),
+      i > 0 ? getJson('data/snapshots/' + list[i - 1].week + '.json').catch(function () { return null; }) : Promise.resolve(null)
+    ]).then(function (res) {
+      state.snap = res[0]; state.prev = res[1];
+      $('#app').classList.remove('loading');
+      renderAll();
+    });
+  }
+
+  getJson('data/index.json').then(function (idx) {
+    state.index = idx;
+    var sel = $('#weekSel');
+    idx.snapshots.slice().reverse().forEach(function (s) {
+      var o = document.createElement('option');
+      o.value = s.week; o.textContent = s.week + ' (' + s.weekStart.slice(5) + '~' + s.weekEnd.slice(5) + ')';
+      sel.appendChild(o);
+    });
+    sel.addEventListener('change', function () { load(sel.value); });
+    return load(idx.snapshots[idx.snapshots.length - 1].week);
+  }).catch(function (e) {
+    $('#subtitle').textContent = '데이터를 불러오지 못했습니다: ' + e.message;
+  });
+
+  document.querySelectorAll('.seg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.seg button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      state.range = +b.dataset.range; renderTrends();
+    });
+  });
+  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(renderTrends, 120); });
+
+  function renderAll() {
+    if (!state.snap) return;
+    var s = state.snap;
+    $('#subtitle').textContent = '기준 주차 ' + s.week + ' (' + s.weekStart + ' ~ ' + s.weekEnd + ') · 집계 ' + s.generatedAtKst + ' KST';
+    $('#minCell').textContent = s.minCell;
+    $('#keyDelta').textContent = state.prev ? '증감: 직전 스냅샷(' + state.prev.week + ') 대비 회원 수 변화' : '증감: 직전 스냅샷이 쌓이면 표시됩니다 (현재는 이번 주 신규만 표시)';
+    renderKpis(); renderTrends(); renderDims(); renderHeat();
+  }
+
+  // ---- KPI --------------------------------------------------------------
+  function deltaHtml(d, unit, digits) {
+    if (d == null || isNaN(d)) return '';
+    var r = Math.round(d * Math.pow(10, digits || 0)) / Math.pow(10, digits || 0);
+    var cls = r > 0 ? 'up' : r < 0 ? 'down' : 'flat';
+    var sign = r > 0 ? '▲ ' : r < 0 ? '▼ ' : '– ';
+    return '<span class="delta ' + cls + '">' + sign + fmt(Math.abs(r)) + unit + '</span>';
+  }
+  function renderKpis() {
+    var k = state.snap.kpi, p = state.prev && state.prev.kpi;
+    var wkChange = k.newPrevWeek ? (k.newWeek - k.newPrevWeek) / k.newPrevWeek * 100 : null;
+    var avg4 = Math.round(k.new4w / 4);
+    var items = [
+      { label: '전체 회원', value: fmt(k.total), unit: '명',
+        meta: p ? deltaHtml(k.total - p.total, '명') + ' 직전 스냅샷 대비' : '이번 주 신규 +' + fmt(k.newWeek) + '명' },
+      { label: '주간 신규 가입', value: fmt(k.newWeek), unit: '명',
+        meta: deltaHtml(wkChange, '%', 1) + ' 전주(' + fmt(k.newPrevWeek) + '명) 대비' },
+      { label: '최근 4주 신규', value: fmt(k.new4w), unit: '명', meta: '주 평균 ' + fmt(avg4) + '명' },
+      { label: '7일 내 로그인', value: fmt(k.active7Rate), unit: '%',
+        meta: fmt(k.active7) + '명' + (p ? ' · ' + deltaHtml(k.active7Rate - p.active7Rate, '%p', 2) : '') },
+      { label: '30일 내 로그인', value: fmt(k.active30Rate), unit: '%',
+        meta: fmt(k.active30) + '명' + (p ? ' · ' + deltaHtml(k.active30Rate - p.active30Rate, '%p', 2) : '') },
+      { label: '통합회원 전환율', value: fmt(k.integratedRate), unit: '%', meta: p ? deltaHtml(k.integratedRate - p.integratedRate, '%p', 2) + ' 직전 대비' : '전체 회원 기준' },
+      { label: 'SMS 수신 동의율', value: fmt(k.smsOptInRate), unit: '%', meta: p ? deltaHtml(k.smsOptInRate - p.smsOptInRate, '%p', 2) + ' 직전 대비' : '미설정 포함 전체 기준' },
+      { label: '이메일 수신 동의율', value: fmt(k.emailOptInRate), unit: '%', meta: p ? deltaHtml(k.emailOptInRate - p.emailOptInRate, '%p', 2) + ' 직전 대비' : '미설정 포함 전체 기준' }
+    ];
+    $('#kpis').innerHTML = items.map(function (it) {
+      return '<div class="card kpi"><div class="label">' + it.label + '</div><div class="value">' + it.value + '<small>' + it.unit + '</small></div><div class="meta">' + it.meta + '</div></div>';
+    }).join('');
+  }
+
+  // ---- SVG 차트 공통 ----------------------------------------------------
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var a in attrs) e.setAttribute(a, attrs[a]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function niceMax(v) {
+    if (v <= 0) return 1;
+    var p = Math.pow(10, Math.floor(Math.log10(v))), n = v / p;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+  }
+  function short(n) { return n >= 10000 ? (n / 10000).toFixed(n % 10000 ? 1 : 0) + '만' : fmt(n); }
+  function frame(host, opts) {
+    host.innerHTML = '';
+    var W = Math.max(280, host.clientWidth || 560), H = opts.h || 220;
+    var m = { l: opts.ml || 44, r: 12, t: 10, b: 26 };
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': opts.label || '' }, host);
+    var iw = W - m.l - m.r, ih = H - m.t - m.b;
+    var lo = opts.min || 0, hi = opts.max;
+    var y = function (v) { return m.t + ih - (v - lo) / (hi - lo) * ih; };
+    var ticks = Number.isInteger((hi - lo) / 4) ? 4 : 5;
+    for (var i = 0; i <= ticks; i++) {
+      var v = lo + (hi - lo) * i / ticks, yy = y(v);
+      el('line', { x1: m.l, x2: W - m.r, y1: yy, y2: yy, stroke: i === 0 ? css('--axis') : css('--grid'), 'stroke-width': 1 }, svg);
+      var t = el('text', { x: m.l - 6, y: yy + 4, 'text-anchor': 'end' }, svg); t.textContent = opts.fmtY ? opts.fmtY(v) : short(v);
+    }
+    return { svg: svg, W: W, H: H, m: m, iw: iw, ih: ih, y: y };
+  }
+  function xLabels(f, labels, xOf) {
+    var n = labels.length, step = Math.ceil(n / Math.max(2, Math.floor(f.iw / 64)));
+    for (var i = 0; i < n; i += step) {
+      var t = el('text', { x: xOf(i), y: f.H - 8, 'text-anchor': 'middle' }, f.svg); t.textContent = labels[i];
+    }
+  }
+  // 호버 레이어: 열 단위 hit 영역
+  function hoverCols(f, n, xOf, bw, html, onHi) {
+    var g = el('g', {}, f.svg);
+    var cross = el('line', { y1: f.m.t, y2: f.m.t + f.ih, stroke: css('--axis'), 'stroke-width': 1, opacity: 0 }, g);
+    for (var i = 0; i < n; i++) (function (i) {
+      var r = el('rect', { x: xOf(i) - bw / 2, y: f.m.t, width: Math.max(bw, 4), height: f.ih, fill: 'transparent', tabindex: 0 }, g);
+      var on = function (ev) { cross.setAttribute('x1', xOf(i)); cross.setAttribute('x2', xOf(i)); cross.setAttribute('opacity', 1); if (onHi) onHi(i); showTip(html(i), ev.clientX != null ? ev : fakeEv(r)); };
+      r.addEventListener('mousemove', on); r.addEventListener('focus', on);
+      r.addEventListener('mouseleave', function () { cross.setAttribute('opacity', 0); if (onHi) onHi(-1); hideTip(); });
+      r.addEventListener('blur', function () { cross.setAttribute('opacity', 0); if (onHi) onHi(-1); hideTip(); });
+    })(i);
+  }
+  function fakeEv(node) { var b = node.getBoundingClientRect(); return { clientX: b.left + b.width / 2, clientY: b.top }; }
+  function barPath(x, y0, w, y1) { // 상단만 4px 라운드, 기준선에 붙음
+    var h = y0 - y1; if (h <= 0) return '';
+    var r = Math.min(4, w / 2, h);
+    return 'M' + x + ',' + y0 + 'V' + (y1 + r) + 'Q' + x + ',' + y1 + ' ' + (x + r) + ',' + y1 + 'H' + (x + w - r) + 'Q' + (x + w) + ',' + y1 + ' ' + (x + w) + ',' + (y1 + r) + 'V' + y0 + 'Z';
+  }
+  function wkLabel(w) { return w.start.slice(5).replace('-', '/'); }
+
+  // ---- 추이 차트 --------------------------------------------------------
+  function renderTrends() {
+    if (!state.snap) return;
+    var all = state.snap.weekly, data = all.slice(-state.range);
+    var off = all.length - data.length;
+    var labels = data.map(wkLabel);
+
+    // 1) 주간 신규 + 4주 이동평len
+    (function () {
+      var host = $('#chNew');
+      var ma = data.map(function (_, i) { var j = i + off, s = 0, c = 0; for (var k = Math.max(0, j - 3); k <= j; k++) { s += all[k].new; c++; } return s / c; });
+      var f = frame(host, { max: niceMax(Math.max.apply(null, data.map(function (d) { return d.new; }))), label: '주간 신규 가입 추이' });
+      var bw = f.iw / data.length, gap = Math.min(2, bw * 0.25);
+      var xOf = function (i) { return f.m.l + bw * i + bw / 2; };
+      var bars = data.map(function (d, i) {
+        return el('path', { d: barPath(f.m.l + bw * i + gap / 2, f.y(0), bw - gap, f.y(d.new)), fill: css('--s1') }, f.svg);
+      });
+      el('path', { d: ma.map(function (v, i) { return (i ? 'L' : 'M') + xOf(i) + ',' + f.y(v); }).join(''), fill: 'none', stroke: css('--s2'), 'stroke-width': 2, 'stroke-linejoin': 'round' }, f.svg);
+      var last = data.length - 1;
+      var lt = el('text', { x: xOf(last), y: f.y(data[last].new) - 6, 'text-anchor': 'end', style: 'fill:var(--ink);font-weight:600' }, f.svg); lt.textContent = fmt(data[last].new);
+      xLabels(f, labels, xOf);
+      hoverCols(f, data.length, xOf, bw, function (i) {
+        return tipRows(data[i].week + ' (' + data[i].start.slice(5) + '~' + data[i].end.slice(5) + ')', [
+          { k: '신규 가입', v: fmt(data[i].new) + '명', color: css('--s1') }, { k: '4주 이동평균', v: fmt(Math.round(ma[i])) + '명', color: css('--s2') }]);
+      }, function (h) { bars.forEach(function (b, i) { b.setAttribute('opacity', h < 0 || h === i ? 1 : 0.45); }); });
+    })();
+
+    // 2) 누적
+    (function () {
+      var host = $('#chCum');
+      var vals = data.map(function (d) { return d.cumulative; });
+      var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+      var pad = Math.max(1, (mx - mn) * 0.15), lo = Math.max(0, Math.floor((mn - pad) / 100) * 100), hi = Math.ceil((mx + pad) / 100) * 100;
+      var f = frame(host, { min: lo, max: hi, ml: 52, label: '누적 회원 수 추이' });
+      var n = data.length, xOf = function (i) { return f.m.l + (n === 1 ? f.iw / 2 : f.iw * i / (n - 1)); };
+      el('path', { d: vals.map(function (v, i) { return (i ? 'L' : 'M') + xOf(i) + ',' + f.y(v); }).join(''), fill: 'none', stroke: css('--s1'), 'stroke-width': 2, 'stroke-linejoin': 'round' }, f.svg);
+      el('circle', { cx: xOf(n - 1), cy: f.y(vals[n - 1]), r: 4, fill: css('--s1'), stroke: css('--surface'), 'stroke-width': 2 }, f.svg);
+      var t = el('text', { x: xOf(n - 1), y: f.y(vals[n - 1]) - 10, 'text-anchor': 'end', style: 'fill:var(--ink);font-weight:600' }, f.svg); t.textContent = fmt(vals[n - 1]);
+      var dot = el('circle', { r: 4, fill: css('--s1'), stroke: css('--surface'), 'stroke-width': 2, opacity: 0 }, f.svg);
+      xLabels(f, labels, xOf);
+      hoverCols(f, n, xOf, f.iw / Math.max(1, n - 1), function (i) {
+        return tipRows(data[i].week + ' 말 기준', [{ k: '누적 회원', v: fmt(vals[i]) + '명' }, { k: '해당 주 신규', v: '+' + fmt(data[i].new) }]);
+      }, function (h) { if (h < 0) dot.setAttribute('opacity', 0); else { dot.setAttribute('cx', xOf(h)); dot.setAttribute('cy', f.y(vals[h])); dot.setAttribute('opacity', 1); } });
+    })();
+
+    // 3) 가입경로 누적 막대
+    (function () {
+      var host = $('#chRoute');
+      // 색상은 항목을 따라가도록 기간 토글과 무관하게 52주 합계 상위 5개로 고정
+      var sums = {};
+      all.forEach(function (w) { Object.keys(w.route).forEach(function (k) { sums[k] = (sums[k] || 0) + w.route[k]; }); });
+      var order = Object.keys(sums).filter(function (n) { return n !== '미입력' && n !== '기타(소수)' && n !== '기타'; })
+        .sort(function (a, b) { return sums[b] - sums[a]; }).slice(0, 5);
+      var keys = order.concat(['그 외']);
+      var colors = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6'].map(css);
+      var rows = data.map(function (d) {
+        var o = {}, rest = 0;
+        Object.keys(d.route).forEach(function (k) { if (order.indexOf(k) > -1) o[k] = d.route[k]; else rest += d.route[k]; });
+        o['그 외'] = rest; return o;
+      });
+      $('#lgRoute').innerHTML = keys.map(function (k, i) { return '<li><i style="background:' + colors[i] + '"></i>' + esc(k) + '</li>'; }).join('');
+      var f = frame(host, { max: niceMax(Math.max.apply(null, data.map(function (d) { return d.new; }))), label: '가입경로별 주간 신규' });
+      var bw = f.iw / data.length, gap = Math.min(2, bw * 0.25);
+      var xOf = function (i) { return f.m.l + bw * i + bw / 2; };
+      var cols = rows.map(function (r, i) {
+        var g = el('g', {}, f.svg), acc = 0, x = f.m.l + bw * i + gap / 2, w = bw - gap;
+        var top = keys.reduce(function (t, k) { return (r[k] || 0) > 0 ? k : t; }, null);
+        keys.forEach(function (k, ci) {
+          var v = r[k] || 0; if (!v) return;
+          var y0 = f.y(acc), y1 = f.y(acc + v); acc += v;
+          var hgt = y0 - y1 - (k === top ? 0 : 2); if (hgt <= 0) return;
+          if (k === top) el('path', { d: barPath(x, y0, w, y1), fill: colors[ci] }, g);
+          else el('rect', { x: x, y: y1 + 2, width: w, height: hgt, fill: colors[ci] }, g);
+        });
+        return g;
+      });
+      xLabels(f, labels, xOf);
+      hoverCols(f, data.length, xOf, bw, function (i) {
+        return tipRows(data[i].week + ' 신규 ' + fmt(data[i].new) + '명', keys.map(function (k, ci) { return { k: k, v: fmt(rows[i][k] || 0), color: colors[ci] }; }).reverse());
+      }, function (h) { cols.forEach(function (g, i) { g.setAttribute('opacity', h < 0 || h === i ? 1 : 0.45); }); });
+    })();
+
+    // 4) 스냅샷 비율 추이
+    (function () {
+      var host = $('#chRate');
+      var hist = state.index.snapshots.filter(function (s) { return s.week <= state.snap.week; }).slice(-state.range);
+      var defs = [
+        { k: 'active7Rate', n: '7일 내 로그인', c: css('--s1') },
+        { k: 'integratedRate', n: '통합회원 전환', c: css('--s2') },
+        { k: 'smsOptInRate', n: 'SMS 수신', c: css('--s3') },
+        { k: 'emailOptInRate', n: '이메일 수신', c: css('--s4') }
+      ];
+      $('#lgRate').innerHTML = defs.map(function (d) { return '<li><i class="line" style="background:' + d.c + '"></i>' + d.n + '</li>'; }).join('');
+      if (hist.length < 2) {
+        host.innerHTML = '<div class="empty">스냅샷이 2주 이상 쌓이면 추이가 표시됩니다.<br>현재 ' + hist.length + '개 · ' +
+          defs.map(function (d) { return d.n + ' ' + fmt(hist.length ? hist[hist.length - 1][d.k] : 0) + '%'; }).join(' · ') + '</div>';
+        return;
+      }
+      var f = frame(host, { min: 0, max: 100, fmtY: function (v) { return v + '%'; }, label: '활성·동의율 추이' });
+      var n = hist.length, xOf = function (i) { return f.m.l + f.iw * i / (n - 1); };
+      defs.forEach(function (d) {
+        el('path', { d: hist.map(function (h, i) { return (i ? 'L' : 'M') + xOf(i) + ',' + f.y(h[d.k]); }).join(''), fill: 'none', stroke: d.c, 'stroke-width': 2 }, f.svg);
+        el('circle', { cx: xOf(n - 1), cy: f.y(hist[n - 1][d.k]), r: 4, fill: d.c, stroke: css('--surface'), 'stroke-width': 2 }, f.svg);
+      });
+      xLabels(f, hist.map(function (h) { return h.weekStart.slice(5).replace('-', '/'); }), xOf);
+      hoverCols(f, n, xOf, f.iw / (n - 1), function (i) {
+        return tipRows(hist[i].week, defs.map(function (d) { return { k: d.n, v: fmt(hist[i][d.k]) + '%', color: d.c }; }));
+      });
+    })();
+  }
+
+  // ---- 항목 카드 --------------------------------------------------------
+  var DIM_ORDER = ['job', 'dept', 'region', 'route', 'age', 'gender', 'status', 'integrated', 'recency', 'sms', 'email'];
+  var DIM_DESC = {
+    job: '근무처 유형', dept: '주 진료과명 기준', region: '근무처 소재 시도', route: '회원 가입 시 선택한 경로',
+    age: '나이 기준 10세 구간', gender: '', status: '가입 채널별 회원 상태', integrated: '통합회원 전환 여부',
+    recency: '집계 시점 기준 마지막 로그인 경과 기간', sms: '마케팅 SMS 수신 설정', email: '마케팅 이메일 수신 설정'
+  };
+  var expanded = {};
+  function renderDims() {
+    var s = state.snap, p = state.prev;
+    $('#dimSub').textContent = '전체 회원 구성과 ' + s.week + ' 주간 신규 가입자를 함께 보여줍니다.';
+    $('#dims').innerHTML = DIM_ORDER.map(function (key) {
+      var d = s.dims[key]; if (!d) return '';
+      var prevMap = {};
+      if (p && p.dims[key]) p.dims[key].rows.forEach(function (r) { prevMap[r.name] = r.count; });
+      var max = Math.max.apply(null, d.rows.map(function (r) { return Math.max(r.share, r.newShare4w); }));
+      var limit = expanded[key] ? d.rows.length : 8;
+      var rows = d.rows.slice(0, limit).map(function (r) {
+        var dl = p ? (prevMap[r.name] != null ? r.count - prevMap[r.name] : null) : null;
+        var dcell = p ? (dl == null ? '<span class="delta flat">신규</span>' : deltaHtml(dl, '')) : (typeof r.newWeek === 'number' && r.newWeek > 0 ? '<span class="delta up">+' + fmt(r.newWeek) + '</span>' : '<span class="delta flat">' + esc(r.newWeek || '–') + '</span>');
+        return '<tr data-k="' + esc(key) + '" data-n="' + esc(r.name) + '"><td class="name" title="' + esc(r.name) + '">' + esc(r.name) + '</td>' +
+          '<td class="barcell"><div class="bar"><div class="fill" style="width:' + (r.share / max * 100) + '%"></div><div class="mk" style="left:' + (r.newShare4w / max * 100) + '%"></div></div></td>' +
+          '<td>' + fmt(r.share) + '%</td><td>' + fmt(r.count) + '</td><td>' + dcell + '</td></tr>';
+      }).join('');
+      var more = d.rows.length > 8 ? '<button class="more" type="button" data-more="' + key + '">' + (expanded[key] ? '접기' : '전체 ' + d.rows.length + '개 보기') + '</button>' : '';
+      return '<div class="card dim"><h3>' + esc(d.label) + '</h3><p class="desc">' + (DIM_DESC[key] || '&nbsp;') + '</p>' +
+        '<table><thead><tr><th>항목</th><th style="text-align:left;padding-left:10px">비중</th><th>%</th><th>회원</th><th>' + (p ? '증감' : '주간 신규') + '</th></tr></thead><tbody>' + rows + '</tbody></table>' + more + '</div>';
+    }).join('');
+    $('#dims').querySelectorAll('[data-more]').forEach(function (b) {
+      b.addEventListener('click', function () { expanded[b.dataset.more] = !expanded[b.dataset.more]; renderDims(); });
+    });
+    $('#dims').querySelectorAll('tr[data-k]').forEach(function (tr) {
+      tr.addEventListener('mousemove', function (ev) {
+        var d = s.dims[tr.dataset.k], r = d.rows.find(function (x) { return x.name === tr.dataset.n; });
+        var lift = r.share ? (r.newShare4w / r.share) : 0;
+        showTip(tipRows(d.label + ' · ' + r.name, [
+          { k: '회원 수', v: fmt(r.count) + '명' }, { k: '전체 중 비중', v: fmt(r.share) + '%' },
+          { k: '최근 4주 신규 중 비중', v: fmt(r.newShare4w) + '%' },
+          { k: '신규 유입 강도', v: r.share ? (lift >= 1 ? '평균 대비 ' + lift.toFixed(2) + '배' : '평균 대비 ' + lift.toFixed(2) + '배') : '–' },
+          { k: s.week + ' 신규', v: fmt(r.newWeek) + '명' }]), ev);
+      });
+      tr.addEventListener('mouseleave', hideTip);
+    });
+  }
+
+  // ---- 히트맵 -----------------------------------------------------------
+  function renderHeat() {
+    var h = state.snap.deptAge;
+    var seq = ['--seq-0', '--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5', '--seq-6'];
+    var ages = h.ages.filter(function (a) { return a !== '확인필요'; });
+    var ai = ages.map(function (a) { return h.ages.indexOf(a); });
+    var bin = function (v) { return v >= 40 ? 6 : v >= 30 ? 5 : v >= 22 ? 4 : v >= 15 ? 3 : v >= 8 ? 2 : v >= 3 ? 1 : 0; };
+    var html = '<table class="heat"><thead><tr><th></th>' + ages.map(function (a) { return '<th>' + a + '</th>'; }).join('') + '<th>회원</th></tr></thead><tbody>' +
+      h.rows.map(function (r) {
+        return '<tr><th class="row">' + esc(r.dept) + '</th>' + ai.map(function (i) {
+          var v = r.cells[i];
+          if (v == null) return '<td class="na">–</td>';
+          var b = bin(v);
+          return '<td style="background:var(' + seq[b] + ');color:' + (b >= 4 ? '#fff' : 'var(--ink)') + '">' + v.toFixed(1) + '</td>';
+        }).join('') + '<td style="color:var(--ink-2)">' + fmt(r.total) + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<div class="scale">낮음' + seq.map(function (c) { return '<b style="background:var(' + c + ')"></b>'; }).join('') + '높음 · 구간: 3 / 8 / 15 / 22 / 30 / 40% · "–"는 3명 미만</div>';
+    $('#heat').innerHTML = html;
+  }
+})();
+</script>
+</body>
+</html>
