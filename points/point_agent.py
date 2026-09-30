@@ -33,10 +33,18 @@ import sys
 import threading
 import time
 import traceback
+import ssl
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = "1.0.0"
+
+# 사내 보안 프로그램(SSL 검사)의 인증서가 Python 3.13+의 엄격 검사(AKI 누락 등)에 걸리는 경우 대비:
+# 인증서 체인·호스트 검증은 그대로 유지하고 X509 '엄격' 플래그만 해제한다.
+SSL_CTX = ssl.create_default_context()
+if hasattr(ssl, "VERIFY_X509_STRICT"):
+    SSL_CTX.verify_flags &= ~ssl.VERIFY_X509_STRICT
+
+VERSION = "1.2.0"
 HERE = os.path.dirname(os.path.abspath(__file__))
 KST = dt.timezone(dt.timedelta(hours=9))
 
@@ -120,6 +128,7 @@ USE_RULES = [
     (r"소멸", "포인트 소멸"),
     (r"테스트|회수", "테스트·조정"),
     (r"네이버", "네이버포인트 전환"),
+    (r"(?i)payco|페이코", "Payco 전환"),
     (r"비즈마켓", "비즈마켓"),
     (r"하늘맛", "하늘맛"),
     (r"제로샵", "제로샵"),
@@ -159,9 +168,9 @@ ALIASES = {
     "usn": ["USN", "회원USN", "회원번호", "회원No", "회원ID", "회원아이디", "아이디", "ID", "user_id", "userid",
             "member_id", "mem_no", "memno", "usr_no"],
     "ts": ["날짜", "일시", "일자", "등록일", "등록일시", "적립일", "적립일시", "사용일", "사용일시", "거래일시",
-           "발생일시", "처리일시", "변동일시", "created_at", "createdat", "reg_date", "regdate", "date", "datetime"],
-    "type": ["포인트 증감 구분", "증감구분", "증감 구분", "구분", "유형", "적립구분", "타입", "type", "point_type"],
-    "content": ["내용", "사유", "적립사유", "사용사유", "사용처", "상세", "상세내용", "비고", "content", "memo",
+           "발생일시", "처리일시", "변동일시", "created_at", "createdat", "reg_date", "regdate", "reg_dt", "date", "datetime"],
+    "type": ["포인트 증감 구분", "증감구분", "증감 구분", "구분", "유형", "적립구분", "타입", "type", "point_type", "use_ty"],
+    "content": ["내용", "처리내용", "사유", "적립사유", "사용사유", "사용처", "상세", "상세내용", "비고", "content", "memo",
                 "description", "reason", "title"],
     "amt": ["적립 포인트", "적립포인트", "포인트", "증감 포인트", "증감포인트", "포인트금액", "금액", "변동포인트",
             "point", "points", "amount"],
@@ -235,6 +244,9 @@ def parse_num(v):
 
 
 USE_WORDS = re.compile(r"사용|차감|소멸|회수|전환|결제")
+# 구→신 시스템 이관(2025-04-19) 시 잔액을 옮겨 적은 행. 2015년부터 원장을 모두 적재하므로
+# 이 행까지 넣으면 적립·잔여가 이중 계산된다 → 적재 제외
+MIGRATION_RE = re.compile(r"포인트\s*이관")
 
 
 def iter_rows(path):
@@ -251,6 +263,7 @@ def iter_rows(path):
         iu, it, ia, iuse = col["usn"], col["ts"], col.get("amt"), col.get("use")
         ity, ic = col.get("type"), col.get("content")
         bad = 0
+        mig = 0
         for row in rd:
             if not row:
                 continue
@@ -275,10 +288,15 @@ def iter_rows(path):
             except (IndexError, ValueError):
                 bad += 1
                 continue
+            if MIGRATION_RE.search(content or typ):
+                mig += 1
+                continue
             if not usn or not ts or amt == 0:
                 bad += 1
                 continue
             yield usn, ts, round(amt, 2), content or "(내용 없음)"
+        if mig:
+            log("  · 시스템 이관 행 %d건 제외 (이중 계산 방지)" % mig)
         if bad:
             log("  · 인식 불가/0포인트 행 %d건 제외" % bad)
 
@@ -420,13 +438,15 @@ def aggregate(db, cfg):
     for cid, text in db.execute("SELECT cid, text FROM contents"):
         for pos in (1, 0):
             kind, c = classify(text, bool(pos))
+            if MIGRATION_RE.search(text or ""):      # 시스템 이관(적립·충전 포인트 이관) → 통계 제외
+                kind, c = "skip", "시스템 이관"
             rows.append((cid, pos, kind, c, 1 if (kind == "use" and c in BUY_CATS) else 0))
     db.executemany("INSERT INTO temp.cat VALUES (?,?,?,?,?)", rows)
     J = "FROM tx JOIN temp.cat c ON c.cid = tx.cid AND c.pos = (tx.amt > 0)"
     # 회원·월·내용 단위 요약 (원장 1회 스캔) — 이후 집계는 요약표에서 계산
     db.execute("DROP TABLE IF EXISTS temp.s")
-    db.execute("CREATE TEMP TABLE s AS SELECT substr(ts,1,7) ym, usn, cid, (amt > 0) pos, SUM(amt) a, COUNT(*) n "
-               "FROM tx GROUP BY 1,2,3,4")
+    db.execute("CREATE TEMP TABLE s AS SELECT substr(tx.ts,1,7) ym, tx.usn usn, tx.cid cid, (tx.amt > 0) pos, "
+               "SUM(tx.amt) a, COUNT(*) n %s WHERE c.kind != 'skip' GROUP BY 1,2,3,4" % J)
     S = "FROM temp.s t JOIN temp.cat c ON c.cid = t.cid AND c.pos = t.pos"
 
     r1 = db.execute("SELECT MIN(dmin), MAX(dmax) FROM files").fetchone()
@@ -483,24 +503,81 @@ def aggregate(db, cfg):
         if b >= 100000:
             holders["over100k"] += 1
 
-    # 4) 누적 적립 기준 인원수 (연도별 / 전체 기간)
+    # 4) 잔여 포인트 기준 인원수 — 회원별 월말 잔여(누적 적립+취소−사용−소멸)가 기준 이상인 회원 수
     ths = cfg["earn_user_thresholds"]
+    lv = [0] + list(ths)                         # 0 = 잔여 보유(>0)
+    diff = [[0] * (N + 1) for _ in lv]
+
+    def _mark(i0, i1, b):
+        if i1 <= i0:
+            return
+        for j, t in enumerate(lv):
+            if (b > 0) if t == 0 else (b >= t):
+                diff[j][i0] += 1
+                diff[j][i1] -= 1
+    cu, bal_u, pi = None, 0.0, None
+    for usn, ym, a in db.execute("SELECT usn, ym, SUM(a) FROM temp.s GROUP BY usn, ym ORDER BY usn, ym"):
+        i = mi[ym]
+        if usn != cu:
+            if cu is not None:
+                _mark(pi, N, bal_u)
+            cu, bal_u = usn, 0.0
+        else:
+            _mark(pi, i, bal_u)
+        bal_u += a
+        pi = i
+    if cu is not None:
+        _mark(pi, N, bal_u)
+    lvm = []
+    for j in range(len(lv)):
+        acc, row = 0, []
+        for i in range(N):
+            acc += diff[j][i]
+            row.append(acc)
+        lvm.append(row)
     per_year = {}
-    total_by_user = {}
-    for y, usn, s in db.execute("SELECT substr(ym,1,4), usn, SUM(a) %s WHERE c.kind='earn' GROUP BY 1,2" % S):
-        d = per_year.setdefault(y, {"users": 0, "counts": [0] * len(ths)})
-        d["users"] += 1
-        for j, t in enumerate(ths):
-            if s >= t:
-                d["counts"][j] += 1
-        total_by_user[usn] = total_by_user.get(usn, 0) + s
-    all_counts = [sum(1 for v in total_by_user.values() if v >= t) for t in ths]
-    # 월별 (해당 월 적립 기준)
-    monthly_th = [z() for _ in ths]
-    for ym, s in db.execute("SELECT ym, SUM(a) %s WHERE c.kind='earn' GROUP BY 1, usn" % S):
-        for j, t in enumerate(ths):
-            if s >= t:
-                monthly_th[j][mi[ym]] += 1
+    for i, m in enumerate(months):
+        per_year[m[:4]] = i                     # 연말(진행 중 연도는 마지막 달) 인덱스
+    by_year = {y: {"asOf": months[i], "holders": lvm[0][i], "counts": [lvm[j + 1][i] for j in range(len(ths))]}
+               for y, i in per_year.items()}
+
+    # 4-2) 작년 대비 월별 적립·사용 (현재 = 데이터 마지막 날짜 기준)
+    asof = rng[1][:10]
+    ty, ly = int(asof[:4]), int(asof[:4]) - 1
+    md = asof[5:10]
+    nxt = dt.date(ty + (asof[5:7] == "12"), int(asof[5:7]) % 12 + 1, 1)
+    partial = (nxt - dt.timedelta(days=1)).isoformat() != asof
+    def _series(year, arr, upto=None):
+        out = []
+        for mm in range(1, 13):
+            k = "%04d-%02d" % (year, mm)
+            out.append(None if (k not in mi or (upto and k > upto)) else round(abs(arr[mi[k]])))
+        return out
+    ytd = {}
+    if not partial:   # 월말 기준이면 요약표로 계산 (원장 재스캔 생략)
+        q = ("SELECT substr(ym,1,4), c.kind, SUM(a), COUNT(DISTINCT usn) %s WHERE c.kind IN ('earn','use') "
+             "AND ((ym >= ? AND ym <= ?) OR (ym >= ? AND ym <= ?)) GROUP BY 1,2" % S)
+        prm = ("%d-01" % ly, "%d-%s" % (ly, asof[5:7]), "%d-01" % ty, asof[:7])
+    else:
+        q = ("SELECT substr(tx.ts,1,4), c.kind, SUM(tx.amt), COUNT(DISTINCT tx.usn) %s WHERE c.kind IN ('earn','use') "
+             "AND ((tx.ts >= ? AND tx.ts <= ?) OR (tx.ts >= ? AND tx.ts <= ?)) GROUP BY 1,2" % J)
+        prm = ("%d-01-01" % ly, "%d-%s 23:59:59" % (ly, md), "%d-01-01" % ty, asof + " 23:59:59")
+    for y, kind, sm, u in db.execute(q, prm):
+        ytd[(int(y), kind)] = (round(abs(sm or 0)), u)
+    tot_users = dict(db.execute(
+        "SELECT c.kind, COUNT(DISTINCT usn) %s WHERE c.kind IN ('earn','use') AND ym BETWEEN ? AND ? GROUP BY 1" % S,
+        ("%d-01" % ly, "%d-12" % ly)).fetchall())
+    yoy = {"asOf": asof, "thisYear": ty, "lastYear": ly, "currentMonth": int(asof[5:7]), "partial": partial}
+    for k in ("earn", "use"):
+        la = _series(ly, kinds[k]["amt"])
+        yoy[k] = {
+            "amt": {"cur": _series(ty, kinds[k]["amt"], asof[:7]), "last": la,
+                    "ytdCur": ytd.get((ty, k), (0, 0))[0], "ytdLast": ytd.get((ly, k), (0, 0))[0],
+                    "totalLast": sum(v for v in la if v)},
+            "users": {"cur": _series(ty, users[k], asof[:7]), "last": _series(ly, users[k]),
+                      "ytdCur": ytd.get((ty, k), (0, 0))[1], "ytdLast": ytd.get((ly, k), (0, 0))[1],
+                      "totalLast": tot_users.get(k, 0)},
+        }
 
     # 8-1) 건당 고액 적립
     big = cfg["big_earn_threshold"]
@@ -560,8 +637,9 @@ def aggregate(db, cfg):
         "holders": holders,
         "methods": {k: {c: {"amt": rnd(m["amt"]), "cnt": m["cnt"], "users": m.get("users")} for c, m in v.items()}
                     for k, v in methods.items()},
-        "thresholds": {"values": ths, "all": all_counts, "allUsers": len(total_by_user),
-                       "byYear": per_year, "monthly": monthly_th},
+        "thresholds": {"basis": "balance", "values": ths, "current": [lvm[j + 1][N - 1] for j in range(len(ths))],
+                       "holders": lvm[0][N - 1], "byYear": by_year, "monthly": lvm[1:], "monthlyHolders": lvm[0]},
+        "yoy": yoy,
         "anomaly": {
             "bigEarn": {"threshold": big, "monthly": big_m, "monthlyAmt": rnd(big_amt_m), "byCat": big_by_cat,
                         "total": sum(big_m), "list": big_list},
@@ -569,7 +647,7 @@ def aggregate(db, cfg):
                           "members": rep_total[1], "cats": sorted(BUY_CATS), "list": rep_list},
         },
         "files": files,
-        "rules": {"balance": "데이터 시작 시점 잔액 0 가정, 적립+사용취소-사용-소멸 누적",
+        "rules": {"balance": "데이터 시작 시점 잔액 0 가정, 적립+사용취소-사용-소멸 누적", "excluded": "시스템 이관(적립·충전 포인트 이관) 행 제외",
                   "use": "사용 = 구매·전환 금액(결제 취소·환불은 별도 표시), 소멸 별도"},
     }
     log("집계 완료 (%.0f초) · 기간 %s ~ %s · 거래 %s건 · 회원 %s명" % (
@@ -598,8 +676,21 @@ def get_meta(cfg):
             return json.load(f)
     if "m" in _meta_cache and time.time() - _meta_cache["t"] < 600:
         return _meta_cache["m"]
-    with urllib.request.urlopen(cfg["meta_url"] + "?t=%d" % time.time(), timeout=20) as r:
-        m = json.loads(r.read().decode("utf-8"))
+    local = os.path.join(os.path.dirname(cfg["db_path"]), "meta.json")
+    try:
+        with urllib.request.urlopen(cfg["meta_url"] + "?t=%d" % time.time(), timeout=20, context=SSL_CTX) as r:
+            m = json.loads(r.read().decode("utf-8"))
+        try:
+            with open(local, "w", encoding="utf-8") as f:
+                json.dump(m, f)
+        except Exception:
+            pass
+    except Exception as e:
+        if not os.path.exists(local):
+            raise
+        log("meta.json 온라인 조회 실패(%s) → 로컬 사본 사용" % e)
+        with open(local, encoding="utf-8") as f:
+            m = json.load(f)
     _meta_cache.update(m=m, t=time.time())
     return m
 
@@ -662,7 +753,7 @@ def publish(cfg, box):
                    "User-Agent": "dv-point-agent"}
             sha = None
             try:
-                with urllib.request.urlopen(urllib.request.Request(api + "?ref=" + gh["branch"], headers=hdr), timeout=30) as r:
+                with urllib.request.urlopen(urllib.request.Request(api + "?ref=" + gh["branch"], headers=hdr), timeout=30, context=SSL_CTX) as r:
                     sha = json.loads(r.read())["sha"]
             except urllib.error.HTTPError as e:
                 if e.code != 404:
@@ -672,7 +763,7 @@ def publish(cfg, box):
             if sha:
                 body["sha"] = sha
             req = urllib.request.Request(api, data=json.dumps(body).encode(), headers=hdr, method="PUT")
-            with urllib.request.urlopen(req, timeout=60):
+            with urllib.request.urlopen(req, timeout=60, context=SSL_CTX):
                 pass
             return {"mode": "github", "message": "GitHub에 게시했습니다. 1~2분 후 다른 PC에서도 보입니다."}
         except Exception as e:

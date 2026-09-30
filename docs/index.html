@@ -172,6 +172,15 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
 .yoy-sum .big { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .yoy-sum .lbl { font-size: 12px; color: var(--ink-2); margin-right: 6px; }
 .yoy-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+.yoy tr.grp th.rowh { color: var(--muted); font-weight: 500; font-size: 11.5px; padding-top: 10px; }
+.pyoy-sum { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 32px; margin: 0 0 12px; }
+.pyoy-sum .g { display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: baseline; }
+.pyoy-sum .g + .g { border-left: 1px solid var(--border); padding-left: 32px; }
+.pyoy-sum .grpl { flex-basis: 100%; font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.pyoy-sum .lbl { font-size: 12px; color: var(--ink-2); margin-right: 6px; }
+.pyoy-sum .big { font-size: 20px; font-weight: 700; }
+@media (max-width: 860px) { .pyoy-sum { grid-template-columns: minmax(0, 1fr); } .pyoy-sum .g + .g { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 10px; } }
+.pyoy-grid { margin-top: 16px; }
 /* 화면 전환 탭 */
 .tabs { display: flex; gap: 4px; margin-top: 12px; }
 .tabs button { font: inherit; font-size: 13px; font-weight: 600; color: var(--header-sub); background: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 5px 14px; cursor: pointer; }
@@ -349,6 +358,21 @@ body.locked #gate { display: flex; }
 
     <section class="pdata">
       <div class="sec-head">
+        <div><h2>월별 적립·사용 — 작년 대비</h2><p id="pYoySub">데이터 마지막 날짜 기준 올해와 작년의 같은 달을 비교합니다.</p></div>
+        <div class="seg" id="pYoySeg" role="group" aria-label="비교 항목">
+          <button type="button" data-ymetric="amt" aria-pressed="true">포인트</button>
+          <button type="button" data-ymetric="users">회원 수</button>
+        </div>
+      </div>
+      <div class="card"><div id="pYoy"></div></div>
+      <div class="grid2 pyoy-grid">
+        <div class="card"><h3 id="pYoyEarnT">적립 — 작년 대비</h3><ul class="legend" id="plgYoyE"></ul><div class="chart" id="pchYoyE"></div></div>
+        <div class="card"><h3 id="pYoyUseT">사용 — 작년 대비</h3><ul class="legend" id="plgYoyU"></ul><div class="chart" id="pchYoyU"></div></div>
+      </div>
+    </section>
+
+    <section class="pdata">
+      <div class="sec-head">
         <div><h2>월별 추이</h2><p>적립·사용·잔여 포인트와 1인당 평균 (포인트 = P)</p></div>
         <div class="seg" id="pSeg" role="group" aria-label="추이 기간">
           <button type="button" data-prange="12">12개월</button>
@@ -367,10 +391,10 @@ body.locked #gate { display: flex; }
     </section>
 
     <section class="pdata">
-      <div class="sec-head"><div><h2>④ 고액 적립 회원 수</h2><p>회원별 적립 합계 기준 (사용·소멸 차감 전)</p></div></div>
+      <div class="sec-head"><div><h2>④ 고액 잔여 포인트 보유 회원 수</h2><p>회원별 잔여 포인트(누적 적립 + 사용취소 − 사용 − 소멸) 기준</p></div></div>
       <div class="grid2">
-        <div class="card"><h3>연도별 · 전체 기간 누적 적립</h3><p class="desc">해당 기간 적립 합계가 기준 이상인 회원 수</p><div id="pThTable"></div></div>
-        <div class="card"><h3>월별 — 한 달 적립 기준</h3><p class="desc">해당 월 적립 합계가 기준 이상인 회원 수</p>
+        <div class="card"><h3>연도별 연말 · 현재 잔여 기준</h3><p class="desc">각 연도 말(진행 중 연도는 마지막 달 말) 잔여 포인트가 기준 이상인 회원 수</p><div id="pThTable"></div></div>
+        <div class="card"><h3>월별 — 월말 잔여 기준</h3><p class="desc">해당 월 말 잔여 포인트가 기준 이상인 회원 수</p>
           <ul class="legend" id="plgTh"></ul><div class="chart" id="pchTh"></div></div>
       </div>
     </section>
@@ -617,13 +641,13 @@ body.locked #gate { display: flex; }
     p.catch(function (e) { $('#subtitle').textContent = '데이터를 불러오지 못했습니다: ' + e.message; });
   }
 
-  document.querySelectorAll('.seg button').forEach(function (b) {
+  document.querySelectorAll('.seg button[data-range]').forEach(function (b) {
     b.addEventListener('click', function () {
-      document.querySelectorAll('.seg button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      document.querySelectorAll('.seg button[data-range]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
       state.range = +b.dataset.range; renderTrends();
     });
   });
-  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); }, 120); });
+  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); if (VIEW === 'points' && P.data) renderPYoy(); }, 120); });
 
   function renderAll() {
     if (!state.snap) return;
@@ -1193,7 +1217,7 @@ body.locked #gate { display: flex; }
       $('#pEmpty').innerHTML = '아직 게시된 포인트 집계가 없습니다.<br>포인트 Raw 폴더가 있는 PC에서 「포인트_갱신서버_실행.bat」을 실행한 뒤 상단 <b>[갱신]</b>을 눌러 주세요.';
       return;
     }
-    renderPKpis(); renderPTrends(); renderPTh(); renderPMethods(); renderPAnom(); renderPFiles();
+    renderPKpis(); renderPYoy(); renderPTrends(); renderPTh(); renderPMethods(); renderPAnom(); renderPFiles();
   }
 
   function renderPKpis() {
@@ -1203,8 +1227,9 @@ body.locked #gate { display: flex; }
     var perU = ix.map(function (i) { return d.use.users[i] ? d.use.amt[i] / d.use.users[i] : null; }).filter(function (v) { return v != null; });
     var avg = function (a) { return a.length ? a.reduce(function (t, v) { return t + v; }, 0) / a.length : 0; };
     var th = d.thresholds, thv, thNote;
-    if (P.period.charAt(0) === 'y' && th.byYear[P.period.slice(1)]) { var yy = th.byYear[P.period.slice(1)]; thv = yy.counts; thNote = P.period.slice(1) + '년 적립 합계 기준 · 적립 회원 ' + fmt(yy.users) + '명'; }
-    else { thv = th.all; thNote = '전체 기간 누적 적립 기준 · 적립 회원 ' + fmt(th.allUsers) + '명'; }
+    if (th.basis !== 'balance') { thv = ['–', '–']; thNote = '[갱신] 후 잔여 포인트 기준으로 표시됩니다'; }
+    else if (P.period.charAt(0) === 'y' && th.byYear[P.period.slice(1)]) { var yy = th.byYear[P.period.slice(1)]; thv = yy.counts; thNote = yy.asOf.replace('-', '.') + ' 말 잔여 기준 · 보유 회원 ' + fmt(yy.holders) + '명'; }
+    else { thv = th.current; thNote = d.months[d.months.length - 1].replace('-', '.') + ' 말(현재) 잔여 기준 · 보유 회원 ' + fmt(th.holders) + '명'; }
     var big = sumIdx(d.anomaly.bigEarn.monthly, ix), rep = sumIdx(d.anomaly.repeatBuy.monthly, ix);
     var items = [
       { label: '적립 포인트', value: bigP(earn), unit: 'P', meta: fmt(sumIdx(d.earn.cnt, ix)) + '건 · ' + periodName() },
@@ -1213,7 +1238,7 @@ body.locked #gate { display: flex; }
       { label: '적립 대비 사용률', value: pct(use + exp - can, earn).toFixed(1), unit: '%', meta: '(사용 + 소멸 − 취소) ÷ 적립' },
       { label: '1인당 월평균 적립', value: fmt(Math.round(avg(perE))), unit: 'P', meta: '월 적립 회원 평균 ' + fmt(Math.round(avg(ix.map(function (i) { return d.earn.users[i]; })))) + '명' },
       { label: '1인당 월평균 사용', value: fmt(Math.round(avg(perU))), unit: 'P', meta: '월 사용 회원 평균 ' + fmt(Math.round(avg(ix.map(function (i) { return d.use.users[i]; })))) + '명' },
-      { label: '10만P / 20만P 이상 적립 회원', value: fmt(thv[0]) + ' / ' + fmt(thv[1]), unit: '명', meta: thNote },
+      { label: '잔여 ' + (th.values || [100000, 200000]).map(bigP).join('P / ') + 'P 이상 회원', value: fmt(thv[0]) + ' / ' + fmt(thv[1]), unit: '명', meta: thNote },
       { label: '이상치 (고액 적립 / 반복 구매)', value: fmt(big) + ' / ' + fmt(rep), unit: '건', meta: '1건 ' + fmt(d.anomaly.bigEarn.threshold) + 'P 초과 · 월 ' + d.anomaly.repeatBuy.min + '회 이상 구매' }
     ];
     $('#pKpis').innerHTML = items.map(function (it) {
@@ -1323,11 +1348,15 @@ body.locked #gate { display: flex; }
     });
     // ④ 월별 고액 적립 회원
     var th = d.thresholds, tc = [css('--s1'), css('--s2')];
-    $('#plgTh').innerHTML = th.values.map(function (v, k) { return '<li><i class="line" style="background:' + tc[k] + '"></i>' + bigP(v) + 'P 이상</li>'; }).join('');
-    pLines($('#pchTh'), labels, th.values.map(function (v, k) { return { vals: pick(th.monthly[k]), color: tc[k] }; }), {
-      label: '월별 고액 적립 회원', fmtY: function (v) { return fmt(Math.round(v)); },
-      tip: function (k) { return tipRows(titleOf(k), th.values.map(function (v, j) { return { k: bigP(v) + 'P 이상', v: fmt(th.monthly[j][ix[k]]) + '명', color: tc[j] }; }).concat([{ k: '적립 회원', v: fmt(d.earn.users[ix[k]]) + '명' }])); }
-    });
+    if (th.basis !== 'balance') {
+      $('#plgTh').innerHTML = ''; $('#pchTh').innerHTML = '<div class="empty">잔여 포인트 기준 집계가 없습니다. 상단 <b>[갱신]</b>을 눌러 주세요.</div>';
+    } else {
+      $('#plgTh').innerHTML = th.values.map(function (v, k) { return '<li><i class="line" style="background:' + tc[k] + '"></i>잔여 ' + bigP(v) + 'P 이상</li>'; }).join('');
+      pLines($('#pchTh'), labels, th.values.map(function (v, k) { return { vals: pick(th.monthly[k]), color: tc[k] }; }), {
+        label: '월별 고액 잔여 보유 회원', fmtY: function (v) { return fmt(Math.round(v)); },
+        tip: function (k) { return tipRows(titleOf(k) + ' 말', th.values.map(function (v, j) { return { k: '잔여 ' + bigP(v) + 'P 이상', v: fmt(th.monthly[j][ix[k]]) + '명', color: tc[j] }; }).concat([{ k: '잔여 보유 회원', v: fmt(th.monthlyHolders[ix[k]]) + '명' }])); }
+      });
+    }
     // ⑧ 이상치 월별
     var a = d.anomaly;
     pBars($('#pchBig'), labels, [{ vals: pick(a.bigEarn.monthly), color: css('--s2') }], {
@@ -1341,16 +1370,120 @@ body.locked #gate { display: flex; }
   }
 
   function renderPTh() {
-    var th = P.data.thresholds, ys = Object.keys(th.byYear).sort();
-    var row = function (name, users, c, cls) {
-      return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td class="l">' + name + '</td><td>' + fmt(users) + '</td>' +
-        c.map(function (v) { return '<td>' + fmt(v) + '</td><td>' + pct(v, users).toFixed(1) + '%</td>'; }).join('') + '</tr>';
+    var d = P.data, th = d.thresholds;
+    if (th.basis !== 'balance') { $('#pThTable').innerHTML = '<div class="empty">잔여 포인트 기준 집계가 없습니다. 상단 <b>[갱신]</b>을 눌러 주세요.</div>'; return; }
+    var ys = Object.keys(th.byYear).sort(), lastM = d.months[d.months.length - 1];
+    var row = function (name, holders, c, cls) {
+      return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td class="l">' + name + '</td><td>' + fmt(holders) + '</td>' +
+        c.map(function (v) { return '<td>' + fmt(v) + '</td><td>' + pct(v, holders).toFixed(1) + '%</td>'; }).join('') + '</tr>';
     };
-    $('#pThTable').innerHTML = '<table class="ptable"><thead><tr><th class="l">기간</th><th>적립 회원</th>' +
-      th.values.map(function (v) { return '<th>' + bigP(v) + 'P 이상</th><th>비율</th>'; }).join('') + '</tr></thead><tbody>' +
-      ys.map(function (y) { return row(y + '년', th.byYear[y].users, th.byYear[y].counts); }).join('') +
-      row('전체 기간 누적', th.allUsers, th.all, 'tot') + '</tbody></table>' +
-      '<div class="pnote">연도 행은 해당 연도 적립 합계, 마지막 행은 데이터 전체 기간 합계 기준입니다. 진행 중인 연도는 오늘까지의 합계입니다.</div>';
+    $('#pThTable').innerHTML = '<table class="ptable"><thead><tr><th class="l">기준 시점</th><th>잔여 보유 회원</th>' +
+      th.values.map(function (v) { return '<th>잔여 ' + bigP(v) + 'P 이상</th><th>비율</th>'; }).join('') + '</tr></thead><tbody>' +
+      ys.filter(function (y) { return th.byYear[y].asOf !== lastM; }).map(function (y) { return row(y + '년 말', th.byYear[y].holders, th.byYear[y].counts); }).join('') +
+      row('현재 (' + lastM.replace('-', '.') + ' 말)', th.holders, th.current, 'tot') + '</tbody></table>' +
+      '<div class="pnote">잔여 포인트 = 데이터 시작일(' + d.range.from + ')부터의 누적 적립 + 사용취소 − 사용 − 소멸. 비율은 잔여 보유 회원(잔여 &gt; 0) 대비입니다.</div>';
+  }
+
+  // ---- 작년 대비 월별 적립·사용 -----------------------------------------
+  P.ymetric = 'amt';
+  document.querySelectorAll('#pYoySeg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#pYoySeg button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      P.ymetric = b.dataset.ymetric; renderPYoy();
+    });
+  });
+  function pGroup(host, labels, series, opts) {   // 월별 묶음 막대 (작년·올해)
+    var n = labels.length, all = [];
+    series.forEach(function (s) { s.vals.forEach(function (v) { if (v != null) all.push(v); }); });
+    var f = frame(host, { max: niceMax(Math.max.apply(null, all.concat([1]))), fmtY: opts.fmtY, ml: 50, label: opts.label });
+    var bw = f.iw / n, inner = bw * 0.72, w = inner / series.length, xOf = function (i) { return f.m.l + bw * i + bw / 2; };
+    var cols = labels.map(function (_, i) {
+      var g = el('g', {}, f.svg), x0 = xOf(i) - inner / 2;
+      series.forEach(function (s, k) {
+        var v = s.vals[i]; if (v == null || v <= 0) return;
+        el('path', { d: barPath(x0 + w * k + 0.5, f.y(0), Math.max(1, w - 1), f.y(v)), fill: s.color }, g);
+      });
+      return g;
+    });
+    xLabels(f, labels, xOf);
+    hoverCols(f, n, xOf, bw, opts.tip, function (h) { cols.forEach(function (g, i) { g.setAttribute('opacity', h < 0 || h === i ? 1 : 0.45); }); });
+  }
+  function renderPYoy() {
+    var d = P.data, y = d && d.yoy, host = $('#pYoy');
+    if (!y) {
+      host.innerHTML = '<div class="empty">작년 대비 집계가 없습니다. 상단 <b>[갱신]</b>을 눌러 주세요.</div>';
+      ['#pchYoyE', '#pchYoyU', '#plgYoyE', '#plgYoyU'].forEach(function (q) { $(q).innerHTML = ''; });
+      return;
+    }
+    var mk = P.ymetric, isAmt = mk === 'amt', unit = isAmt ? 'P' : '명';
+    var cell = isAmt ? bigP : fmt, full = function (v) { return fmt(v) + unit; };
+    var cm = y.currentMonth, md = y.asOf.slice(5).replace('-', '/');
+    var seq = ['--seq-0', '--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5', '--seq-6'];
+    var rate = function (a, b) { return (a == null || !b) ? null : (a - b) / b * 100; };
+    var rateCell = function (cur, last) {
+      var p = rate(cur, last);
+      if (p == null) return '<td class="na">–</td>';
+      var cls = p > 0 ? 'up' : p < 0 ? 'down' : 'flat';
+      return '<td><span class="delta ' + cls + '">' + (p > 0 ? '▲ ' : p < 0 ? '▼ ' : '') + Math.abs(p).toFixed(1) + '%</span></td>';
+    };
+    var diffCell = function (cur, last) {
+      if (cur == null || last == null) return '<td class="na">–</td>';
+      var dd = cur - last, cls = dd > 0 ? 'up' : dd < 0 ? 'down' : 'flat';
+      return '<td><span class="delta ' + cls + '">' + (dd > 0 ? '+' : '') + cell(dd) + '</span></td>';
+    };
+    var head = '<tr><th></th>' + y.earn[mk].last.map(function (_, i) {
+      var c = i + 1 === cm && y.partial;
+      return '<th' + (i + 1 === cm ? ' class="cur"' : '') + '>' + (i + 1) + '월' + (c ? '*' : '') + '</th>';
+    }).join('') + '<th>' + (isAmt ? '연간 합계' : '연간(중복 제외)') + '</th><th>동기간 누적<br>(1/1~' + md + ')</th></tr>';
+    var block = function (key, name) {
+      var m = y[key][mk], vals = m.last.concat(m.cur).filter(function (v) { return v != null; });
+      var max = Math.max.apply(null, vals.concat([1]));
+      var shade = function (v) {
+        if (v == null) return '';
+        var b = Math.min(6, Math.floor(v / max * 6.999));
+        return 'background:var(' + seq[b] + ');color:' + (b >= 4 ? 'var(--seq-hi-ink)' : 'var(--ink)');
+      };
+      var line = function (yr, arr, tot, ytd) {
+        return '<tr><th class="rowh">' + yr + '년</th>' + arr.map(function (v, i) {
+          return v == null ? '<td class="na">–</td>' : '<td style="' + shade(v) + '" title="' + name + ' · ' + yr + '년 ' + (i + 1) + '월: ' + full(v) + '">' + cell(v) + '</td>';
+        }).join('') + '<td class="sum' + (tot == null ? ' na' : '') + '">' + (tot == null ? '–' : cell(tot)) + '</td><td class="sum">' + cell(ytd) + '</td></tr>';
+      };
+      return '<tr class="grp"><th class="rowh" colspan="15">' + name + '</th></tr>' +
+        line(y.lastYear, m.last, m.totalLast, m.ytdLast) + line(y.thisYear, m.cur, null, m.ytdCur) +
+        '<tr class="diff"><th class="rowh">증감</th>' + m.cur.map(function (v, i) { return diffCell(v, m.last[i]); }).join('') + '<td class="na">–</td>' + diffCell(m.ytdCur, m.ytdLast) + '</tr>' +
+        '<tr class="diff"><th class="rowh">증감률</th>' + m.cur.map(function (v, i) { return rateCell(v, m.last[i]); }).join('') + '<td class="na">–</td>' + rateCell(m.ytdCur, m.ytdLast) + '</tr>';
+    };
+    var nm = isAmt ? ['적립 포인트', '사용 포인트'] : ['적립 회원 수', '사용 회원 수'];
+    var sumPart = function (key, name) {
+      var m = y[key][mk], p = rate(m.ytdCur, m.ytdLast);
+      return '<div class="g"><span class="grpl">' + name + ' (1/1~' + md + ')</span><div><span class="lbl">' + y.thisYear + '년</span><span class="big">' + cell(m.ytdCur) + unit + '</span></div>' +
+        '<div><span class="lbl">' + y.lastYear + '년 동기간</span><span class="big">' + cell(m.ytdLast) + unit + '</span></div>' +
+        '<div><span class="lbl">작년 대비</span>' + (p == null ? '–' : deltaHtml(p, '%', 1)) + '</div></div>';
+    };
+    host.innerHTML = '<div class="pyoy-sum">' + sumPart('earn', nm[0]) + sumPart('use', nm[1]) + '</div>' +
+      '<div class="yoy-wrap"><table class="yoy"><colgroup><col class="c0">' + y.earn[mk].last.map(function () { return '<col>'; }).join('') +
+      '<col class="cs"><col class="cy"></colgroup><thead>' + head + '</thead><tbody>' + block('earn', nm[0]) + block('use', nm[1]) + '</tbody></table></div>' +
+      '<div class="yoy-note">* 기준일 ' + y.asOf + ' (데이터 마지막 날짜). ' + (y.partial ? cm + '월은 ' + md + '까지 집계된 진행 중 수치입니다. ' : '') +
+      '사용 = 구매·전환 포인트(소멸 제외). ' + (isAmt ? '칸에는 억·만 단위로 줄여 표시하며, 마우스를 올리면 정확한 값이 보입니다.' : '회원 수는 해당 월(기간)에 1회 이상 적립·사용한 회원(중복 제외)입니다.') +
+      ' 시스템 이관(적립·충전 포인트 이관) 내역은 제외했습니다.</div>';
+    $('#pYoySub').textContent = y.lastYear + '년과 ' + y.thisYear + '년의 월별 ' + (isAmt ? '적립·사용 포인트' : '적립·사용 회원 수') + ' 비교 · 기준일 ' + y.asOf;
+    // 그래프
+    var labels = y.earn[mk].last.map(function (_, i) { return (i + 1) + '월'; });
+    [['earn', '#pchYoyE', '#plgYoyE', '--s1', nm[0]], ['use', '#pchYoyU', '#plgYoyU', '--s2', nm[1]]].forEach(function (c) {
+      var m = y[c[0]][mk], cols = [css('--muted'), css(c[3])];
+      $(c[2]).innerHTML = '<li><i style="background:' + cols[0] + '"></i>' + y.lastYear + '년</li><li><i style="background:' + cols[1] + '"></i>' + y.thisYear + '년</li>';
+      $(c[0] === 'earn' ? '#pYoyEarnT' : '#pYoyUseT').textContent = c[4] + ' — 작년 대비';
+      pGroup($(c[1]), labels, [{ vals: m.last, color: cols[0] }, { vals: m.cur, color: cols[1] }], {
+        label: c[4] + ' 작년 대비', fmtY: isAmt ? axisP : function (v) { return fmt(Math.round(v)); },
+        tip: function (i) {
+          var p = rate(m.cur[i], m.last[i]);
+          return tipRows((i + 1) + '월 ' + c[4], [
+            { k: y.lastYear + '년', v: m.last[i] == null ? '–' : full(m.last[i]), color: cols[0] },
+            { k: y.thisYear + '년', v: m.cur[i] == null ? '–' : full(m.cur[i]), color: cols[1] },
+            { k: '증감률', v: p == null ? '–' : (p > 0 ? '+' : '') + p.toFixed(1) + '%' }]);
+        }
+      });
+    });
   }
 
   function rankTable(list, total, opts) {
