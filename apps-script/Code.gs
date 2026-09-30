@@ -1,54 +1,146 @@
 /**
  * 닥터빌 회원 대시보드 - 집계 웹앱 (구글시트에 붙여 쓰는 Apps Script)
  *
- * 역할: 시트의 회원 원본을 시트 안에서 집계하고, 집계 결과(개인 식별 정보 없음)만 반환합니다.
- *       원본 행은 이 스크립트 밖으로 나가지 않으며, Google Cloud 프로젝트/서비스 계정이 필요 없습니다.
+ * 역할
+ *  - 대시보드의 [갱신] 버튼을 누르면 시트의 회원 원본을 시트 안에서 집계하고,
+ *    집계 결과(개인 식별 정보 없음)만 대시보드로 돌려줍니다.
+ *  - 주차별 집계 결과는 이 스프레드시트의 숨김 탭 '_dashboard_history'에 저장되어
+ *    주간 변화(활성·동의율 추이 등)를 추적합니다. 원본 행은 스크립트 밖으로 나가지 않습니다.
+ *  - 요청은 대시보드 비밀번호로 확인하며, 연속으로 틀리면 잠시 잠깁니다.
  *
  * 설정 (1회)
  *  1) 회원분석 시트 → 확장 프로그램 → Apps Script
  *  2) 이 파일(Code.gs)과 aggregate.gs 내용을 각각 붙여넣고 저장
- *  3) 상단 함수 선택에서 setupToken 실행 → 권한 승인 → 실행 로그의 토큰을 복사
- *  4) 배포 → 새 배포 → 유형: 웹 앱 / 실행 사용자: 나 / 액세스 권한: 모든 사용자 → 배포 → 웹 앱 URL 복사
- *  5) GitHub Secrets: APPS_SCRIPT_URL = 웹 앱 URL, APPS_SCRIPT_TOKEN = 토큰
- *
- * 토큰이 없거나 틀린 요청에는 아무 데이터도 반환하지 않습니다.
+ *  3) 시트를 새로고침 → 상단 메뉴 [대시보드] → [비밀번호 설정] → 대시보드 비밀번호 입력 (권한 승인)
+ *  4) Apps Script 화면에서 배포 → 새 배포 → 유형: 웹 앱 / 실행 사용자: 나 / 액세스 권한: 모든 사용자 → 배포
+ *  5) 웹 앱 URL(…/exec)을 저장소 docs/data/config.json 의 appsScriptUrl 에 입력
  */
-var SHEET_NAME = '시트1'; // 회원 데이터가 있는 탭 이름
+var SHEET_NAME = '시트1';                  // 회원 데이터가 있는 탭 이름
+var HISTORY_SHEET = '_dashboard_history';  // 주차별 집계 저장 탭 (자동 생성, 숨김)
+var MAX_FAILS = 10;                        // 10분 안에 이 횟수만큼 틀리면 잠금
+var PW_ITER = 2000;
 
+// ---- 웹앱 진입점 ---------------------------------------------------------
 function doPost(e) {
   var req = {};
   try { req = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (err) {}
-  var saved = PropertiesService.getScriptProperties().getProperty('API_TOKEN');
-  if (!saved || !req.token || !safeEqual_(String(req.token), saved)) return json_({ ok: false, error: 'unauthorized' });
+  var cache = CacheService.getScriptCache();
+  var fails = Number(cache.get('fails') || 0);
+  if (fails >= MAX_FAILS) return json_({ ok: false, error: 'locked' });
+  if (!checkPassword_(String(req.password || ''))) {
+    cache.put('fails', String(fails + 1), 600);
+    Utilities.sleep(800);
+    return json_({ ok: false, error: 'unauthorized' });
+  }
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    if (!sheet) return json_({ ok: false, error: 'sheet not found: ' + SHEET_NAME });
-    var rows = sheet.getDataRange().getDisplayValues(); // 화면 표시값 (예: 2026-09-29 12:28:49)
-    var snapshot = MemberAggregate.aggregate(rows);
-    return json_({ ok: true, snapshot: snapshot });
+    if (req.action === 'refresh') {
+      var snap = buildSnapshot_();
+      saveSnapshot_(snap);
+      return json_(bundle_(snap.week));
+    }
+    return json_(bundle_(req.week || null)); // action: 'get'
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message || err) });
   }
 }
 
-// GET 요청에는 데이터를 반환하지 않음
 function doGet() { return json_({ ok: false, error: 'use POST' }); }
 
-/** 최초 1회 실행: 접근 토큰 생성 (다시 실행하면 토큰이 바뀌므로 GitHub Secret도 함께 변경) */
-function setupToken() {
-  var token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
-  PropertiesService.getScriptProperties().setProperty('API_TOKEN', token);
-  Logger.log('APPS_SCRIPT_TOKEN = ' + token);
+// ---- 시트 메뉴 -----------------------------------------------------------
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('대시보드')
+    .addItem('비밀번호 설정', 'menuSetPassword')
+    .addItem('지금 집계하기 (테스트)', 'menuRefresh')
+    .addToUi();
 }
 
-/** 배포 전 점검용: 집계가 정상인지 로그로 확인 (개인정보는 출력하지 않음) */
-function testAggregate() {
-  var rows = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME).getDataRange().getDisplayValues();
-  var s = MemberAggregate.aggregate(rows);
-  Logger.log(s.week + ' 총 ' + s.kpi.total + '명, 주간 신규 ' + s.kpi.newWeek + '명');
+function menuSetPassword() {
+  var ui = SpreadsheetApp.getUi();
+  var r = ui.prompt('대시보드 비밀번호 설정', '대시보드 로그인 비밀번호와 같은 값을 입력하세요.', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK || !r.getResponseText()) return;
+  var salt = Utilities.getUuid();
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('PW_SALT', salt);
+  props.setProperty('PW_HASH', hash_(r.getResponseText(), salt));
+  ui.alert('비밀번호가 저장되었습니다.');
+}
+
+function menuRefresh() {
+  var snap = buildSnapshot_();
+  saveSnapshot_(snap);
+  SpreadsheetApp.getUi().alert(snap.week + ' 집계 완료: 총 ' + snap.kpi.total + '명, 주간 신규 ' + snap.kpi.newWeek + '명');
+}
+
+// ---- 집계·저장 -----------------------------------------------------------
+function buildSnapshot_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sheet) throw new Error('시트 탭을 찾을 수 없습니다: ' + SHEET_NAME);
+  var rows = sheet.getDataRange().getDisplayValues(); // 화면 표시값 (예: 2026-09-29 12:28:49)
+  return MemberAggregate.aggregate(rows);
+}
+
+function historySheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(HISTORY_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(HISTORY_SHEET);
+    sh.getRange(1, 1, 1, 3).setValues([['week', 'savedAt', 'snapshot_json']]);
+    sh.hideSheet();
+  }
+  return sh;
+}
+
+// 같은 주차는 덮어쓰기
+function saveSnapshot_(snap) {
+  var sh = historySheet_();
+  var json = JSON.stringify(snap);
+  var last = sh.getLastRow();
+  var weeks = last > 1 ? sh.getRange(2, 1, last - 1, 1).getValues().map(function (r) { return String(r[0]); }) : [];
+  var idx = weeks.indexOf(snap.week);
+  var row = idx > -1 ? idx + 2 : last + 1;
+  sh.getRange(row, 1, 1, 3).setValues([[snap.week, snap.generatedAt, json]]);
+}
+
+function loadAll_() {
+  var sh = historySheet_();
+  var last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, 3).getValues()
+    .map(function (r) { try { return JSON.parse(r[2]); } catch (e) { return null; } })
+    .filter(function (s) { return s && s.week; })
+    .sort(function (a, b) { return a.week < b.week ? -1 : 1; });
+}
+
+// 목록(요약) + 선택 주차 + 직전 주차
+function bundle_(week) {
+  var all = loadAll_();
+  if (!all.length) return { ok: true, index: { snapshots: [] }, snap: null, prev: null };
+  var i = week ? all.map(function (s) { return s.week; }).indexOf(week) : all.length - 1;
+  if (i < 0) i = all.length - 1;
+  return {
+    ok: true,
+    index: { snapshots: all.map(MemberAggregate.historyEntry) },
+    snap: all[i],
+    prev: i > 0 ? all[i - 1] : null
+  };
+}
+
+// ---- 유틸 ----------------------------------------------------------------
+function checkPassword_(pw) {
+  var props = PropertiesService.getScriptProperties();
+  var salt = props.getProperty('PW_SALT'), saved = props.getProperty('PW_HASH');
+  if (!salt || !saved || !pw) return false;
+  return safeEqual_(hash_(pw, salt), saved);
+}
+
+function hash_(pw, salt) {
+  var bytes = Utilities.newBlob(salt + ':' + pw).getBytes();
+  for (var i = 0; i < PW_ITER; i++) bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes.concat(Utilities.newBlob(salt).getBytes()));
+  return Utilities.base64Encode(bytes);
 }
 
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+
 function safeEqual_(a, b) {
   if (a.length !== b.length) return false;
   var d = 0; for (var i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
