@@ -9,6 +9,7 @@
 ```
 docs/                       ← GitHub Pages 게시 폴더
   index.html                로그인 + 대시보드 (외부 라이브러리 없음)
+  data/config.json          Apps Script 웹 앱 주소 (갱신 버튼 연결)
   data/meta.json            키 유도 정보·비밀번호 검증값 (데이터 없음)
   data/index.enc.json       주차 목록 + 주간 KPI 이력 (암호화)
   data/snapshots/YYYY-Www.enc.json   주차별 스냅샷 (암호화)
@@ -18,15 +19,16 @@ scripts/
   crypto.mjs                암호화 모듈 (AES-256-GCM, PBKDF2-SHA256 60만 회)
   rekey.mjs                 비밀번호 변경 시 전체 재암호화
 apps-script/
-  Code.gs                   시트에 붙이는 집계 웹앱 (토큰 확인 후 집계치만 반환)
+  Code.gs                   시트에 붙이는 집계 웹앱 (비밀번호 확인 → 집계치 반환·주차별 저장)
   aggregate.gs              scripts/aggregate.js와 동일한 집계 로직
-.github/workflows/weekly-snapshot.yml   매주 월 09:30 KST 자동 실행
+.github/workflows/weekly-snapshot.yml   (선택) 수동 실행용 — 자동 예약 없음
 ```
 
 ## 대시보드 구성
 
 | 영역 | 내용 |
 |---|---|
+| 월별 신규 가입 — 작년 대비 | 올해·작년 월별 신규, 증감·증감률, 동기간 누적 비교 (KPI 바로 아래 전체 폭) |
 | KPI | 전체 회원, 주간 신규(전주 대비), 최근 4주 신규, 7일/30일 내 로그인, 통합회원 전환율, SMS·이메일 수신 동의율 |
 | 주간 추이 (12/26/52주) | 주간 신규 + 4주 이동평균, 누적 회원 수, 가입경로별 주간 신규, 활성·동의율 스냅샷 추이 |
 | 항목별 특성 | 직종, 주 진료과, 근무처 시도, 가입경로, 연령대, 성별, 회원 상태, 통합회원 전환, 최종 로그인 경과, SMS·이메일 수신 — 전체 비중 막대 + 최근 4주 신규 비중 마커 + 주간 신규/증감 |
@@ -50,42 +52,45 @@ apps-script/
 - 한계: 정적 페이지라 로그인 시도 횟수 제한이 없습니다. 비밀번호가 추측 가능하면 암호문을 대입 공격할 수 있으므로 **12자 이상의 무작위 비밀번호**를 권장합니다.
 - 비밀번호 변경: `OLD_PASSWORD=기존 NEW_PASSWORD=신규 node scripts/rekey.mjs` 실행 후 커밋하고, Secret `DASHBOARD_PASSWORD`도 변경합니다.
 
-## 최초 설정 (1회) — Google Cloud 불필요
+## 갱신 방식 — 수동 갱신 (Google Cloud 불필요)
 
-회원분석 시트 안에 Apps Script를 붙여 **시트 안에서 집계**하고, GitHub Actions는 집계치만 받아 암호화합니다.
-원본 회원 행은 시트 밖으로 나가지 않으며, 서비스 계정·Cloud 프로젝트가 필요 없습니다.
+1. 담당자가 매주 어드민 회원 데이터를 구글시트(회원분석)에 직접 적재합니다.
+2. 대시보드에 로그인 후 상단 **[갱신]** 버튼을 누르면, 시트에 붙인 Apps Script가 **시트 안에서 집계**해 집계치만 돌려줍니다.
+3. 집계 결과는 시트의 숨김 탭 `_dashboard_history`에 주차별로 저장되어, 이후 접속자는 최신 집계를 바로 보고 주간 변화도 추적됩니다.
 
 ```
-구글시트(비공개) ──[Apps Script: 시트 안에서 집계]──▶ 집계치(개인정보 없음)
-      ▲ 토큰 확인                                         │
-GitHub Actions(매주 월) ──POST(토큰)──────────────────────┘
-      └─ 비밀번호로 암호화 → docs/data 커밋 → Pages 반영
+구글시트(비공개, 담당자가 매주 적재)
+   └─ Apps Script: 비밀번호 확인 → 시트 안에서 집계 → 집계치만 반환 / _dashboard_history에 저장
+대시보드(GitHub Pages) ──[갱신] POST(비밀번호)──▶ Apps Script
 ```
+
+- 원본 회원 행은 시트 밖으로 나가지 않습니다. 개인 식별 정보는 집계 결과에 포함되지 않습니다.
+- 시트 연동이 안 되면 저장소의 암호화 저장본(docs/data/*.enc.json)을 표시합니다.
+- GitHub Actions 자동 실행은 사용하지 않습니다(수동 실행만 가능).
+
+## 최초 설정 (1회)
 
 1. **Apps Script 붙이기**: 회원분석 시트 → *확장 프로그램 → Apps Script*
-   - 기본 `Code.gs` 내용을 지우고 `apps-script/Code.gs` 내용을 붙여넣기
+   - 기본 `Code.gs` 내용을 지우고 `apps-script/Code.gs` 내용 붙여넣기
    - 파일 추가(+) → 스크립트 → 이름 `aggregate` → `apps-script/aggregate.gs` 내용 붙여넣기 → 저장
-2. **토큰 생성**: 함수 선택에서 `setupToken` 실행 → 권한 승인(본인 계정) → *실행 로그*의 토큰 복사
-   - (선택) `testAggregate` 실행 → 로그에 "총 ○○명, 주간 신규 ○○명"이 나오면 정상
-3. **웹 앱 배포**: *배포 → 새 배포 → 유형 선택: 웹 앱* / 실행 사용자: **나** / 액세스 권한: **모든 사용자** → 배포 → 웹 앱 URL(`…/exec`) 복사
-   - "모든 사용자"여도 토큰이 없으면 아무것도 반환하지 않고, 토큰이 있어도 집계치만 반환합니다.
-4. **GitHub Secrets 등록** (저장소 *Settings → Secrets and variables → Actions → New repository secret*)
-   - `APPS_SCRIPT_URL`: 웹 앱 URL
-   - `APPS_SCRIPT_TOKEN`: 2단계 토큰
-   - `DASHBOARD_PASSWORD`: 대시보드 접속 비밀번호 (현재 암호화에 사용한 비밀번호와 같아야 함)
-5. **첫 실행**: *Actions → 주간 회원 스냅샷 → Run workflow* → 성공 후 대시보드에 반영 확인
+2. **비밀번호 설정**: 시트를 새로고침 → 상단 메뉴 **[대시보드] → [비밀번호 설정]** → 대시보드 로그인 비밀번호와 같은 값 입력 → 권한 승인
+   - (선택) **[대시보드] → [지금 집계하기 (테스트)]**로 "총 ○○명" 알림이 뜨면 정상
+3. **웹 앱 배포**: Apps Script 화면 *배포 → 새 배포 → 유형: 웹 앱* / 실행 사용자: **나** / 액세스 권한: **모든 사용자** → 배포 → 웹 앱 URL(`…/exec`) 복사
+4. **대시보드에 연결**: 저장소 `docs/data/config.json`의 `appsScriptUrl`에 웹 앱 URL 입력 후 커밋
+5. 대시보드 로그인 → **[갱신]** 클릭 → "갱신 완료" 알림과 함께 시트 기준으로 표시되면 완료
 
-GitHub Pages 설정: *Settings → Pages* → Source `Deploy from a branch`, Branch `main` / `/docs` (설정 완료 상태)
+### 보안
+- 갱신 요청은 대시보드 비밀번호로 확인합니다(시트에는 비밀번호 대신 해시만 저장).
+- 10분 안에 10회 틀리면 10분간 잠깁니다. 이 동안에는 정상 사용자도 갱신할 수 없고 저장본이 표시됩니다.
+- 비밀번호를 바꿀 때는 ① `scripts/rekey.mjs`로 저장본 재암호화 ② 시트 메뉴 [비밀번호 설정]을 새 값으로 다시 실행해 둘을 맞춥니다.
 
 ### 유지보수 메모
-- 집계 로직(`scripts/aggregate.js`)을 고치면 `apps-script/aggregate.gs`에도 같은 내용을 붙여넣고 **배포 → 배포 관리 → 새 버전**으로 갱신합니다.
-- 토큰 교체: `setupToken` 재실행 → Secret `APPS_SCRIPT_TOKEN` 변경
+- 집계 로직(`scripts/aggregate.js`)을 고치면 `apps-script/aggregate.gs`에도 같은 내용을 붙여넣고 **배포 → 배포 관리 → 편집 → 새 버전**으로 갱신합니다. (Code.gs 수정 시도 동일)
 - 시트 탭 이름이 `시트1`이 아니면 `Code.gs`의 `SHEET_NAME`을 수정합니다.
-- (대안) 서비스 계정 방식: `APPS_SCRIPT_URL`을 비우고 `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID` Secret을 등록하면 기존 방식으로 동작합니다.
 
 ## 운영
 
-- 자동 실행: 매주 월요일 09:30 KST (09:00 시트 적재 이후). GitHub 예약 실행은 수 분~수십 분 지연될 수 있습니다. 같은 주에 다시 실행하면 해당 주 스냅샷을 덮어씁니다.
+- 매주 시트 적재 후 대시보드에서 [갱신]을 누릅니다. 같은 주에 다시 누르면 해당 주 집계를 덮어씁니다.
 - 로컬 테스트: `DASHBOARD_PASSWORD=... node scripts/build.mjs --csv 내보낸파일.csv` (CSV는 커밋하지 마세요)
 - 시트 필드명이 바뀌면 `scripts/aggregate.js`의 `DIMS` 매핑을 수정합니다.
-- 시트 데이터 적재(어드민 → 구글시트)는 별도 프로세스이므로, 적재가 늦어지면 해당 주 신규 수가 적게 집계될 수 있습니다.
+- 시트 적재 후 갱신해야 해당 주 신규가 정확히 집계됩니다. 기존 회원의 최종 로그인·수신 동의도 함께 갱신해 적재하면 활성 지표가 정확해집니다.
