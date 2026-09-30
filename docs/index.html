@@ -172,6 +172,12 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
 .yoy-sum .big { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .yoy-sum .lbl { font-size: 12px; color: var(--ink-2); margin-right: 6px; }
 .yoy-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+/* PDF 내보내기 */
+.pdf-only { display: none; }
+body.pdf-mode .pdf-only { display: block; }
+body.pdf-mode .controls, body.pdf-mode #tip, body.pdf-mode #toast, body.pdf-mode .dim .more, body.pdf-mode .seg { display: none !important; }
+body.pdf-mode .card { box-shadow: none; }
+.pdf-stamp { font-size: 11px; color: var(--header-sub); margin-top: 6px; }
 /* 로그인 */
 body.locked header.top, body.locked main { display: none; }
 #gate { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px 16px; background: var(--page); }
@@ -197,7 +203,7 @@ body.locked #gate { display: flex; }
 <body class="locked">
 <div id="gate">
   <div class="gate-card">
-    <div class="gh"><h1>닥터빌 회원 대시보드</h1><p>플랫폼운영팀 내부용 · 비밀번호를 입력하세요</p></div>
+    <div class="gh"><h1>닥터빌 회원 대시보드</h1><p>닥터빌사업부 내부용 · 비밀번호를 입력하세요</p></div>
     <form id="gateForm" autocomplete="off">
       <label for="pw">비밀번호</label>
       <input id="pw" type="password" autocomplete="current-password" required autofocus>
@@ -208,17 +214,20 @@ body.locked #gate { display: flex; }
     </form>
   </div>
 </div>
+<div id="pdfRoot">
 <header class="top">
   <div class="wrap">
     <div>
       <h1>닥터빌 회원 대시보드</h1>
       <div class="sub" id="subtitle">데이터를 불러오는 중…</div>
+      <div class="pdf-only pdf-stamp" id="pdfStamp"></div>
     </div>
     <div class="controls">
       <label for="weekSel">기준 주차</label>
       <select id="weekSel" aria-label="기준 주차 선택"></select>
       <span class="src" id="srcLabel"></span>
       <button class="btn primary" id="refreshBtn" type="button" title="구글시트의 최신 값을 불러와 다시 집계합니다">갱신</button>
+      <button class="btn" id="pdfBtn" type="button" title="현재 화면을 PDF 파일로 내려받습니다">PDF</button>
       <button class="btn" id="themeBtn" type="button" aria-label="화면 테마 전환">테마</button>
       <button class="btn" id="logoutBtn" type="button">로그아웃</button>
     </div>
@@ -289,6 +298,7 @@ body.locked #gate { display: flex; }
     </footer>
   </div>
 </main>
+</div>
 <div id="tip" role="tooltip"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div class="modal-bg" id="pwModal">
@@ -514,6 +524,108 @@ body.locked #gate { display: flex; }
     $('#keyDelta').textContent = state.prev ? '증감: 직전 스냅샷(' + state.prev.week + ') 대비 회원 수 변화' : '증감: 직전 스냅샷이 쌓이면 표시됩니다 (현재는 이번 주 신규만 표시)';
     renderKpis(); renderMonthly(); renderTrends(); renderDims(); renderHeat();
   }
+
+  // ---- PDF 내려받기 (브라우저 안에서 생성, 서버 전송 없음) ----------------
+  var PDF_LIBS = [
+    ['html2canvas', 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H'],
+    ['jspdf', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk']
+  ];
+  function loadScript(src, integrity) {
+    return new Promise(function (resolve, reject) {
+      var sc = document.createElement('script'); sc.src = src; sc.async = true;
+      if (integrity) { sc.integrity = integrity; sc.crossOrigin = 'anonymous'; } // 파일 변조 방지
+      sc.onload = function () { resolve(); }; sc.onerror = function () { reject(new Error('PDF 라이브러리를 불러오지 못했습니다. 네트워크를 확인해 주세요.')); };
+      document.head.appendChild(sc);
+    });
+  }
+  function loadPdfLibs() {
+    return PDF_LIBS.reduce(function (p, l) { return p.then(function () { return window[l[0]] ? null : loadScript(l[1], l[2]); }); }, Promise.resolve());
+  }
+  // html2canvas가 SVG를 정확히 그리지 못하므로, 캡처 동안만 차트 SVG를 같은 크기의 이미지로 교체
+  function svgsToImages(root) {
+    var swaps = [];
+    root.querySelectorAll('.chart svg').forEach(function (svg) {
+      var r = svg.getBoundingClientRect(); if (!r.width) return;
+      var clone = svg.cloneNode(true);
+      var src = svg.querySelectorAll('text'), dst = clone.querySelectorAll('text');
+      src.forEach(function (t, i) {
+        var cs = getComputedStyle(t);
+        dst[i].setAttribute('style', 'fill:' + cs.fill + ';font-size:' + cs.fontSize + ';font-weight:' + cs.fontWeight + ';font-family:' + cs.fontFamily.replace(/"/g, "'"));
+      });
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      clone.setAttribute('width', r.width); clone.setAttribute('height', r.height);
+      var img = new Image();
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+      img.style.cssText = 'display:block;width:' + r.width + 'px;height:' + r.height + 'px';
+      svg.style.display = 'none'; svg.parentNode.insertBefore(img, svg.nextSibling);
+      swaps.push([svg, img]);
+    });
+    return Promise.all(swaps.map(function (p) { return p[1].decode ? p[1].decode().catch(function () {}) : null; }))
+      .then(function () { return function restore() { swaps.forEach(function (p) { p[1].remove(); p[0].style.display = ''; }); }; });
+  }
+  // 카드·섹션이 페이지 경계에서 잘리지 않도록, 요소 상단 위치를 기준으로 페이지를 나눔
+  function buildPdf(root, filename) {
+    var rootTop = root.getBoundingClientRect().top, totalH = root.scrollHeight, cssW = root.getBoundingClientRect().width;
+    // 섹션 제목 바로 아래 첫 줄 카드는 제목과 떨어지지 않도록 분할 후보에서 제외
+    var breaks = [].slice.call(root.querySelectorAll('section, .card, footer'))
+      .filter(function (el) {
+        if (!el.classList.contains('card')) return true;
+        var sec = el.closest('section'); if (!sec) return true;
+        var first = sec.querySelector('.card');
+        return Math.abs(el.getBoundingClientRect().top - first.getBoundingClientRect().top) > 4;
+      })
+      .map(function (el) { return Math.round(el.getBoundingClientRect().top - rootTop) - 8; })
+      .filter(function (y) { return y > 0; }).sort(function (a, b) { return a - b; });
+    return window.html2canvas(root, { scale: 2, backgroundColor: css('--page') || '#f4f6f9', useCORS: true, logging: false, windowWidth: document.documentElement.clientWidth })
+      .then(function (canvas) {
+        var jsPDF = window.jspdf.jsPDF, pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        var M = 6, pageW = 297 - M * 2, pageH = 210 - M * 2 - 5;   // 하단 5mm: 쪽 번호
+        var mmPerCss = pageW / cssW, maxCss = pageH / mmPerCss, k = canvas.width / cssW;
+        var slices = [], y0 = 0;
+        while (y0 < totalH - 1) {
+          var limit = y0 + maxCss, y1;
+          if (totalH <= limit) y1 = totalH;
+          else { var c = breaks.filter(function (b) { return b > y0 + 40 && b <= limit; }); y1 = c.length ? c[c.length - 1] : limit; }
+          slices.push([y0, y1]); y0 = y1;
+        }
+        slices.forEach(function (sl, i) {
+          if (i) pdf.addPage();
+          var h = Math.round((sl[1] - sl[0]) * k), part = document.createElement('canvas');
+          part.width = canvas.width; part.height = h;
+          var ctx = part.getContext('2d'); ctx.fillStyle = '#f4f6f9'; ctx.fillRect(0, 0, part.width, h);
+          ctx.drawImage(canvas, 0, Math.round(sl[0] * k), canvas.width, h, 0, 0, canvas.width, h);
+          pdf.addImage(part.toDataURL('image/jpeg', 0.92), 'JPEG', M, M, pageW, (sl[1] - sl[0]) * mmPerCss);
+          pdf.setFontSize(8); pdf.setTextColor(130); pdf.text((i + 1) + ' / ' + slices.length, 297 - M, 210 - M, { align: 'right' });
+        });
+        pdf.save(filename);
+      });
+  }
+  $('#pdfBtn').addEventListener('click', function () {
+    if (!state.snap) return;
+    var btn = this, root = document.documentElement, prevTheme = root.getAttribute('data-theme');
+    var prevRange = state.range, s = state.snap, restore = null;
+    var now = new Date(), pad = function (n) { return n < 10 ? '0' + n : n; };
+    var stamp = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    btn.disabled = true; btn.textContent = 'PDF 생성 중…';
+    loadPdfLibs().then(function () {
+      $('#pdfStamp').textContent = '닥터빌사업부 내부용 · 대외비 · 출력 ' + stamp;
+      root.setAttribute('data-theme', 'light');        // 인쇄용 밝은 테마로 고정
+      document.body.classList.add('pdf-mode');
+      document.body.style.minWidth = '1280px';          // 모바일에서도 데스크톱 배치로 출력
+      state.range = 52; renderAll();                     // 추이는 52주 전체로 출력
+      return new Promise(function (r) { setTimeout(r, 250); });
+    }).then(function () { return svgsToImages($('#pdfRoot')); })
+      .then(function (fn) { restore = fn; return buildPdf($('#pdfRoot'), '닥터빌_회원대시보드_' + s.week + '.pdf'); })
+      .then(function () { toast('PDF를 내려받았습니다. 대외비 자료이니 외부 공유 전 승인을 받아 주세요.'); })
+      .catch(function (e) { toast((e && e.message) || 'PDF 생성에 실패했습니다.', true); })
+      .then(function () {
+        if (restore) restore();
+        document.body.classList.remove('pdf-mode'); document.body.style.minWidth = '';
+        if (prevTheme) root.setAttribute('data-theme', prevTheme); else root.removeAttribute('data-theme');
+        state.range = prevRange; renderAll();
+        btn.disabled = false; btn.textContent = 'PDF';
+      });
+  });
 
   // ---- KPI --------------------------------------------------------------
   function deltaHtml(d, unit, digits) {
