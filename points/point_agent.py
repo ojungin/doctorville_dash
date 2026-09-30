@@ -12,6 +12,7 @@
     python point_agent.py refresh   서버 없이 한 번만 갱신 (비밀번호 입력)
     python point_agent.py inspect   각 CSV의 컬럼명·인식 결과만 출력 (값은 출력하지 않음)
     python point_agent.py status    적재된 파일 목록 출력
+    python point_agent.py export --from 2026-03 --to 2026-08   Excel 추출 (최대 6개월, 회원 USN 포함)
 
   신규 파일 판단: 파일명 + 파일 크기. 이미 적재한 파일은 건너뛰고 새 파일만 읽습니다.
   같은 거래가 여러 파일에 겹쳐 있어도 (USN, 일시, 금액, 내용) 기준으로 한 번만 저장됩니다.
@@ -19,6 +20,8 @@
   필요 패키지: cryptography   (설치: python -m pip install cryptography)
 """
 import argparse
+import zipfile
+import io
 import base64
 import csv
 import datetime as dt
@@ -44,7 +47,7 @@ SSL_CTX = ssl.create_default_context()
 if hasattr(ssl, "VERIFY_X509_STRICT"):
     SSL_CTX.verify_flags &= ~ssl.VERIFY_X509_STRICT
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 HERE = os.path.dirname(os.path.abspath(__file__))
 KST = dt.timezone(dt.timedelta(hours=9))
 
@@ -72,6 +75,7 @@ DEFAULTS = {
     "repeat_buy_min": 10,           # 개인 월 구매 횟수가 이 값 '이상' = 이상치
     "earn_user_thresholds": [100000, 200000],
     "list_limit": 300,              # 이상치 목록 최대 표시 건수
+    "export_max_months": 6,         # Excel 추출 최대 기간(개월)
 }
 
 
@@ -175,6 +179,7 @@ ALIASES = {
     "amt": ["적립 포인트", "적립포인트", "포인트", "증감 포인트", "증감포인트", "포인트금액", "금액", "변동포인트",
             "point", "points", "amount"],
     "use": ["사용 포인트", "사용포인트", "차감포인트", "차감 포인트", "use_point"],
+    "chg": ["충전 포인트", "충전포인트", "charge_point", "chargepoint"],
 }
 
 
@@ -250,7 +255,7 @@ MIGRATION_RE = re.compile(r"포인트\s*이관")
 
 
 def iter_rows(path):
-    """(usn, ts, amt, content) 를 돌려줍니다. amt: 적립(+) / 사용·소멸(-)"""
+    """(usn, ts, amt, chg, content) 를 돌려줍니다. amt: 적립 포인트 증감(+/-), chg: 충전 포인트 증감(+/-)"""
     enc = detect_encoding(path)
     with open(path, encoding=enc, errors="replace", newline="") as f:
         rd = csv.reader(f)
@@ -262,6 +267,7 @@ def iter_rows(path):
             raise ValueError("컬럼을 인식하지 못했습니다: %s / 파일 컬럼: %s" % (miss, header))
         iu, it, ia, iuse = col["usn"], col["ts"], col.get("amt"), col.get("use")
         ity, ic = col.get("type"), col.get("content")
+        ichg = col.get("chg")
         bad = 0
         mig = 0
         for row in rd:
@@ -285,16 +291,21 @@ def iter_rows(path):
                     # 부호 없는 형식: 구분이 사용·차감·소멸이면 음수 처리 (사용취소는 양수)
                     if amt > 0 and typ and USE_WORDS.search(typ) and "취소" not in typ and "적립" not in typ:
                         amt = -amt
+                chg = 0.0
+                if ichg is not None and ichg < len(row):
+                    chg = parse_num(row[ichg]) or 0.0
+                    if chg > 0 and typ and USE_WORDS.search(typ) and "취소" not in typ and "적립" not in typ and "충전" not in typ:
+                        chg = -chg
             except (IndexError, ValueError):
                 bad += 1
                 continue
             if MIGRATION_RE.search(content or typ):
                 mig += 1
                 continue
-            if not usn or not ts or amt == 0:
+            if not usn or not ts or (amt == 0 and chg == 0):
                 bad += 1
                 continue
-            yield usn, ts, round(amt, 2), content or "(내용 없음)"
+            yield usn, ts, round(amt, 2), round(chg, 2), content or "(내용 없음)"
         if mig:
             log("  · 시스템 이관 행 %d건 제외 (이중 계산 방지)" % mig)
         if bad:
@@ -308,16 +319,102 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS files(name TEXT PRIMARY KEY, size INTEGER, mtime REAL, rows INTEGER,
   inserted INTEGER, dmin TEXT, dmax TEXT, loaded_at TEXT);
 CREATE TABLE IF NOT EXISTS contents(cid INTEGER PRIMARY KEY, text TEXT UNIQUE);
-CREATE TABLE IF NOT EXISTS tx(usn TEXT, ts TEXT, amt REAL, cid INTEGER, seq INTEGER);
-CREATE UNIQUE INDEX IF NOT EXISTS tx_key ON tx(usn, ts, amt, cid, seq);
+CREATE TABLE IF NOT EXISTS tx(usn TEXT, ts TEXT, amt REAL, cid INTEGER, seq INTEGER, chg REAL NOT NULL DEFAULT 0);
+CREATE UNIQUE INDEX IF NOT EXISTS tx_key2 ON tx(usn, ts, amt, chg, cid, seq);
+CREATE TABLE IF NOT EXISTS info(k TEXT PRIMARY KEY, v TEXT);
 """
+SCHEMA_VERSION = 2   # v2: 충전 포인트(chg) 컬럼 추가
 
 
 def open_db(path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     db = sqlite3.connect(path, timeout=60)
     db.executescript("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA temp_store=MEMORY;"
-                     "PRAGMA cache_size=-200000;" + SCHEMA)
+                     "PRAGMA cache_size=-200000;")
+    if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='tx'").fetchone():
+        db.executescript(SCHEMA)
+        db.execute("INSERT OR REPLACE INTO info VALUES ('schema', ?)", (str(SCHEMA_VERSION),))
+        db.commit()
+    else:
+        db.execute("CREATE TABLE IF NOT EXISTS info(k TEXT PRIMARY KEY, v TEXT)")
+    return db
+
+
+def schema_of(db):
+    r = db.execute("SELECT v FROM info WHERE k='schema'").fetchone()
+    return int(r[0]) if r else 1
+
+
+def _info(db, k, default=None):
+    r = db.execute("SELECT v FROM info WHERE k=?", (k,)).fetchone()
+    return r[0] if r else default
+
+
+def migrate_file(db, name, path):
+    """스키마 1(충전 포인트 없음)로 적재한 파일을 다시 읽어 충전 포인트만 보강한다.
+    적립 포인트가 있는 행은 기존 행의 chg 를 채우고, 충전 포인트만 있는 행은 새로 넣는다.
+    순번(seq)은 최초 적재와 같은 방식으로 다시 계산해 기존 행과 정확히 맞춘다."""
+    cids = dict(db.execute("SELECT text, cid FROM contents"))
+    seqs, seqs0 = {}, {}
+    upd, ins = [], []
+    for usn, ts, amt, chg, content in iter_rows(path):
+        cid = cids.get(content)
+        if cid is None:
+            cur = db.execute("INSERT OR IGNORE INTO contents(text) VALUES (?)", (content,))
+            cid = cur.lastrowid if cur.rowcount else db.execute("SELECT cid FROM contents WHERE text=?", (content,)).fetchone()[0]
+            cids[content] = cid
+        if amt != 0:
+            k = (usn, ts, amt, cid)
+            sq = seqs.get(k, 0)
+            seqs[k] = sq + 1
+            if len(seqs) > 400000:
+                seqs.clear()
+            if chg:
+                upd.append((chg, usn, ts, amt, cid, sq))
+        else:
+            k = (usn, ts, cid)
+            sq = seqs0.get(k, 0)
+            seqs0[k] = sq + 1
+            ins.append((usn, ts, 0.0, cid, sq, chg))
+    db.executemany("UPDATE tx SET chg=? WHERE usn=? AND ts=? AND amt=? AND cid=? AND seq=?", upd)
+    before = db.total_changes
+    db.executemany("INSERT OR IGNORE INTO tx(usn, ts, amt, cid, seq, chg) VALUES (?,?,?,?,?,?)", ins)
+    done = set(json.loads(_info(db, "migrated_files", "[]")))
+    done.add(name)
+    db.execute("INSERT OR REPLACE INTO info VALUES ('migrated_files', ?)", (json.dumps(sorted(done), ensure_ascii=False),))
+    db.commit()
+    return len(upd), db.total_changes - before
+
+
+def migrate_if_needed(cfg, db):
+    """구버전 DB(충전 포인트 없음)면 chg 열을 추가하고, 이미 적재한 CSV에서 충전 포인트만 보강한다.
+    (DB를 새로 만들지 않으므로 추가 디스크 공간이 거의 필요 없고, 중간에 끊겨도 이어서 진행)"""
+    if schema_of(db) >= SCHEMA_VERSION:
+        return db
+    if "chg" not in [r[1] for r in db.execute("PRAGMA table_info(tx)")]:
+        db.execute("ALTER TABLE tx ADD COLUMN chg REAL NOT NULL DEFAULT 0")
+    db.execute("INSERT OR REPLACE INTO info VALUES ('seqkey', 'v1')")   # 기존 고유키(usn,ts,amt,cid,seq) 유지
+    db.commit()
+    loaded = {r[0]: r[1] for r in db.execute("SELECT name, size FROM files")}
+    done = set(json.loads(_info(db, "migrated_files", "[]")))
+    todo = [f for f in list_csv(cfg["raw_dir"]) if loaded.get(f[0]) == f[2] and f[0] not in done]
+    log("DB 구조 변경: 충전 포인트 보강 — 적재된 파일 %d개를 다시 읽습니다 (최초 1회)" % len(todo))
+    PROGRESS.update(stage="migrate", fileCount=len(todo), fileIndex=0)
+    for i, (name, path, size, mtime) in enumerate(todo, 1):
+        PROGRESS.update(fileIndex=i, file=name)
+        t0 = time.time()
+        try:
+            u, n = migrate_file(db, name, path)
+            log("  [%d/%d] %s · 충전 포인트 보강 %s행 / 충전만 있는 행 %s건 추가 · %.0f초" % (
+                i, len(todo), name, format(u, ","), format(n, ","), time.time() - t0))
+        except Exception as e:
+            db.rollback()
+            log("  ! 보강 실패: %s — %s" % (name, e))
+            FAILED.append({"name": name, "error": "충전 포인트 보강 실패: " + str(e)[:250]})
+            return db
+    db.execute("INSERT OR REPLACE INTO info VALUES ('schema', ?)", (str(SCHEMA_VERSION),))
+    db.commit()
+    log("충전 포인트 보강 완료")
     return db
 
 
@@ -342,6 +439,7 @@ PROGRESS = {"running": False, "file": "", "rows": 0, "fileIndex": 0, "fileCount"
 
 def load_file(db, name, path, size, mtime):
     cids = dict(db.execute("SELECT text, cid FROM contents"))
+    v1key = _info(db, "seqkey") == "v1"     # 이전 구조에서 보강한 DB: 고유키에 chg 없음
     seqs = {}
     rows = 0
     before = db.execute("SELECT COUNT(*) FROM tx").fetchone()[0]
@@ -350,22 +448,22 @@ def load_file(db, name, path, size, mtime):
     t0 = time.time()
 
     def flush():
-        db.executemany("INSERT OR IGNORE INTO tx VALUES (?,?,?,?,?)", batch)
+        db.executemany("INSERT OR IGNORE INTO tx(usn, ts, amt, cid, seq, chg) VALUES (?,?,?,?,?,?)", batch)
         batch.clear()
 
-    for usn, ts, amt, content in iter_rows(path):
+    for usn, ts, amt, chg, content in iter_rows(path):
         cid = cids.get(content)
         if cid is None:
             cur = db.execute("INSERT OR IGNORE INTO contents(text) VALUES (?)", (content,))
             cid = cur.lastrowid if cur.rowcount else db.execute(
                 "SELECT cid FROM contents WHERE text=?", (content,)).fetchone()[0]
             cids[content] = cid
-        k = (usn, ts, amt, cid)
+        k = (usn, ts, amt, cid) if v1key else (usn, ts, amt, chg, cid)
         s = seqs.get(k, 0)
         seqs[k] = s + 1
         if len(seqs) > 400000:
             seqs.clear()
-        batch.append((usn, ts, amt, cid, s))
+        batch.append((usn, ts, amt, cid, s, chg))
         rows += 1
         if dmin is None or ts < dmin:
             dmin = ts
@@ -442,7 +540,7 @@ def aggregate(db, cfg):
                 kind, c = "skip", "시스템 이관"
             rows.append((cid, pos, kind, c, 1 if (kind == "use" and c in BUY_CATS) else 0))
     db.executemany("INSERT INTO temp.cat VALUES (?,?,?,?,?)", rows)
-    J = "FROM tx JOIN temp.cat c ON c.cid = tx.cid AND c.pos = (tx.amt > 0)"
+    J = "FROM tx JOIN temp.cat c ON c.cid = tx.cid AND c.pos = (tx.amt > 0) AND tx.amt != 0"
     # 회원·월·내용 단위 요약 (원장 1회 스캔) — 이후 집계는 요약표에서 계산
     db.execute("DROP TABLE IF EXISTS temp.s")
     db.execute("CREATE TEMP TABLE s AS SELECT substr(tx.ts,1,7) ym, tx.usn usn, tx.cid cid, (tx.amt > 0) pos, "
@@ -773,6 +871,331 @@ def publish(cfg, box):
 
 
 # --------------------------------------------------------------------------------------
+# Excel 추출 (외부 패키지 없이 xlsx 작성) — 회원 USN 포함: PC에서만 생성·다운로드, 게시하지 않음
+# --------------------------------------------------------------------------------------
+_XML_BAD = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def _xesc(v):
+    return _XML_BAD.sub("", str(v)).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+
+def _col(n):
+    s = ""
+    n += 1
+    while n:
+        n, r = divmod(n - 1, 26)
+        s = chr(65 + r) + s
+    return s
+
+
+class XlsxSheet:
+    # 스타일: 0 기본, 1 헤더, 2 숫자, 3 합계 숫자, 4 제목, 5 합계 문자, 6 줄바꿈 문자
+    def __init__(self, name, widths=None, freeze=1, autofilter=True):
+        self.name, self.widths, self.freeze, self.autofilter = name[:31], widths or [], freeze, autofilter
+        self.rows, self.merges, self.ncol = [], [], 0
+
+    def add(self, cells, style=None):
+        """cells: 값 목록. 숫자는 숫자 칸, 그 외는 문자. style: 칸 공통 스타일 번호(없으면 자동)"""
+        self.rows.append((cells, style))
+        self.ncol = max(self.ncol, len(cells))
+
+    def xml(self):
+        out = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+               '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+               'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">']
+        if self.freeze:
+            out.append('<sheetViews><sheetView workbookViewId="0"><pane ySplit="%d" topLeftCell="A%d" activePane="bottomLeft" '
+                       'state="frozen"/></sheetView></sheetViews>' % (self.freeze, self.freeze + 1))
+        if self.widths:
+            out.append("<cols>" + "".join('<col min="%d" max="%d" width="%s" customWidth="1"/>' % (i + 1, i + 1, w)
+                                          for i, w in enumerate(self.widths)) + "</cols>")
+        out.append("<sheetData>")
+        for r, (cells, style) in enumerate(self.rows, 1):
+            cs = []
+            for c, v in enumerate(cells):
+                if v is None or v == "":
+                    continue
+                ref = _col(c) + str(r)
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    st = style if style is not None else 2
+                    if st == 5:
+                        st = 3
+                    cs.append('<c r="%s" s="%d"><v>%s</v></c>' % (ref, st, repr(round(v, 2)) if isinstance(v, float) else v))
+                else:
+                    st = style if style is not None else 0
+                    if st in (2, 3):
+                        st = 5 if st == 3 else 0
+                    cs.append('<c r="%s" s="%d" t="inlineStr"><is><t xml:space="preserve">%s</t></is></c>' % (ref, st, _xesc(v)))
+            out.append('<row r="%d">%s</row>' % (r, "".join(cs)))
+        out.append("</sheetData>")
+        if self.autofilter and self.freeze and len(self.rows) > self.freeze:
+            out.append('<autoFilter ref="A%d:%s%d"/>' % (self.freeze, _col(max(0, self.ncol - 1)), len(self.rows)))
+        if self.merges:
+            out.append('<mergeCells count="%d">%s</mergeCells>' % (len(self.merges), "".join('<mergeCell ref="%s"/>' % m for m in self.merges)))
+        out.append("</worksheet>")
+        return "".join(out)
+
+
+_STYLES = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+           '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+           '<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0"/></numFmts>'
+           '<fonts count="3"><font><sz val="10"/><name val="맑은 고딕"/></font>'
+           '<font><b/><sz val="10"/><name val="맑은 고딕"/></font><font><b/><sz val="13"/><name val="맑은 고딕"/></font></fonts>'
+           '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'
+           '<fill><patternFill patternType="solid"><fgColor rgb="FFDCE6F2"/><bgColor indexed="64"/></patternFill></fill>'
+           '<fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill></fills>'
+           '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'
+           '<border><left/><right/><top/><bottom style="thin"><color rgb="FF9FB3CC"/></bottom><diagonal/></border></borders>'
+           '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+           '<cellXfs count="7">'
+           '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+           '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'
+           '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
+           '<xf numFmtId="164" fontId="1" fillId="3" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>'
+           '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
+           '<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>'
+           '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>'
+           '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>')
+
+
+def build_xlsx(sheets):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml",
+                   '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                   '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                   '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                   '<Default Extension="xml" ContentType="application/xml"/>'
+                   '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+                   '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+                   + "".join('<Override PartName="/xl/worksheets/sheet%d.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' % (i + 1)
+                             for i in range(len(sheets))) + "</Types>")
+        z.writestr("_rels/.rels",
+                   '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                   '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                   '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+                   "</Relationships>")
+        z.writestr("xl/workbook.xml",
+                   '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                   '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+                   'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'
+                   + "".join('<sheet name="%s" sheetId="%d" r:id="rId%d"/>' % (_xesc(sh.name), i + 1, i + 1) for i, sh in enumerate(sheets))
+                   + "</sheets></workbook>")
+        z.writestr("xl/_rels/workbook.xml.rels",
+                   '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                   '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                   + "".join('<Relationship Id="rId%d" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet%d.xml"/>' % (i + 1, i + 1)
+                             for i in range(len(sheets)))
+                   + '<Relationship Id="rId%d" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' % (len(sheets) + 1)
+                   + "</Relationships>")
+        z.writestr("xl/styles.xml", _STYLES)
+        for i, sh in enumerate(sheets):
+            z.writestr("xl/worksheets/sheet%d.xml" % (i + 1), sh.xml())
+    return buf.getvalue()
+
+
+def item_name(text):
+    """적립·사용 내용에서 괄호 안 내용을 빼고 명칭만 남긴다. 예) '세미나 설문 (2259)' → '세미나 설문'"""
+    t = text or ""
+    t = re.sub(r"\s*[\(\[（【［].*?[\)\]）】］]", "", t)
+    t = re.sub(r"\s*[\(\[（【［].*$", "", t)          # 닫는 괄호가 없는 경우
+    t = re.sub(r"\s+", " ", t).strip(" -_/")
+    return t or (text or "").strip() or "(내용 없음)"
+
+
+def _month_list(frm, to):
+    y, m = int(frm[:4]), int(frm[5:7])
+    out = []
+    while "%04d-%02d" % (y, m) <= to:
+        out.append("%04d-%02d" % (y, m))
+        m += 1
+        if m > 12:
+            y, m = y + 1, 1
+    return out
+
+
+EXPORT_LOCK = threading.Lock()
+
+
+def export_xlsx(cfg, password, frm, to):
+    derive_key(get_meta(cfg), password)                      # 대시보드 비밀번호 확인
+    if not (re.fullmatch(r"\d{4}-\d{2}", frm or "") and re.fullmatch(r"\d{4}-\d{2}", to or "")):
+        raise ValueError("기간 형식이 올바르지 않습니다 (YYYY-MM).")
+    if frm > to:
+        frm, to = to, frm
+    months = _month_list(frm, to)
+    mx = int(cfg.get("export_max_months") or 6)
+    if len(months) > mx:
+        raise ValueError("추출 기간은 최대 %d개월입니다 (선택: %d개월)." % (mx, len(months)))
+    if not EXPORT_LOCK.acquire(blocking=False):
+        raise RuntimeError("이미 추출이 진행 중입니다.")
+    t0 = time.time()
+    try:
+        db = open_db(cfg["db_path"])
+        try:
+            if schema_of(db) < SCHEMA_VERSION:
+                raise RuntimeError("충전 포인트 보강(최초 1회)이 아직 끝나지 않았습니다. 먼저 [갱신]을 눌러 주세요.")
+            texts = dict(db.execute("SELECT cid, text FROM contents"))
+            log("Excel 추출: %s ~ %s" % (frm, to))
+            rows = db.execute(
+                "SELECT usn, substr(ts,1,7), cid, "
+                "SUM(CASE WHEN amt > 0 THEN amt ELSE 0 END), SUM(amt > 0), "
+                "SUM(CASE WHEN amt < 0 THEN -amt ELSE 0 END), "
+                "SUM(CASE WHEN chg < 0 THEN -chg ELSE 0 END), SUM(amt < 0 OR chg < 0), "
+                "SUM(CASE WHEN chg > 0 THEN chg ELSE 0 END), SUM(chg > 0 AND amt <= 0) "
+                "FROM tx WHERE ts >= ? AND ts < ? GROUP BY 1,2,3",
+                (months[0] + "-01", months[-1] + "-32")).fetchall()
+        finally:
+            db.close()
+        # 내용별 분류
+        kinds = {}
+        def kind_of(cid):
+            k = kinds.get(cid)
+            if k is None:
+                t = texts.get(cid, "")
+                mig = bool(MIGRATION_RE.search(t))
+                kp = classify(t, True)[0]
+                kn = classify(t, False)[0]
+                k = kinds[cid] = (mig, kp, kn, item_name(t))
+            return k
+        # 회원별 월: [적립, 취소적립, 적립포인트 사용, 충전포인트 사용, 소멸, 충전포인트 충전·환원]
+        per = {}
+        earn_items, use_items = {}, {}
+        for usn, ym, cid, ap, np_, an, cn, nn, cp, ncp in rows:
+            mig, kp, kn, name = kind_of(cid)
+            if mig:
+                continue
+            v = per.setdefault((usn, ym), [0.0] * 6)
+            if ap:
+                v[1 if kp == "cancel" else 0] += ap
+                key = ("취소적립" if kp == "cancel" else "적립", name)
+                d = earn_items.setdefault(key, {})
+                e = d.setdefault(ym, [0.0, 0, set()])
+                e[0] += ap; e[1] += np_; e[2].add(usn)
+            if an or cn:
+                if kn == "expire":
+                    v[4] += an + cn
+                else:
+                    v[2] += an; v[3] += cn
+                key = ("소멸" if kn == "expire" else "사용", name)
+                d = use_items.setdefault(key, {})
+                e = d.setdefault(ym, [0.0, 0.0, 0, set()])
+                e[0] += an; e[1] += cn; e[2] += nn; e[3].add(usn)
+            if cp:
+                v[5] += cp
+                key = ("충전포인트 충전·환원", name)
+                d = earn_items.setdefault(key, {})
+                e = d.setdefault(ym, [0.0, 0, set()])
+                e[0] += cp; e[1] += ncp; e[2].add(usn)
+        R = lambda x: int(round(x))
+        now = dt.datetime.now(KST).strftime("%Y-%m-%d %H:%M")
+        # 1) 안내
+        info = XlsxSheet("안내", widths=[22, 100], freeze=0, autofilter=False)
+        info.add(["닥터빌 포인트 Excel 추출"], 4)
+        info.add([])
+        for k, v in [
+            ("추출 기간", "%s ~ %s (%d개월)" % (months[0], months[-1], len(months))),
+            ("생성 시각", now + " KST · 에이전트 v" + VERSION),
+            ("회원별_월별", "회원(USN)·월 단위 적립 / 사용 포인트"),
+            ("회원별_기간합계", "회원(USN)별 추출 기간 합계"),
+            ("적립_항목별_월 / 사용_항목별_월", "항목(괄호 안 내용을 뺀 명칭) × 월 금액 표"),
+            ("적립_항목별_상세 / 사용_항목별_상세", "월·항목별 금액·건수·회원 수 (피벗·필터용)"),
+            ("적립", "적립 포인트 중 사용취소·환불을 뺀 일반 적립"),
+            ("취소적립", "결제 취소·환불로 되돌려 받은 적립 포인트"),
+            ("적립포인트 사용", "구매·전환 등에 쓴 적립 포인트 (소멸 제외)"),
+            ("충전포인트 사용", "구매·전환 등에 쓴 충전 포인트 (유료 충전분)"),
+            ("참고 열", "소멸(유효기간 만료·탈퇴)과 충전포인트 충전·환원은 적립·사용 합계에 넣지 않고 따로 표시"),
+            ("제외", "2025-04-19 시스템 이관 시 옮겨 적은 '적립 포인트 이관'·'충전 포인트 이관' 내역"),
+            ("항목 명칭", "내용의 괄호 안 내용(회차·날짜·주문번호 등)을 제거해 같은 명칭끼리 합산. 예) 세미나 설문 (2259) → 세미나 설문"),
+            ("회원 수", "해당 월(기간)에 그 항목으로 1회 이상 적립·사용한 회원 수 (중복 제외)"),
+            ("개인정보 주의", "이 파일에는 회원 USN이 포함되어 있습니다. 사내 개인정보 처리 기준에 따라 보관하고, 외부 공유 전에는 반드시 사전 승인을 받으세요."),
+        ]:
+            info.add([k, v], None)
+        for i in range(2, len(info.rows)):
+            info.rows[i] = (info.rows[i][0], 6)
+        # 2) 회원별 월별
+        H = ["적립", "취소적립", "적립 합계", "적립포인트 사용", "충전포인트 사용", "사용 합계", "(참고) 소멸", "(참고) 충전포인트 충전·환원"]
+        def vals(v):
+            return [R(v[0]), R(v[1]), R(v[0] + v[1]), R(v[2]), R(v[3]), R(v[2] + v[3]), R(v[4]), R(v[5])]
+        um = XlsxSheet("회원별_월별", widths=[14, 10] + [14] * 8)
+        um.add(["USN", "월"] + H, 1)
+        tot = [0.0] * 6
+        users = {}
+        for (usn, ym) in sorted(per, key=lambda k: (k[0].zfill(12), k[1])):
+            v = per[(usn, ym)]
+            um.add([usn, ym] + vals(v))
+            u = users.setdefault(usn, [0.0] * 6 + [0])
+            for i in range(6):
+                u[i] += v[i]
+                tot[i] += v[i]
+            u[6] += 1
+        um.add(["합계", "%d명" % len(users)] + vals(tot), 3)
+        # 3) 회원별 기간합계
+        ut = XlsxSheet("회원별_기간합계", widths=[14, 10] + [14] * 8)
+        ut.add(["USN", "활동 월 수"] + H, 1)
+        for usn in sorted(users, key=lambda u: u.zfill(12)):
+            u = users[usn]
+            ut.add([usn, u[6]] + vals(u))
+        ut.add(["합계", len(users)] + vals(tot), 3)
+        # 4·6) 적립 항목별
+        order_e = {"적립": 0, "취소적립": 1, "충전포인트 충전·환원": 2}
+        ek = sorted(earn_items, key=lambda k: (order_e.get(k[0], 9), -sum(e[0] for e in earn_items[k].values()), k[1]))
+        ew = XlsxSheet("적립_항목별_월", widths=[18, 34] + [14] * len(months) + [15, 12, 12])
+        ew.add(["구분", "항목"] + ["%s 금액" % m for m in months] + ["기간 합계 금액", "기간 건수", "기간 회원 수"], 1)
+        ed = XlsxSheet("적립_항목별_상세", widths=[10, 18, 34, 15, 12, 12])
+        ed.add(["월", "구분", "항목", "금액", "건수", "회원 수"], 1)
+        col_tot = [0.0] * len(months)
+        for k in ek:
+            d = earn_items[k]
+            allu = set()
+            for e in d.values():
+                allu |= e[2]
+            amts = [R(d[m][0]) if m in d else 0 for m in months]
+            for i, a in enumerate(amts):
+                col_tot[i] += a if k[0] != "충전포인트 충전·환원" else 0
+            ew.add([k[0], k[1]] + amts + [sum(amts), sum(e[1] for e in d.values()), len(allu)])
+        ew.add(["합계", "(적립 + 취소적립)"] + [R(v) for v in col_tot] + [R(sum(col_tot)), "", ""], 3)
+        for m in months:
+            for k in ek:
+                e = earn_items[k].get(m)
+                if e:
+                    ed.add([m, k[0], k[1], R(e[0]), e[1], len(e[2])])
+        # 5·7) 사용 항목별
+        order_u = {"사용": 0, "소멸": 1}
+        uk = sorted(use_items, key=lambda k: (order_u.get(k[0], 9), -sum(e[0] + e[1] for e in use_items[k].values()), k[1]))
+        uw = XlsxSheet("사용_항목별_월", widths=[10, 34] + [14] * len(months) + [15, 15, 15, 12, 12])
+        uw.add(["구분", "항목"] + ["%s 금액" % m for m in months] + ["기간 적립포인트 사용", "기간 충전포인트 사용", "기간 합계 금액", "기간 건수", "기간 회원 수"], 1)
+        ud = XlsxSheet("사용_항목별_상세", widths=[10, 10, 34, 15, 15, 15, 12, 12])
+        ud.add(["월", "구분", "항목", "적립포인트 사용", "충전포인트 사용", "합계 금액", "건수", "회원 수"], 1)
+        col_u = [0.0] * len(months)
+        su = [0.0, 0.0]
+        for k in uk:
+            d = use_items[k]
+            allu = set()
+            for e in d.values():
+                allu |= e[3]
+            amts = [R(d[m][0] + d[m][1]) if m in d else 0 for m in months]
+            pa, pc = sum(e[0] for e in d.values()), sum(e[1] for e in d.values())
+            if k[0] == "사용":
+                for i, a in enumerate(amts):
+                    col_u[i] += a
+                su[0] += pa; su[1] += pc
+            uw.add([k[0], k[1]] + amts + [R(pa), R(pc), R(pa + pc), sum(e[2] for e in d.values()), len(allu)])
+        uw.add(["합계", "(사용, 소멸 제외)"] + [R(v) for v in col_u] + [R(su[0]), R(su[1]), R(su[0] + su[1]), "", ""], 3)
+        for m in months:
+            for k in uk:
+                e = use_items[k].get(m)
+                if e:
+                    ud.add([m, k[0], k[1], R(e[0]), R(e[1]), R(e[0] + e[1]), e[2], len(e[3])])
+        data = build_xlsx([info, um, ut, ew, uw, ed, ud])
+        log("  · Excel 생성 완료: 회원 %s명 · %s행 · %.0f초" % (format(len(users), ","), format(len(per), ","), time.time() - t0))
+        return data, "닥터빌_포인트_%s_%s.xlsx" % (months[0].replace("-", ""), months[-1].replace("-", ""))
+    finally:
+        EXPORT_LOCK.release()
+
+
+# --------------------------------------------------------------------------------------
 # 갱신 = 신규 파일 적재 → 집계 → 암호화 → 게시
 # --------------------------------------------------------------------------------------
 _lock = threading.Lock()
@@ -785,7 +1208,7 @@ def refresh(cfg, password):
     PROGRESS.update(running=True, stage="start", file="", rows=0, fileIndex=0, fileCount=0)
     try:
         FAILED.clear()
-        db = open_db(cfg["db_path"])
+        db = migrate_if_needed(cfg, open_db(cfg["db_path"]))
         try:
             loaded = ingest(db, cfg["raw_dir"])
             data = aggregate(db, cfg)
@@ -849,8 +1272,15 @@ class Handler(BaseHTTPRequestHandler):
                 db.close()
             except Exception:
                 n = None
+            try:
+                db = open_db(self.cfg["db_path"])
+                sch = schema_of(db)
+                db.close()
+            except Exception:
+                sch = None
             return self._send(200, {"ok": True, "agent": "dv-point", "version": VERSION, "pending": n,
-                                    "running": PROGRESS["running"]})
+                                    "running": PROGRESS["running"], "schema": sch, "needsRebuild": sch is not None and sch < SCHEMA_VERSION,
+                                    "exportMaxMonths": int(self.cfg.get("export_max_months") or 6)})
         if self.path.startswith("/progress"):
             return self._send(200, dict(PROGRESS, ok=True))
         self._send(404, {"ok": False, "error": "not_found"})
@@ -863,6 +1293,24 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(min(ln, 10000)).decode("utf-8") or "{}")
         except Exception:
             return self._send(400, {"ok": False, "error": "bad_request"})
+        if self.path.startswith("/export"):
+            try:
+                data, fname = export_xlsx(self.cfg, body.get("password") or "", body.get("from"), body.get("to"))
+            except PermissionError as e:
+                return self._send(401, {"ok": False, "error": "unauthorized", "message": str(e)})
+            except (ValueError, RuntimeError) as e:
+                return self._send(400, {"ok": False, "error": "bad_request", "message": str(e)})
+            except Exception as e:
+                traceback.print_exc()
+                return self._send(500, {"ok": False, "error": "failed", "message": str(e)})
+            self.send_response(200)
+            self._cors()
+            self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if self.path.startswith("/refresh"):
             try:
                 return self._send(200, refresh(self.cfg, body.get("password") or ""))
@@ -892,7 +1340,9 @@ def serve(cfg):
 
 def main():
     ap = argparse.ArgumentParser(description="닥터빌 포인트 대시보드 로컬 에이전트")
-    ap.add_argument("cmd", nargs="?", default="serve", choices=["serve", "refresh", "inspect", "status", "aggregate-json"])
+    ap.add_argument("cmd", nargs="?", default="serve", choices=["serve", "refresh", "inspect", "status", "aggregate-json", "export"])
+    ap.add_argument("--from", dest="frm")
+    ap.add_argument("--to")
     ap.add_argument("--raw-dir")
     ap.add_argument("--db")
     ap.add_argument("--out")
@@ -925,6 +1375,13 @@ def main():
         for r in db.execute("SELECT name, rows, inserted, dmin, dmax, loaded_at FROM files ORDER BY dmin"):
             print("%-50s 읽음 %10s  저장 %10s  %s ~ %s  (%s)" % (r[0], format(r[1], ","), format(r[2], ","), r[3], r[4], r[5]))
         print("미적재 신규 파일: %d개" % len(pending_files(db, cfg["raw_dir"])))
+    elif a.cmd == "export":   # 예) python point_agent.py export --from 2026-03 --to 2026-08
+        pw = os.environ.get("DASHBOARD_PASSWORD") or getpass.getpass("대시보드 비밀번호: ")
+        data, fname = export_xlsx(cfg, pw, a.frm, a.to or a.frm)
+        out = a.out or os.path.join(HERE, fname)
+        with open(out, "wb") as f:
+            f.write(data)
+        print("저장: %s" % out)
     elif a.cmd == "aggregate-json":   # 개발·검증용: 적재 + 평문 집계 JSON 저장 (게시 안 함)
         db = open_db(cfg["db_path"])
         ingest(db, cfg["raw_dir"])
