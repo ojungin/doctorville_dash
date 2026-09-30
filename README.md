@@ -14,7 +14,10 @@ docs/                       ← GitHub Pages 게시 폴더
   data/snapshots/YYYY-Www.enc.json   주차별 스냅샷 (암호화)
 scripts/
   aggregate.js              집계 로직 (Node/브라우저 공용)
-  build.mjs                 시트 조회 → 스냅샷 생성 → 암호화 저장
+  build.mjs                 집계치 수신(Apps Script) → 암호화 저장
+apps-script/
+  Code.gs                   시트에 붙이는 집계 웹앱 (토큰 확인 후 집계치만 반환)
+  aggregate.gs              scripts/aggregate.js와 동일한 집계 로직
   crypto.mjs                암호화 모듈 (AES-256-GCM, PBKDF2-SHA256 60만 회)
   rekey.mjs                 비밀번호 변경 시 전체 재암호화
 .github/workflows/weekly-snapshot.yml   매주 월 09:00 KST 자동 실행
@@ -47,19 +50,38 @@ scripts/
 - 한계: 정적 페이지라 로그인 시도 횟수 제한이 없습니다. 비밀번호가 추측 가능하면 암호문을 대입 공격할 수 있으므로 **12자 이상의 무작위 비밀번호**를 권장합니다.
 - 비밀번호 변경: `OLD_PASSWORD=기존 NEW_PASSWORD=신규 node scripts/rekey.mjs` 실행 후 커밋하고, Secret `DASHBOARD_PASSWORD`도 변경합니다.
 
-## 최초 설정 (1회)
+## 최초 설정 (1회) — Google Cloud 불필요
 
-1. **Google Cloud 서비스 계정 생성**
-   - Google Cloud Console → 프로젝트 선택 → *API 및 서비스* → **Google Sheets API 사용 설정**
-   - *IAM 및 관리자 → 서비스 계정* → 계정 생성 → *키 → JSON 키 추가* 후 다운로드
-2. **구글시트 공유**: 회원분석 시트를 서비스 계정 이메일(`...@...iam.gserviceaccount.com`)에 **뷰어** 권한으로 공유
-3. **GitHub Secrets 등록** (저장소 *Settings → Secrets and variables → Actions*)
-   - `GOOGLE_SERVICE_ACCOUNT_JSON`: 다운로드한 JSON 파일 내용 전체
-   - `SHEET_ID`: `18Oaw2ldpiZu_uvaNQG2YNkwou7WWpi6itI-Scjpn070`
+회원분석 시트 안에 Apps Script를 붙여 **시트 안에서 집계**하고, GitHub Actions는 집계치만 받아 암호화합니다.
+원본 회원 행은 시트 밖으로 나가지 않으며, 서비스 계정·Cloud 프로젝트가 필요 없습니다.
+
+```
+구글시트(비공개) ──[Apps Script: 시트 안에서 집계]──▶ 집계치(개인정보 없음)
+      ▲ 토큰 확인                                         │
+GitHub Actions(매주 월) ──POST(토큰)──────────────────────┘
+      └─ 비밀번호로 암호화 → docs/data 커밋 → Pages 반영
+```
+
+1. **Apps Script 붙이기**: 회원분석 시트 → *확장 프로그램 → Apps Script*
+   - 기본 `Code.gs` 내용을 지우고 `apps-script/Code.gs` 내용을 붙여넣기
+   - 파일 추가(+) → 스크립트 → 이름 `aggregate` → `apps-script/aggregate.gs` 내용 붙여넣기 → 저장
+2. **토큰 생성**: 함수 선택에서 `setupToken` 실행 → 권한 승인(본인 계정) → *실행 로그*의 토큰 복사
+   - (선택) `testAggregate` 실행 → 로그에 "총 ○○명, 주간 신규 ○○명"이 나오면 정상
+3. **웹 앱 배포**: *배포 → 새 배포 → 유형 선택: 웹 앱* / 실행 사용자: **나** / 액세스 권한: **모든 사용자** → 배포 → 웹 앱 URL(`…/exec`) 복사
+   - "모든 사용자"여도 토큰이 없으면 아무것도 반환하지 않고, 토큰이 있어도 집계치만 반환합니다.
+4. **GitHub Secrets 등록** (저장소 *Settings → Secrets and variables → Actions → New repository secret*)
+   - `APPS_SCRIPT_URL`: 웹 앱 URL
+   - `APPS_SCRIPT_TOKEN`: 2단계 토큰
    - `DASHBOARD_PASSWORD`: 대시보드 접속 비밀번호 (현재 암호화에 사용한 비밀번호와 같아야 함)
-   - (선택) Variables에 `SHEET_RANGE` — 시트 탭 이름이 `시트1`이 아닐 때
-4. **GitHub Pages 설정**: *Settings → Pages → Build and deployment* → Source: `Deploy from a branch`, Branch: `main` / `/docs`
-5. **첫 실행**: *Actions → 주간 회원 스냅샷 → Run workflow*
+5. **첫 실행**: *Actions → 주간 회원 스냅샷 → Run workflow* → 성공 후 대시보드에 반영 확인
+
+GitHub Pages 설정: *Settings → Pages* → Source `Deploy from a branch`, Branch `main` / `/docs` (설정 완료 상태)
+
+### 유지보수 메모
+- 집계 로직(`scripts/aggregate.js`)을 고치면 `apps-script/aggregate.gs`에도 같은 내용을 붙여넣고 **배포 → 배포 관리 → 새 버전**으로 갱신합니다.
+- 토큰 교체: `setupToken` 재실행 → Secret `APPS_SCRIPT_TOKEN` 변경
+- 시트 탭 이름이 `시트1`이 아니면 `Code.gs`의 `SHEET_NAME`을 수정합니다.
+- (대안) 서비스 계정 방식: `APPS_SCRIPT_URL`을 비우고 `GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID` Secret을 등록하면 기존 방식으로 동작합니다.
 
 ## 운영
 
