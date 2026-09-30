@@ -27,6 +27,8 @@ function doPost(e) {
   var cache = CacheService.getScriptCache();
   var fails = Number(cache.get('fails') || 0);
   if (fails >= MAX_FAILS) return json_({ ok: false, error: 'locked' });
+  var props = PropertiesService.getScriptProperties();
+  if (!props.getProperty('PW_HASH') || !props.getProperty('PW_SALT')) return json_({ ok: false, error: 'password_not_set' });
   if (!checkPassword_(String(req.password || ''))) {
     cache.put('fails', String(fails + 1), 600);
     Utilities.sleep(800);
@@ -50,6 +52,7 @@ function doGet() { return json_({ ok: false, error: 'use POST' }); }
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('대시보드')
     .addItem('비밀번호 설정', 'menuSetPassword')
+    .addItem('비밀번호 확인 (테스트)', 'menuCheckPassword')
     .addItem('지금 집계하기 (테스트)', 'menuRefresh')
     .addToUi();
 }
@@ -57,12 +60,28 @@ function onOpen() {
 function menuSetPassword() {
   var ui = SpreadsheetApp.getUi();
   var r = ui.prompt('대시보드 비밀번호 설정', '대시보드 로그인 비밀번호와 같은 값을 입력하세요.', ui.ButtonSet.OK_CANCEL);
-  if (r.getSelectedButton() !== ui.Button.OK || !r.getResponseText()) return;
-  var salt = Utilities.getUuid();
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  var pw = String(r.getResponseText() || '').trim();
+  if (!pw) { ui.alert('비밀번호가 비어 있어 저장하지 않았습니다.'); return; }
+  try {
+    var salt = Utilities.getUuid();
+    var hash = hash_(pw, salt); // 먼저 계산이 성공해야 저장
+    var props = PropertiesService.getScriptProperties();
+    props.setProperties({ PW_SALT: salt, PW_HASH: hash });
+    ui.alert('비밀번호가 저장되었습니다. (' + pw.length + '자)');
+  } catch (err) {
+    ui.alert('저장 실패: ' + (err && err.message || err));
+  }
+}
+
+/** 저장된 비밀번호와 입력값이 같은지 시트에서 바로 확인 */
+function menuCheckPassword() {
+  var ui = SpreadsheetApp.getUi();
   var props = PropertiesService.getScriptProperties();
-  props.setProperty('PW_SALT', salt);
-  props.setProperty('PW_HASH', hash_(r.getResponseText(), salt));
-  ui.alert('비밀번호가 저장되었습니다.');
+  if (!props.getProperty('PW_HASH') || !props.getProperty('PW_SALT')) { ui.alert('저장된 비밀번호가 없습니다. [비밀번호 설정]을 먼저 실행해 주세요.'); return; }
+  var r = ui.prompt('비밀번호 확인', '대시보드 로그인에 쓰는 비밀번호를 입력하세요.', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  ui.alert(checkPassword_(r.getResponseText()) ? '일치합니다. 대시보드 [갱신]을 사용할 수 있습니다.' : '일치하지 않습니다. [비밀번호 설정]을 다시 실행해 주세요.');
 }
 
 function menuRefresh() {
@@ -129,14 +148,18 @@ function bundle_(week) {
 function checkPassword_(pw) {
   var props = PropertiesService.getScriptProperties();
   var salt = props.getProperty('PW_SALT'), saved = props.getProperty('PW_HASH');
+  pw = String(pw || '').trim();
   if (!salt || !saved || !pw) return false;
   return safeEqual_(hash_(pw, salt), saved);
 }
 
+// 솔트 + 반복 SHA-256 (문자열 기반: 실행 환경에 따른 바이트 배열 차이 방지)
 function hash_(pw, salt) {
-  var bytes = Utilities.newBlob(salt + ':' + pw).getBytes();
-  for (var i = 0; i < PW_ITER; i++) bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes.concat(Utilities.newBlob(salt).getBytes()));
-  return Utilities.base64Encode(bytes);
+  var h = String(pw);
+  for (var i = 0; i < PW_ITER; i++) {
+    h = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + ':' + h, Utilities.Charset.UTF_8));
+  }
+  return h;
 }
 
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
