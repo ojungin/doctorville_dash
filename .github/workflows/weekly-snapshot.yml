@@ -1,9 +1,8 @@
 name: 주간 회원 스냅샷
 
+# 자동 예약 실행은 사용하지 않음 (대시보드 [갱신] 버튼 방식으로 전환). 필요 시 Actions 탭에서 수동 실행만 가능
 on:
-  schedule:
-    - cron: '30 0 * * 1'  # 매주 월요일 09:30 KST (00:30 UTC) — 09:00 시트 적재 후 실행
-  workflow_dispatch: {}    # Actions 탭에서 수동 실행
+  workflow_dispatch: {}
 
 permissions:
   contents: write
