@@ -1,0 +1,17 @@
+{
+  "_설명": "이 파일을 config.json 으로 복사해 필요한 값만 채우세요. 비워 두면 기본값을 씁니다.",
+  "raw_dir": "",
+  "repo_dir": "",
+  "github": {
+    "token": "",
+    "repo": "ojungin/doctorville_dash",
+    "branch": "main",
+    "path": "docs/data/points.enc.json"
+  },
+  "big_earn_threshold": 100000,
+  "repeat_buy_min": 10,
+  "earn_user_thresholds": [
+    100000,
+    200000
+  ]
+}
