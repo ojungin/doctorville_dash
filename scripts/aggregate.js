@@ -157,6 +157,10 @@
     var total = 0, joinedBeforeFirst = 0, newRef = 0, newPrev = 0, recent4 = 0, afterRef = 0;
     var active7 = 0, active30 = 0, integrated = 0, smsYes = 0, emailYes = 0;
     var deptAge = {};
+    // 연간 월별 비교 (올해 vs 작년, KST)
+    var nowK = kstDate(now), Y = nowK.getUTCFullYear();
+    var cutoffMD = (nowK.getUTCMonth() + 1) * 100 + nowK.getUTCDate(); // 동기간 비교 기준 (MMDD)
+    var monCur = [0,0,0,0,0,0,0,0,0,0,0,0], monLast = [0,0,0,0,0,0,0,0,0,0,0,0], ytdLast = 0;
 
     for (var r = 1; r < rows.length; r++) {
       var row = rows[r];
@@ -187,6 +191,15 @@
 
       if (!deptAge[vals.dept]) deptAge[vals.dept] = {};
       inc(deptAge[vals.dept], vals.age);
+
+      if (j != null && j <= now) {
+        var jd = kstDate(j), jy = jd.getUTCFullYear(), jm = jd.getUTCMonth();
+        if (jy === Y) monCur[jm]++;
+        else if (jy === Y - 1) {
+          monLast[jm]++;
+          if ((jm + 1) * 100 + jd.getUTCDate() <= cutoffMD) ytdLast++;
+        }
+      }
 
       if (j != null) {
         var ws = weekStart(j);
@@ -259,11 +272,19 @@
       },
       dims: outDims,
       weekly: series,
-      deptAge: { ages: AGE_ORDER, rows: heat }
+      deptAge: { ages: AGE_ORDER, rows: heat },
+      monthly: {
+        thisYear: Y, lastYear: Y - 1, asOf: ymd(now), currentMonth: nowK.getUTCMonth() + 1,
+        cur: monCur.map(function (n, i) { return i <= nowK.getUTCMonth() ? n : null; }),
+        last: monLast,
+        ytdCur: monCur.reduce(function (a, b) { return a + b; }, 0),
+        ytdLast: ytdLast,
+        totalLast: monLast.reduce(function (a, b) { return a + b; }, 0)
+      }
     };
   }
   function sumSmall(m, keep) {
-    var s = 0; Object.keys(m).forEach(function (k) { if (!keep[k]) s += m[k]; }); return s < MIN_CELL && s > 0 ? s : s;
+    var s = 0; Object.keys(m).forEach(function (k) { if (!keep[k]) s += m[k]; }); return s;
   }
 
   // 스냅샷 → 이력 요약 한 줄
