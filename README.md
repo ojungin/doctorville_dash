@@ -15,12 +15,12 @@ docs/                       ← GitHub Pages 게시 폴더
 scripts/
   aggregate.js              집계 로직 (Node/브라우저 공용)
   build.mjs                 집계치 수신(Apps Script) → 암호화 저장
+  crypto.mjs                암호화 모듈 (AES-256-GCM, PBKDF2-SHA256 60만 회)
+  rekey.mjs                 비밀번호 변경 시 전체 재암호화
 apps-script/
   Code.gs                   시트에 붙이는 집계 웹앱 (토큰 확인 후 집계치만 반환)
   aggregate.gs              scripts/aggregate.js와 동일한 집계 로직
-  crypto.mjs                암호화 모듈 (AES-256-GCM, PBKDF2-SHA256 60만 회)
-  rekey.mjs                 비밀번호 변경 시 전체 재암호화
-.github/workflows/weekly-snapshot.yml   매주 월 09:00 KST 자동 실행
+.github/workflows/weekly-snapshot.yml   매주 월 09:30 KST 자동 실행
 ```
 
 ## 대시보드 구성
@@ -85,7 +85,7 @@ GitHub Pages 설정: *Settings → Pages* → Source `Deploy from a branch`, Bra
 
 ## 운영
 
-- 자동 실행: 매주 월요일 09:00 KST. 같은 주에 다시 실행하면 해당 주 스냅샷을 덮어씁니다.
+- 자동 실행: 매주 월요일 09:30 KST (09:00 시트 적재 이후). GitHub 예약 실행은 수 분~수십 분 지연될 수 있습니다. 같은 주에 다시 실행하면 해당 주 스냅샷을 덮어씁니다.
 - 로컬 테스트: `DASHBOARD_PASSWORD=... node scripts/build.mjs --csv 내보낸파일.csv` (CSV는 커밋하지 마세요)
 - 시트 필드명이 바뀌면 `scripts/aggregate.js`의 `DIMS` 매핑을 수정합니다.
 - 시트 데이터 적재(어드민 → 구글시트)는 별도 프로세스이므로, 적재가 늦어지면 해당 주 신규 수가 적게 집계될 수 있습니다.
