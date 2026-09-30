@@ -2,11 +2,16 @@
 /*
  * 주간 스냅샷 생성 스크립트
  *
- * 사용법
- *   node scripts/build.mjs                 # 구글시트(서비스 계정)에서 읽어 집계
- *   node scripts/build.mjs --csv 파일.csv   # 로컬 CSV로 테스트 (CSV는 저장소에 커밋 금지)
+ * 데이터 소스 (위에서부터 우선 적용)
+ *   A. Apps Script 웹앱 (기본, Google Cloud 불필요)
+ *      APPS_SCRIPT_URL, APPS_SCRIPT_TOKEN — 시트에 붙인 Apps Script가 집계치만 반환 (apps-script/ 참고)
+ *   B. 서비스 계정 (선택)
+ *      GOOGLE_SERVICE_ACCOUNT_JSON, SHEET_ID, SHEET_RANGE
+ *   C. 로컬 CSV 테스트: node scripts/build.mjs --csv 파일.csv (CSV는 저장소에 커밋 금지)
  *
  * 환경 변수 (GitHub Secrets)
+ *   APPS_SCRIPT_URL              Apps Script 웹앱 URL (…/exec)
+ *   APPS_SCRIPT_TOKEN            Apps Script에 저장한 접근 토큰
  *   GOOGLE_SERVICE_ACCOUNT_JSON  서비스 계정 키 JSON 전체 문자열
  *   SHEET_ID                     구글시트 ID
  *   SHEET_RANGE                  (선택) 읽을 시트/범위, 기본값 '시트1'
@@ -73,14 +78,37 @@ async function readSheet() {
   return (await res.json()).values || [];
 }
 
+// Apps Script 웹앱에서 집계 결과(개인정보 없음)를 받아옴. 토큰은 URL이 아닌 POST 본문으로 전달
+async function fetchAppsScript() {
+  const { APPS_SCRIPT_URL, APPS_SCRIPT_TOKEN } = process.env;
+  if (!APPS_SCRIPT_TOKEN) throw new Error('APPS_SCRIPT_TOKEN 환경 변수가 필요합니다.');
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST', redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ token: APPS_SCRIPT_TOKEN })
+  });
+  const text = await res.text();
+  let body;
+  try { body = JSON.parse(text); } catch { throw new Error(`Apps Script 응답이 JSON이 아닙니다 (${res.status}). 웹앱 배포 설정(액세스: 모든 사용자)을 확인하세요.`); }
+  if (!body.ok) throw new Error(`Apps Script 오류: ${body.error || 'unknown'}`);
+  const snap = body.snapshot;
+  if (!snap || snap.schema !== 1 || !snap.kpi || !snap.week) throw new Error('Apps Script 응답 형식이 올바르지 않습니다.');
+  return snap;
+}
+
 function readJson(p, fallback) { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fallback; } }
 function writeJson(p, o) { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, JSON.stringify(o) + '\n'); }
 
 async function main() {
   const i = process.argv.indexOf('--csv');
-  const rows = i > -1 ? parseCsv(readFileSync(process.argv[i + 1], 'utf8')) : await readSheet();
-  if (rows.length < 2) throw new Error('시트에 데이터가 없습니다.');
-  const snap = aggregate(rows);
+  let snap;
+  if (i > -1 || !process.env.APPS_SCRIPT_URL) {
+    const rows = i > -1 ? parseCsv(readFileSync(process.argv[i + 1], 'utf8')) : await readSheet();
+    if (rows.length < 2) throw new Error('시트에 데이터가 없습니다.');
+    snap = aggregate(rows);
+  } else {
+    snap = await fetchAppsScript();
+  }
 
   // 안전장치: 개인 식별 필드가 결과에 섞이지 않았는지 확인
   const text = JSON.stringify(snap);
