@@ -2,7 +2,7 @@ name: 주간 회원 스냅샷
 
 on:
   schedule:
-    - cron: '0 0 * * 1'   # 매주 월요일 09:00 KST (00:00 UTC)
+    - cron: '30 0 * * 1'  # 매주 월요일 09:30 KST (00:30 UTC) — 09:00 시트 적재 후 실행
   workflow_dispatch: {}    # Actions 탭에서 수동 실행
 
 permissions:
