@@ -410,6 +410,7 @@ body.locked #gate { display: flex; }
   function apiErrorText(e) {
     if (e.code === 'unauthorized') return '구글시트 연동 비밀번호가 다릅니다. 시트 메뉴 [대시보드 → 비밀번호 설정] 값을 확인해 주세요.';
     if (e.code === 'locked') return '비밀번호 오류가 반복되어 10분간 갱신이 잠겼습니다.';
+    if (e.code === 'password_not_set') return '구글시트에 연동 비밀번호가 아직 저장되지 않았습니다. 시트 메뉴 [대시보드 → 비밀번호 설정]을 실행해 주세요.';
     return '구글시트 연동 실패: ' + (e.message || e);
   }
   function askPw() {
