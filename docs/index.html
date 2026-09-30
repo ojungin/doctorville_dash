@@ -28,6 +28,7 @@
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300;
   --seq-0: #f0f5fc; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95;
   --shadow: 0 1px 2px rgba(13,42,82,0.06);
+  --seq-hi-ink: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -40,6 +41,7 @@
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
     --seq-0: #1f2530; --seq-1: #184f95; --seq-2: #1c5cab; --seq-3: #256abf; --seq-4: #2a78d6; --seq-5: #5598e7; --seq-6: #9ec5f4;
     --shadow: none;
+    --seq-hi-ink: #0b0b0b;
   }
 }
 :root[data-theme="dark"] {
@@ -52,6 +54,7 @@
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
   --seq-0: #1f2530; --seq-1: #184f95; --seq-2: #1c5cab; --seq-3: #256abf; --seq-4: #2a78d6; --seq-5: #5598e7; --seq-6: #9ec5f4;
   --shadow: none;
+  --seq-hi-ink: #0b0b0b;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -138,6 +141,37 @@ section:first-child { margin-top: 0; }
 #tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
 footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 36px; }
 .loading { opacity: .55; transition: opacity .15s; }
+/* 갱신 버튼 / 알림 */
+.top .btn.primary { background: #ffffff; color: var(--header); border-color: #ffffff; font-weight: 700; }
+.top .btn.primary:disabled { opacity: .6; cursor: progress; }
+.src { font-size: 12px; color: var(--header-sub); }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 30; background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: 10px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transition: opacity .2s; max-width: calc(100% - 32px); }
+#toast.show { opacity: 1; }
+#toast.err { background: var(--down); color: #fff; }
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; z-index: 40; padding: 16px; }
+.modal-bg.show { display: flex; }
+.modal { background: var(--surface); border-radius: 12px; padding: 20px; width: 100%; max-width: 340px; display: grid; gap: 10px; }
+.modal h3 { margin: 0; font-size: 15px; }
+.modal p { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+.modal input { font: inherit; font-size: 15px; padding: 9px 11px; border: 1px solid var(--axis); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.modal .row { display: flex; gap: 8px; justify-content: flex-end; }
+.modal button { font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); cursor: pointer; }
+.modal button.ok { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+/* 연간 월별 비교 */
+.yoy-wrap { overflow-x: auto; }
+.yoy { width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 13px; min-width: 920px; table-layout: fixed; }
+.yoy col.c0 { width: 76px; } .yoy col.cs { width: 92px; } .yoy col.cy { width: 118px; }
+.yoy th { font-weight: 500; color: var(--muted); font-size: 12px; padding: 6px 4px; text-align: center; white-space: nowrap; }
+.yoy th.rowh { text-align: left; color: var(--ink); font-weight: 600; padding-left: 8px; }
+.yoy td { text-align: center; padding: 9px 4px; border-radius: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.yoy td.sum { font-weight: 700; background: var(--surface-2); }
+.yoy td.na { color: var(--muted); }
+.yoy tr.diff td { font-weight: 600; background: transparent; }
+.yoy th.cur { color: var(--accent); font-weight: 700; }
+.yoy-sum { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: baseline; margin: 0 0 12px; }
+.yoy-sum .big { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.yoy-sum .lbl { font-size: 12px; color: var(--ink-2); margin-right: 6px; }
+.yoy-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
 /* 로그인 */
 body.locked header.top, body.locked main { display: none; }
 #gate { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px 16px; background: var(--page); }
@@ -183,6 +217,8 @@ body.locked #gate { display: flex; }
     <div class="controls">
       <label for="weekSel">기준 주차</label>
       <select id="weekSel" aria-label="기준 주차 선택"></select>
+      <span class="src" id="srcLabel"></span>
+      <button class="btn primary" id="refreshBtn" type="button" title="구글시트의 최신 값을 불러와 다시 집계합니다">갱신</button>
       <button class="btn" id="themeBtn" type="button" aria-label="화면 테마 전환">테마</button>
       <button class="btn" id="logoutBtn" type="button">로그아웃</button>
     </div>
@@ -193,6 +229,16 @@ body.locked #gate { display: flex; }
   <div class="wrap" id="app">
     <section>
       <div class="kpis" id="kpis"></div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <div>
+          <h2>월별 신규 가입 — 작년 대비</h2>
+          <p id="yoySub">가입일시 기준 월별 신규 가입자 수를 작년 같은 달과 비교합니다.</p>
+        </div>
+      </div>
+      <div class="card"><div id="yoy"></div></div>
     </section>
 
     <section>
@@ -244,6 +290,15 @@ body.locked #gate { display: flex; }
   </div>
 </main>
 <div id="tip" role="tooltip"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div class="modal-bg" id="pwModal">
+  <form class="modal" id="pwForm">
+    <h3>비밀번호 확인</h3>
+    <p>구글시트에서 최신 데이터를 불러오려면 비밀번호를 한 번 더 입력해 주세요.</p>
+    <input id="pw2" type="password" autocomplete="current-password" required>
+    <div class="row"><button type="button" id="pwCancel">취소</button><button type="submit" class="ok">확인</button></div>
+  </form>
+</div>
 
 <script>
 (function () {
@@ -283,7 +338,7 @@ body.locked #gate { display: flex; }
   }
 
   // ---- 암호화 데이터 (AES-256-GCM / PBKDF2-SHA256, scripts/crypto.mjs와 동일 형식) ----
-  var KEY = null, META = null, SS = 'mv-key';
+  var KEY = null, META = null, SS = 'mv-key', SSP = 'mv-pw', PW = null, CONFIG = {};
   var subtle = window.crypto && window.crypto.subtle;
   function unb64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
   function b64(buf) { var u = new Uint8Array(buf), s = ''; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
@@ -312,53 +367,134 @@ body.locked #gate { display: flex; }
     if (!META) { $('#gateMsg').textContent = '데이터 정보를 불러오지 못했습니다. 새로고침 해주세요.'; return; }
     btn.disabled = true; btn.textContent = '확인 중…'; $('#gateMsg').textContent = '';
     deriveKey(pw).then(useKey).then(function (key) {
-      if ($('#remember').checked) subtle.exportKey('raw', key).then(function (raw) { try { sessionStorage.setItem(SS, b64(raw)); } catch (e) {} });
+      PW = pw;
+      if ($('#remember').checked) subtle.exportKey('raw', key).then(function (raw) { try { sessionStorage.setItem(SS, b64(raw)); } catch (e) {} return savePw(key, pw); });
       unlock();
     }).catch(function () {
       $('#gateMsg').textContent = '비밀번호가 올바르지 않습니다.';
       $('#pw').select();
     }).then(function () { btn.disabled = false; btn.textContent = '접속'; });
   });
-  $('#logoutBtn').addEventListener('click', function () { try { sessionStorage.removeItem(SS); } catch (e) {} location.reload(); });
+  $('#logoutBtn').addEventListener('click', function () { try { sessionStorage.removeItem(SS); sessionStorage.removeItem(SSP); } catch (e) {} location.reload(); });
+  // "로그인 유지" 시 갱신용 비밀번호를 세션 키로 암호화해 탭 세션에만 보관
+  function savePw(key, pw) {
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    return subtle.exportKey('raw', key).then(function (raw) { return subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt']); })
+      .then(function (ek) { return subtle.encrypt({ name: 'AES-GCM', iv: iv }, ek, new TextEncoder().encode(pw)); })
+      .then(function (ct) { try { sessionStorage.setItem(SSP, JSON.stringify({ iv: b64(iv), ct: b64(ct) })); } catch (e) {} })
+      .catch(function () {});
+  }
+  function restorePw(key) {
+    var box = null; try { box = JSON.parse(sessionStorage.getItem(SSP) || 'null'); } catch (e) {}
+    if (!box) return Promise.resolve();
+    return subtle.decrypt({ name: 'AES-GCM', iv: unb64(box.iv) }, key, unb64(box.ct))
+      .then(function (pt) { PW = new TextDecoder().decode(pt); }).catch(function () {});
+  }
+
+  // ---- 구글시트(Apps Script) 연동 ----
+  function api(action, extra) {
+    var body = { action: action, password: PW };
+    for (var k in (extra || {})) body[k] = extra[k];
+    return fetch(CONFIG.appsScriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res.ok) { var e = new Error(res.error || 'error'); e.code = res.error; throw e; }
+        return res;
+      });
+  }
+  var toastT;
+  function toast(msg, err) {
+    var t = $('#toast'); t.textContent = msg; t.className = 'show' + (err ? ' err' : '');
+    clearTimeout(toastT); toastT = setTimeout(function () { t.className = ''; }, err ? 6000 : 3500);
+  }
+  function apiErrorText(e) {
+    if (e.code === 'unauthorized') return '구글시트 연동 비밀번호가 다릅니다. 시트 메뉴 [대시보드 → 비밀번호 설정] 값을 확인해 주세요.';
+    if (e.code === 'locked') return '비밀번호 오류가 반복되어 10분간 갱신이 잠겼습니다.';
+    return '구글시트 연동 실패: ' + (e.message || e);
+  }
+  function askPw() {
+    return new Promise(function (resolve) {
+      var m = $('#pwModal'); m.classList.add('show'); $('#pw2').value = ''; $('#pw2').focus();
+      function done(v) { m.classList.remove('show'); $('#pwForm').onsubmit = null; $('#pwCancel').onclick = null; resolve(v); }
+      $('#pwForm').onsubmit = function (ev) { ev.preventDefault(); done($('#pw2').value); };
+      $('#pwCancel').onclick = function () { done(null); };
+    });
+  }
+  function setSource(remote) {
+    state.remote = remote;
+    $('#srcLabel').textContent = remote ? '데이터: 구글시트 집계' : (CONFIG.appsScriptUrl ? '데이터: 저장본' : '데이터: 저장본 (시트 연동 미설정)');
+  }
+  $('#refreshBtn').addEventListener('click', function () {
+    var btn = this;
+    if (!CONFIG.appsScriptUrl) { toast('구글시트 연동 주소(docs/data/config.json)가 아직 설정되지 않았습니다.', true); return; }
+    (PW ? Promise.resolve(PW) : askPw()).then(function (pw) {
+      if (!pw) return;
+      PW = pw; btn.disabled = true; btn.textContent = '갱신 중…'; $('#app').classList.add('loading');
+      return api('refresh').then(function (res) {
+        applyRemote(res); toast(res.snap.week + ' 갱신 완료 · 전체 ' + fmt(res.snap.kpi.total) + '명 · 주간 신규 ' + fmt(res.snap.kpi.newWeek) + '명');
+      }).catch(function (e) { if (e.code === 'unauthorized') PW = null; toast(apiErrorText(e), true); })
+        .then(function () { btn.disabled = false; btn.textContent = '갱신'; $('#app').classList.remove('loading'); });
+    });
+  });
+
 
   if (!subtle) { $('#gateMsg').textContent = '이 브라우저는 암호화 기능을 지원하지 않습니다. 최신 Chrome/Edge/Safari를 사용해주세요.'; }
-  else fetchJson('data/meta.json').then(function (m) {
+  else Promise.all([fetchJson('data/meta.json'), fetchJson('data/config.json').catch(function () { return {}; })]).then(function (r) {
+    var m = r[0]; CONFIG = r[1] || {};
     META = m;
     var saved = null; try { saved = sessionStorage.getItem(SS); } catch (e) {}
     if (!saved) return;
-    return subtle.importKey('raw', unb64(saved), { name: 'AES-GCM' }, false, ['decrypt']).then(useKey).then(unlock).catch(function () { lock(); });
+    return subtle.importKey('raw', unb64(saved), { name: 'AES-GCM' }, false, ['decrypt']).then(useKey).then(restorePw).then(unlock).catch(function () { lock(); });
   }).catch(function () { $('#gateMsg').textContent = '데이터 정보를 불러오지 못했습니다.'; });
 
-  function load(week) {
-    var list = state.index.snapshots;
-    var i = list.findIndex(function (s) { return s.week === week; });
-    $('#app').classList.add('loading');
-    return Promise.all([
-      getJson('data/snapshots/' + week + '.enc.json'),
-      i > 0 ? getJson('data/snapshots/' + list[i - 1].week + '.enc.json').catch(function () { return null; }) : Promise.resolve(null)
-    ]).then(function (res) {
-      state.snap = res[0]; state.prev = res[1];
-      $('#app').classList.remove('loading');
-      renderAll();
-    });
-  }
-
-  var started = false;
-  function start() {
-  if (started) return; started = true;
-  getJson('data/index.enc.json').then(function (idx) {
+  function setIndex(idx) {
     state.index = idx;
-    var sel = $('#weekSel');
+    var sel = $('#weekSel'); sel.innerHTML = '';
     idx.snapshots.slice().reverse().forEach(function (s) {
       var o = document.createElement('option');
       o.value = s.week; o.textContent = s.week + ' (' + s.weekStart.slice(5) + '~' + s.weekEnd.slice(5) + ')';
       sel.appendChild(o);
     });
-    sel.addEventListener('change', function () { load(sel.value); });
-    return load(idx.snapshots[idx.snapshots.length - 1].week);
-  }).catch(function (e) {
-    $('#subtitle').textContent = '데이터를 불러오지 못했습니다: ' + e.message;
-  });
+  }
+  function applyRemote(res) {
+    setSource(true);
+    setIndex(res.index);
+    state.snap = res.snap; state.prev = res.prev;
+    $('#weekSel').value = res.snap.week;
+    renderAll();
+  }
+  function loadStatic(week) {
+    var list = state.index.snapshots;
+    var i = list.findIndex(function (s) { return s.week === week; });
+    return Promise.all([
+      getJson('data/snapshots/' + week + '.enc.json'),
+      i > 0 ? getJson('data/snapshots/' + list[i - 1].week + '.enc.json').catch(function () { return null; }) : Promise.resolve(null)
+    ]).then(function (res) { state.snap = res[0]; state.prev = res[1]; renderAll(); });
+  }
+  function load(week) {
+    $('#app').classList.add('loading');
+    var p = state.remote
+      ? api('get', { week: week }).then(function (res) { state.snap = res.snap; state.prev = res.prev; renderAll(); })
+      : loadStatic(week);
+    return p.catch(function (e) { toast(state.remote ? apiErrorText(e) : '데이터를 불러오지 못했습니다.', true); })
+      .then(function () { $('#app').classList.remove('loading'); });
+  }
+  function startStatic() {
+    setSource(false);
+    return getJson('data/index.enc.json').then(function (idx) {
+      setIndex(idx);
+      return load(idx.snapshots[idx.snapshots.length - 1].week);
+    });
+  }
+  var started = false;
+  function start() {
+    if (started) return; started = true;
+    $('#weekSel').addEventListener('change', function () { load(this.value); });
+    var p = (CONFIG.appsScriptUrl && PW)
+      ? api('get').then(function (res) { if (res.snap) applyRemote(res); else return startStatic().then(function () { toast('저장된 시트 집계가 아직 없습니다. [갱신]을 눌러 주세요.'); }); })
+          .catch(function (e) { toast(apiErrorText(e) + ' 저장본을 표시합니다.', true); return startStatic(); })
+      : startStatic();
+    p.catch(function (e) { $('#subtitle').textContent = '데이터를 불러오지 못했습니다: ' + e.message; });
   }
 
   document.querySelectorAll('.seg button').forEach(function (b) {
@@ -375,7 +511,7 @@ body.locked #gate { display: flex; }
     $('#subtitle').textContent = '기준 주차 ' + s.week + ' (' + s.weekStart + ' ~ ' + s.weekEnd + ') · 집계 ' + s.generatedAtKst + ' KST';
     $('#minCell').textContent = s.minCell;
     $('#keyDelta').textContent = state.prev ? '증감: 직전 스냅샷(' + state.prev.week + ') 대비 회원 수 변화' : '증감: 직전 스냅샷이 쌓이면 표시됩니다 (현재는 이번 주 신규만 표시)';
-    renderKpis(); renderTrends(); renderDims(); renderHeat();
+    renderKpis(); renderMonthly(); renderTrends(); renderDims(); renderHeat();
   }
 
   // ---- KPI --------------------------------------------------------------
@@ -620,6 +756,60 @@ body.locked #gate { display: flex; }
     });
   }
 
+  // ---- 연간 월별 비교 -----------------------------------------------------
+  function renderMonthly() {
+    var host = $('#yoy'), m = state.snap.monthly;
+    if (!m) {
+      host.innerHTML = '<div class="empty">이 저장본에는 월별 데이터가 없습니다. 상단 <b>[갱신]</b>을 누르면 구글시트 기준으로 표시됩니다.</div>';
+      $('#yoySub').textContent = '가입일시 기준 월별 신규 가입자 수를 작년 같은 달과 비교합니다.';
+      return;
+    }
+    var seq = ['--seq-0', '--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5', '--seq-6'];
+    var vals = m.last.concat(m.cur.filter(function (v) { return v != null; }));
+    var max = Math.max.apply(null, vals.concat([1]));
+    var shade = function (v) {
+      if (v == null) return '';
+      var b = Math.min(6, Math.floor(v / max * 6.999));
+      return 'background:var(' + seq[b] + ');color:' + (b >= 4 ? 'var(--seq-hi-ink)' : 'var(--ink)');
+    };
+    var pctTxt = function (a, b) { return b ? ((a - b) / b * 100) : null; };
+    var diffCell = function (cur, last) {
+      if (cur == null) return '<td class="na">–</td>';
+      var d = cur - last, cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+      return '<td><span class="delta ' + cls + '">' + (d > 0 ? '+' : '') + fmt(d) + '</span></td>';
+    };
+    var rateCell = function (cur, last) {
+      if (cur == null) return '<td class="na">–</td>';
+      var p = pctTxt(cur, last);
+      if (p == null) return '<td class="na">–</td>';
+      var cls = p > 0 ? 'up' : p < 0 ? 'down' : 'flat';
+      return '<td><span class="delta ' + cls + '">' + (p > 0 ? '▲ ' : p < 0 ? '▼ ' : '') + Math.abs(p).toFixed(1) + '%</span></td>';
+    };
+    var cm = m.currentMonth, md = m.asOf.slice(5).replace('-', '/');
+    var head = '<tr><th></th>' + m.last.map(function (_, i) {
+      return '<th' + (i + 1 === cm ? ' class="cur"' : '') + '>' + (i + 1) + '월' + (i + 1 === cm ? '*' : '') + '</th>';
+    }).join('') + '<th>연간 합계</th><th>동기간 누적<br>(1/1~' + md + ')</th></tr>';
+    var rowLast = '<tr><th class="rowh">' + m.lastYear + '년</th>' + m.last.map(function (v, i) {
+      return '<td style="' + shade(v) + '" title="' + m.lastYear + '년 ' + (i + 1) + '월: ' + fmt(v) + '명">' + fmt(v) + '</td>';
+    }).join('') + '<td class="sum">' + fmt(m.totalLast) + '</td><td class="sum">' + fmt(m.ytdLast) + '</td></tr>';
+    var rowCur = '<tr><th class="rowh">' + m.thisYear + '년</th>' + m.cur.map(function (v, i) {
+      return v == null ? '<td class="na">–</td>' : '<td style="' + shade(v) + '" title="' + m.thisYear + '년 ' + (i + 1) + '월: ' + fmt(v) + '명">' + fmt(v) + '</td>';
+    }).join('') + '<td class="sum na">–</td><td class="sum">' + fmt(m.ytdCur) + '</td></tr>';
+    var rowDiff = '<tr class="diff"><th class="rowh">증감</th>' + m.cur.map(function (v, i) { return diffCell(v, m.last[i]); }).join('') +
+      '<td class="na">–</td>' + diffCell(m.ytdCur, m.ytdLast) + '</tr>';
+    var rowRate = '<tr class="diff"><th class="rowh">증감률</th>' + m.cur.map(function (v, i) { return rateCell(v, m.last[i]); }).join('') +
+      '<td class="na">–</td>' + rateCell(m.ytdCur, m.ytdLast) + '</tr>';
+    var ytdP = pctTxt(m.ytdCur, m.ytdLast);
+    var summary = '<div class="yoy-sum">' +
+      '<div><span class="lbl">' + m.thisYear + '년 누적 (1/1~' + md + ')</span><span class="big">' + fmt(m.ytdCur) + '명</span></div>' +
+      '<div><span class="lbl">작년 동기간</span><span class="big">' + fmt(m.ytdLast) + '명</span></div>' +
+      '<div><span class="lbl">작년 대비</span>' + (ytdP == null ? '–' : deltaHtml(ytdP, '%', 1)) + '</div>' +
+      '<div><span class="lbl">' + m.lastYear + '년 연간</span><span class="big">' + fmt(m.totalLast) + '명</span></div></div>';
+    host.innerHTML = summary + '<div class="yoy-wrap"><table class="yoy"><colgroup><col class="c0">' + m.last.map(function () { return '<col>'; }).join('') + '<col class="cs"><col class="cy"></colgroup><thead>' + head + '</thead><tbody>' + rowLast + rowCur + rowDiff + rowRate + '</tbody></table></div>' +
+      '<div class="yoy-note">* ' + cm + '월은 ' + md + '까지 집계된 진행 중 수치입니다. 칸 색이 진할수록 가입자가 많습니다(두 해 같은 기준). 동기간 누적은 작년 같은 날짜까지와 비교합니다.</div>';
+    $('#yoySub').textContent = m.lastYear + '년과 ' + m.thisYear + '년의 월별 신규 가입자 수 비교 · 가입일시 기준';
+  }
+
   // ---- 히트맵 -----------------------------------------------------------
   function renderHeat() {
     var h = state.snap.deptAge;
@@ -633,7 +823,7 @@ body.locked #gate { display: flex; }
           var v = r.cells[i];
           if (v == null) return '<td class="na">–</td>';
           var b = bin(v);
-          return '<td style="background:var(' + seq[b] + ');color:' + (b >= 4 ? '#fff' : 'var(--ink)') + '">' + v.toFixed(1) + '</td>';
+          return '<td style="background:var(' + seq[b] + ');color:' + (b >= 4 ? 'var(--seq-hi-ink)' : 'var(--ink)') + '">' + v.toFixed(1) + '</td>';
         }).join('') + '<td style="color:var(--ink-2)">' + fmt(r.total) + '</td></tr>';
       }).join('') + '</tbody></table>' +
       '<div class="scale">낮음' + seq.map(function (c) { return '<b style="background:var(' + c + ')"></b>'; }).join('') + '높음 · 구간: 3 / 8 / 15 / 22 / 30 / 40% · "–"는 3명 미만</div>';
