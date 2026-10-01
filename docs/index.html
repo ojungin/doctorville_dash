@@ -188,6 +188,11 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
 .yoy-sum .big { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .yoy-sum .lbl { font-size: 12px; color: var(--ink-2); margin-right: 6px; }
 .yoy-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+/* 분석 단위 토글 (헤더) */
+.top .seg { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); }
+.top .seg button { color: var(--header-sub); }
+.top .seg button + button { border-left-color: rgba(255,255,255,0.25); }
+.top .seg button[aria-pressed="true"] { background: #ffffff; color: var(--header); }
 .yoy tr.grp th.rowh { color: var(--muted); font-weight: 500; font-size: 11.5px; padding-top: 10px; }
 .pyoy-sum { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 32px; margin: 0 0 12px; }
 .pyoy-sum .g { display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: baseline; }
@@ -279,6 +284,10 @@ body.locked #gate { display: flex; }
       </div>
     </div>
     <div class="controls">
+      <div class="seg member-only" id="modeSeg" role="group" aria-label="분석 단위">
+        <button type="button" data-mode="week" aria-pressed="true">주간</button>
+        <button type="button" data-mode="month">월간</button>
+      </div>
       <label for="weekSel" class="member-only">기준 주차</label>
       <select id="weekSel" class="member-only" aria-label="기준 주차 선택"></select>
       <span class="src" id="srcLabel"></span>
@@ -309,21 +318,17 @@ body.locked #gate { display: flex; }
     <section>
       <div class="sec-head">
         <div>
-          <h2>주간 추이</h2>
-          <p>가입일시 기준 주간(월~일) 집계입니다. 활성·동의율은 매주 쌓이는 스냅샷으로 추적합니다.</p>
+          <h2 id="trendTitle">주간 추이</h2>
+          <p id="trendDesc">가입일시 기준 주간(월~일) 집계입니다. 활성·동의율은 매주 쌓이는 스냅샷으로 추적합니다.</p>
         </div>
-        <div class="seg" role="group" aria-label="추이 기간">
-          <button type="button" data-range="12">12주</button>
-          <button type="button" data-range="26" aria-pressed="true">26주</button>
-          <button type="button" data-range="52">52주</button>
-        </div>
+        <div class="seg" id="rangeSeg" role="group" aria-label="추이 기간"></div>
       </div>
       <div class="grid2">
-        <div class="card"><h3>주간 신규 가입</h3><p class="desc">막대: 주간 신규 · 선: 4주 이동평균</p>
-          <ul class="legend"><li><i style="background:var(--s1)"></i>주간 신규</li><li><i class="line" style="background:var(--s2)"></i>4주 이동평균</li></ul>
+        <div class="card"><h3 id="newTitle">주간 신규 가입</h3><p class="desc" id="newDesc">막대: 주간 신규 · 선: 4주 이동평균</p>
+          <ul class="legend" id="lgNew"></ul>
           <div class="chart" id="chNew"></div></div>
-        <div class="card"><h3>누적 회원 수</h3><p class="desc">각 주 일요일 기준 누적 가입자</p><div class="chart" id="chCum"></div></div>
-        <div class="card"><h3>가입경로별 주간 신규</h3><p class="desc">52주 합계 상위 5개 경로 · 그 외(기타·미입력 포함)</p><ul class="legend" id="lgRoute"></ul><div class="chart" id="chRoute"></div></div>
+        <div class="card"><h3>누적 회원 수</h3><p class="desc" id="cumDesc">각 주 일요일 기준 누적 가입자</p><div class="chart" id="chCum"></div></div>
+        <div class="card"><h3 id="routeTitle">가입경로별 주간 신규</h3><p class="desc" id="routeDesc">52주 합계 상위 5개 경로 · 그 외(기타·미입력 포함)</p><ul class="legend" id="lgRoute"></ul><div class="chart" id="chRoute"></div></div>
         <div class="card"><h3>활성·동의율 스냅샷 추이</h3><p class="desc">주간 스냅샷 시점의 비율 (%)</p><ul class="legend" id="lgRate"></ul><div class="chart" id="chRate"></div></div>
       </div>
     </section>
@@ -337,7 +342,7 @@ body.locked #gate { display: flex; }
       </div>
       <div class="key">
         <span><b class="sw"></b>전체 회원 중 비중</span>
-        <span><b class="mk"></b>최근 4주 신규 가입자 중 비중 (막대보다 오른쪽이면 최근 유입이 늘어난 항목)</span>
+        <span><b class="mk"></b><span id="keyMk">최근 4주 신규 가입자 중 비중 (막대보다 오른쪽이면 최근 유입이 늘어난 항목)</span></span>
         <span id="keyDelta">증감: 직전 스냅샷 대비 회원 수 변화</span>
       </div>
       <div class="grid3" id="dims"></div>
@@ -497,7 +502,21 @@ body.locked #gate { display: flex; }
   var css = function (v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); };
   var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var NS = 'http://www.w3.org/2000/svg';
-  var state = { index: null, snap: null, prev: null, range: 26 };
+  var state = { index: null, snap: null, prev: null, range: 26, mode: 'week', ranges: { week: 26, month: 12 } };
+  // 분석 단위별 설정 (주간 / 월간)
+  var MODES = {
+    week: { name: '주간', unit: '주', ranges: [12, 26, 52], ma: 4, newKey: 'newWeek', shareKey: 'newShare4w', recent: '최근 4주',
+      series: function (s) { return s.weekly; },
+      axis: function (d) { return d.start.slice(5).replace('-', '/'); },
+      title: function (d) { return d.week + ' (' + d.start.slice(5) + '~' + d.end.slice(5) + ')'; } },
+    month: { name: '월간', unit: '개월', ranges: [6, 12, 24], ma: 3, newKey: 'newMonth', shareKey: 'newShare3m', recent: '최근 3개월',
+      series: function (s) { return s.monthlySeries; },
+      axis: function (d) { return d.month.slice(2).replace('-', '.'); },
+      title: function (d) { return d.month.slice(0, 4) + '년 ' + (+d.month.slice(5)) + '월'; } }
+  };
+  function MD() { return MODES[state.mode]; }
+  try { var sm = localStorage.getItem('mv-mode'); if (MODES[sm]) state.mode = sm; } catch (e) {}
+  state.range = state.ranges[state.mode];
 
   // ---- 테마 --------------------------------------------------------------
   try { var t = localStorage.getItem('mv-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
@@ -690,20 +709,50 @@ body.locked #gate { display: flex; }
     p.catch(function (e) { $('#subtitle').textContent = '데이터를 불러오지 못했습니다: ' + e.message; });
   }
 
-  document.querySelectorAll('.seg button[data-range]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      document.querySelectorAll('.seg button[data-range]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
-      state.range = +b.dataset.range; renderTrends();
+  function buildRangeSeg() {
+    var m = MD();
+    $('#rangeSeg').innerHTML = m.ranges.map(function (r) {
+      return '<button type="button" data-range="' + r + '" aria-pressed="' + (r === state.range) + '">' + r + m.unit + '</button>';
+    }).join('');
+    $('#rangeSeg').querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        state.range = state.ranges[state.mode] = +b.dataset.range;
+        $('#rangeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+        renderTrends();
+      });
     });
+  }
+  function setMode(mode, silent) {
+    if (mode === 'month' && state.snap && !state.snap.monthlySeries) {
+      if (!silent) toast('이 데이터에는 월간 집계가 없습니다. [갱신]을 누르면 월간 분석을 볼 수 있습니다.', true);
+      mode = 'week';
+    }
+    state.mode = mode; state.range = state.ranges[mode];
+    try { localStorage.setItem('mv-mode', mode); } catch (e) {}
+    $('#modeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.mode === mode ? 'true' : 'false'); });
+    buildRangeSeg();
+    renderAll();
+  }
+  $('#modeSeg').querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () { if (b.dataset.mode !== state.mode) setMode(b.dataset.mode); });
   });
+  buildRangeSeg();
+  $('#modeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.mode === state.mode ? 'true' : 'false'); });
   var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); if (VIEW === 'points' && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
 
   function renderAll() {
     if (!state.snap) return;
     var s = state.snap;
-    $('#subtitle').textContent = '기준 주차 ' + s.week + ' (' + s.weekStart + ' ~ ' + s.weekEnd + ') · 집계 ' + s.generatedAtKst + ' KST';
+    if (state.mode === 'month' && !s.monthlySeries) { setMode('week', true); return; }
+    var mon = state.mode === 'month';
+    $('#subtitle').textContent = (mon
+      ? '기준 월 ' + s.monthRef.month + ' (' + s.monthRef.start + ' ~ ' + s.monthRef.end + ')'
+      : '기준 주차 ' + s.week + ' (' + s.weekStart + ' ~ ' + s.weekEnd + ')') + ' · 집계 ' + s.generatedAtKst + ' KST';
     $('#minCell').textContent = s.minCell;
-    $('#keyDelta').textContent = state.prev ? '증감: 직전 스냅샷(' + state.prev.week + ') 대비 회원 수 변화' : '증감: 직전 스냅샷이 쌓이면 표시됩니다 (현재는 이번 주 신규만 표시)';
+    $('#keyMk').textContent = MD().recent + ' 신규 가입자 중 비중 (막대보다 오른쪽이면 최근 유입이 늘어난 항목)';
+    $('#keyDelta').textContent = mon
+      ? '월간 신규: ' + s.monthRef.month + ' 한 달간 가입자 수'
+      : (state.prev ? '증감: 직전 스냅샷(' + state.prev.week + ') 대비 회원 수 변화' : '증감: 직전 스냅샷이 쌓이면 표시됩니다 (현재는 이번 주 신규만 표시)');
     renderKpis(); renderMonthly(); renderTrends(); renderDims(); renderHeat();
     if (VIEW === 'points') setPointHeader();
   }
@@ -797,7 +846,7 @@ body.locked #gate { display: flex; }
       root.setAttribute('data-theme', 'light');        // 인쇄용 밝은 테마로 고정
       document.body.classList.add('pdf-mode');
       document.body.style.minWidth = '1280px';          // 모바일에서도 데스크톱 배치로 출력
-      state.range = 52; P.prevRange = P.range; P.range = 0; renderAll(); renderPoints();   // 추이는 전체 기간으로 출력
+      state.range = MD().ranges[MD().ranges.length - 1]; P.prevRange = P.range; P.range = 0; renderAll(); renderPoints();   // 추이는 최대 기간(52주/24개월), 포인트는 전체 기간으로 출력
       return new Promise(function (r) { setTimeout(r, 250); });
     }).then(function () { return svgsToImages($('#pdfRoot')); })
       .then(function (fn) { restore = fn; return buildPdf($('#pdfRoot'), isP ? '닥터빌_포인트대시보드_' + P.data.range.to + '.pdf' : '닥터빌_회원대시보드_' + s.week + '.pdf'); })
@@ -822,14 +871,16 @@ body.locked #gate { display: flex; }
   }
   function renderKpis() {
     var k = state.snap.kpi, p = state.prev && state.prev.kpi;
-    var wkChange = k.newPrevWeek ? (k.newWeek - k.newPrevWeek) / k.newPrevWeek * 100 : null;
-    var avg4 = Math.round(k.new4w / 4);
+    var mon = state.mode === 'month' && k.newMonth != null;
+    var cur = mon ? k.newMonth : k.newWeek, prv = mon ? k.newPrevMonth : k.newPrevWeek;
+    var chg = prv ? (cur - prv) / prv * 100 : null;
+    var recentN = mon ? k.new3m : k.new4w, avg = Math.round(recentN / (mon ? 3 : 4));
     var items = [
       { label: '전체 회원', value: fmt(k.total), unit: '명',
-        meta: p ? deltaHtml(k.total - p.total, '명') + ' 직전 스냅샷 대비' : '이번 주 신규 +' + fmt(k.newWeek) + '명' },
-      { label: '주간 신규 가입', value: fmt(k.newWeek), unit: '명',
-        meta: deltaHtml(wkChange, '%', 1) + ' 전주(' + fmt(k.newPrevWeek) + '명) 대비' },
-      { label: '최근 4주 신규', value: fmt(k.new4w), unit: '명', meta: '주 평균 ' + fmt(avg4) + '명' },
+        meta: (p && !mon) ? deltaHtml(k.total - p.total, '명') + ' 직전 스냅샷 대비' : (mon ? '지난달 신규 +' : '이번 주 신규 +') + fmt(cur) + '명' },
+      { label: mon ? '월간 신규 가입' : '주간 신규 가입', value: fmt(cur), unit: '명',
+        meta: deltaHtml(chg, '%', 1) + (mon ? ' 전월(' : ' 전주(') + fmt(prv) + '명) 대비' },
+      { label: mon ? '최근 3개월 신규' : '최근 4주 신규', value: fmt(recentN), unit: '명', meta: (mon ? '월 평균 ' : '주 평균 ') + fmt(avg) + '명' },
       { label: '7일 내 로그인', value: fmt(k.active7Rate), unit: '%',
         meta: fmt(k.active7) + '명' + (p ? ' · ' + deltaHtml(k.active7Rate - p.active7Rate, '%p', 2) : '') },
       { label: '30일 내 로그인', value: fmt(k.active30Rate), unit: '%',
@@ -901,15 +952,27 @@ body.locked #gate { display: flex; }
   // ---- 추이 차트 --------------------------------------------------------
   function renderTrends() {
     if (!state.snap) return;
-    var all = state.snap.weekly, data = all.slice(-state.range);
+    var M = MD(), mon = state.mode === 'month';
+    var all = M.series(state.snap) || [], data = all.slice(-state.range);
     var off = all.length - data.length;
-    var labels = data.map(wkLabel);
+    var labels = data.map(M.axis);
+    $('#trendTitle').textContent = M.name + ' 추이';
+    $('#trendDesc').textContent = mon
+      ? '가입일시 기준 월별(1일~말일) 집계입니다. 진행 중인 이번 달은 제외하고 지난달까지 표시합니다.'
+      : '가입일시 기준 주간(월~일) 집계입니다. 활성·동의율은 매주 쌓이는 스냅샷으로 추적합니다.';
+    $('#newTitle').textContent = M.name + ' 신규 가입';
+    $('#newDesc').textContent = '막대: ' + M.name + ' 신규 · 선: ' + M.ma + (mon ? '개월' : '주') + ' 이동평균';
+    $('#lgNew').innerHTML = '<li><i style="background:var(--s1)"></i>' + M.name + ' 신규</li><li><i class="line" style="background:var(--s2)"></i>' + M.ma + (mon ? '개월' : '주') + ' 이동평균</li>';
+    $('#cumDesc').textContent = mon ? '각 월 말일 기준 누적 가입자' : '각 주 일요일 기준 누적 가입자';
+    $('#routeTitle').textContent = '가입경로별 ' + M.name + ' 신규';
+    $('#routeDesc').textContent = all.length + (mon ? '개월' : '주') + ' 합계 상위 5개 경로 · 그 외(기타·미입력 포함)';
+    var maLbl = M.ma + (mon ? '개월' : '주') + ' 이동평균';
 
     // 1) 주간 신규 + 4주 이동평len
     (function () {
       var host = $('#chNew');
-      var ma = data.map(function (_, i) { var j = i + off, s = 0, c = 0; for (var k = Math.max(0, j - 3); k <= j; k++) { s += all[k].new; c++; } return s / c; });
-      var f = frame(host, { max: niceMax(Math.max.apply(null, data.map(function (d) { return d.new; }))), label: '주간 신규 가입 추이' });
+      var ma = data.map(function (_, i) { var j = i + off, s = 0, c = 0; for (var k = Math.max(0, j - (M.ma - 1)); k <= j; k++) { s += all[k].new; c++; } return s / c; });
+      var f = frame(host, { max: niceMax(Math.max.apply(null, data.map(function (d) { return d.new; }))), label: M.name + ' 신규 가입 추이' });
       var bw = f.iw / data.length, gap = Math.min(2, bw * 0.25);
       var xOf = function (i) { return f.m.l + bw * i + bw / 2; };
       var bars = data.map(function (d, i) {
@@ -920,8 +983,8 @@ body.locked #gate { display: flex; }
       var lt = el('text', { x: xOf(last), y: f.y(data[last].new) - 6, 'text-anchor': 'end', style: 'fill:var(--ink);font-weight:600' }, f.svg); lt.textContent = fmt(data[last].new);
       xLabels(f, labels, xOf);
       hoverCols(f, data.length, xOf, bw, function (i) {
-        return tipRows(data[i].week + ' (' + data[i].start.slice(5) + '~' + data[i].end.slice(5) + ')', [
-          { k: '신규 가입', v: fmt(data[i].new) + '명', color: css('--s1') }, { k: '4주 이동평균', v: fmt(Math.round(ma[i])) + '명', color: css('--s2') }]);
+        return tipRows(M.title(data[i]), [
+          { k: '신규 가입', v: fmt(data[i].new) + '명', color: css('--s1') }, { k: maLbl, v: fmt(Math.round(ma[i])) + '명', color: css('--s2') }]);
       }, function (h) { bars.forEach(function (b, i) { b.setAttribute('opacity', h < 0 || h === i ? 1 : 0.45); }); });
     })();
 
@@ -939,7 +1002,7 @@ body.locked #gate { display: flex; }
       var dot = el('circle', { r: 4, fill: css('--s1'), stroke: css('--surface'), 'stroke-width': 2, opacity: 0 }, f.svg);
       xLabels(f, labels, xOf);
       hoverCols(f, n, xOf, f.iw / Math.max(1, n - 1), function (i) {
-        return tipRows(data[i].week + ' 말 기준', [{ k: '누적 회원', v: fmt(vals[i]) + '명' }, { k: '해당 주 신규', v: '+' + fmt(data[i].new) }]);
+        return tipRows(M.title(data[i]) + ' 말 기준', [{ k: '누적 회원', v: fmt(vals[i]) + '명' }, { k: mon ? '해당 월 신규' : '해당 주 신규', v: '+' + fmt(data[i].new) }]);
       }, function (h) { if (h < 0) dot.setAttribute('opacity', 0); else { dot.setAttribute('cx', xOf(h)); dot.setAttribute('cy', f.y(vals[h])); dot.setAttribute('opacity', 1); } });
     })();
 
@@ -959,7 +1022,7 @@ body.locked #gate { display: flex; }
         o['그 외'] = rest; return o;
       });
       $('#lgRoute').innerHTML = keys.map(function (k, i) { return '<li><i style="background:' + colors[i] + '"></i>' + esc(k) + '</li>'; }).join('');
-      var f = frame(host, { max: niceMax(Math.max.apply(null, data.map(function (d) { return d.new; }))), label: '가입경로별 주간 신규' });
+      var f = frame(host, { max: niceMax(Math.max.apply(null, data.map(function (d) { return d.new; }))), label: '가입경로별 ' + M.name + ' 신규' });
       var bw = f.iw / data.length, gap = Math.min(2, bw * 0.25);
       var xOf = function (i) { return f.m.l + bw * i + bw / 2; };
       var cols = rows.map(function (r, i) {
@@ -976,14 +1039,19 @@ body.locked #gate { display: flex; }
       });
       xLabels(f, labels, xOf);
       hoverCols(f, data.length, xOf, bw, function (i) {
-        return tipRows(data[i].week + ' 신규 ' + fmt(data[i].new) + '명', keys.map(function (k, ci) { return { k: k, v: fmt(rows[i][k] || 0), color: colors[ci] }; }).reverse());
+        return tipRows(M.title(data[i]) + ' 신규 ' + fmt(data[i].new) + '명', keys.map(function (k, ci) { return { k: k, v: fmt(rows[i][k] || 0), color: colors[ci] }; }).reverse());
       }, function (h) { cols.forEach(function (g, i) { g.setAttribute('opacity', h < 0 || h === i ? 1 : 0.45); }); });
     })();
 
     // 4) 스냅샷 비율 추이
     (function () {
       var host = $('#chRate');
-      var hist = state.index.snapshots.filter(function (s) { return s.week <= state.snap.week; }).slice(-state.range);
+      var hist = state.index.snapshots.filter(function (s) { return s.week <= state.snap.week; });
+      if (mon) { // 월별로는 각 월의 마지막 스냅샷만 사용
+        var byM = {}; hist.forEach(function (h) { byM[h.weekEnd.slice(0, 7)] = h; });
+        hist = Object.keys(byM).sort().map(function (k) { return byM[k]; });
+      }
+      hist = hist.slice(-state.range);
       var defs = [
         { k: 'active7Rate', n: '7일 내 로그인', c: css('--s1') },
         { k: 'integratedRate', n: '통합회원 전환', c: css('--s2') },
@@ -992,7 +1060,7 @@ body.locked #gate { display: flex; }
       ];
       $('#lgRate').innerHTML = defs.map(function (d) { return '<li><i class="line" style="background:' + d.c + '"></i>' + d.n + '</li>'; }).join('');
       if (hist.length < 2) {
-        host.innerHTML = '<div class="empty">스냅샷이 2주 이상 쌓이면 추이가 표시됩니다.<br>현재 ' + hist.length + '개 · ' +
+        host.innerHTML = '<div class="empty">스냅샷이 ' + (mon ? '2개월' : '2주') + ' 이상 쌓이면 추이가 표시됩니다.<br>현재 ' + hist.length + '개 · ' +
           defs.map(function (d) { return d.n + ' ' + fmt(hist.length ? hist[hist.length - 1][d.k] : 0) + '%'; }).join(' · ') + '</div>';
         return;
       }
@@ -1018,24 +1086,25 @@ body.locked #gate { display: flex; }
   };
   var expanded = {};
   function renderDims() {
-    var s = state.snap, p = state.prev;
-    $('#dimSub').textContent = '전체 회원 구성과 ' + s.week + ' 주간 신규 가입자를 함께 보여줍니다.';
+    var s = state.snap, mon = state.mode === 'month', M = MD(), p = mon ? null : state.prev;
+    var NK = M.newKey, SK = M.shareKey;
+    $('#dimSub').textContent = '전체 회원 구성과 ' + (mon ? s.monthRef.month + ' 월간' : s.week + ' 주간') + ' 신규 가입자를 함께 보여줍니다.';
     $('#dims').innerHTML = DIM_ORDER.map(function (key) {
       var d = s.dims[key]; if (!d) return '';
       var prevMap = {};
       if (p && p.dims[key]) p.dims[key].rows.forEach(function (r) { prevMap[r.name] = r.count; });
-      var max = Math.max.apply(null, d.rows.map(function (r) { return Math.max(r.share, r.newShare4w); }));
+      var max = Math.max.apply(null, d.rows.map(function (r) { return Math.max(r.share, r[SK] || 0); }));
       var limit = expanded[key] ? d.rows.length : 8;
       var rows = d.rows.slice(0, limit).map(function (r) {
         var dl = p ? (prevMap[r.name] != null ? r.count - prevMap[r.name] : null) : null;
-        var dcell = p ? (dl == null ? '<span class="delta flat">신규</span>' : deltaHtml(dl, '')) : (typeof r.newWeek === 'number' && r.newWeek > 0 ? '<span class="delta up">+' + fmt(r.newWeek) + '</span>' : '<span class="delta flat">' + esc(r.newWeek || '–') + '</span>');
+        var dcell = p ? (dl == null ? '<span class="delta flat">신규</span>' : deltaHtml(dl, '')) : (typeof r[NK] === 'number' && r[NK] > 0 ? '<span class="delta up">+' + fmt(r[NK]) + '</span>' : '<span class="delta flat">' + esc(r[NK] || '–') + '</span>');
         return '<tr data-k="' + esc(key) + '" data-n="' + esc(r.name) + '"><td class="name" title="' + esc(r.name) + '">' + esc(r.name) + '</td>' +
-          '<td class="barcell"><div class="bar"><div class="fill" style="width:' + (r.share / max * 100) + '%"></div><div class="mk" style="left:' + (r.newShare4w / max * 100) + '%"></div></div></td>' +
+          '<td class="barcell"><div class="bar"><div class="fill" style="width:' + (r.share / max * 100) + '%"></div><div class="mk" style="left:' + ((r[SK] || 0) / max * 100) + '%"></div></div></td>' +
           '<td>' + fmt(r.share) + '%</td><td>' + fmt(r.count) + '</td><td>' + dcell + '</td></tr>';
       }).join('');
       var more = d.rows.length > 8 ? '<button class="more" type="button" data-more="' + key + '">' + (expanded[key] ? '접기' : '전체 ' + d.rows.length + '개 보기') + '</button>' : '';
       return '<div class="card dim"><h3>' + esc(d.label) + '</h3><p class="desc">' + (DIM_DESC[key] || '&nbsp;') + '</p>' +
-        '<table><thead><tr><th>항목</th><th style="text-align:left;padding-left:10px">비중</th><th>%</th><th>회원</th><th>' + (p ? '증감' : '주간 신규') + '</th></tr></thead><tbody>' + rows + '</tbody></table>' + more + '</div>';
+        '<table><thead><tr><th>항목</th><th style="text-align:left;padding-left:10px">비중</th><th>%</th><th>회원</th><th>' + (p ? '증감' : M.name + ' 신규') + '</th></tr></thead><tbody>' + rows + '</tbody></table>' + more + '</div>';
     }).join('');
     $('#dims').querySelectorAll('[data-more]').forEach(function (b) {
       b.addEventListener('click', function () { expanded[b.dataset.more] = !expanded[b.dataset.more]; renderDims(); });
@@ -1043,12 +1112,12 @@ body.locked #gate { display: flex; }
     $('#dims').querySelectorAll('tr[data-k]').forEach(function (tr) {
       tr.addEventListener('mousemove', function (ev) {
         var d = s.dims[tr.dataset.k], r = d.rows.find(function (x) { return x.name === tr.dataset.n; });
-        var lift = r.share ? (r.newShare4w / r.share) : 0;
+        var lift = r.share ? ((r[SK] || 0) / r.share) : 0;
         showTip(tipRows(d.label + ' · ' + r.name, [
           { k: '회원 수', v: fmt(r.count) + '명' }, { k: '전체 중 비중', v: fmt(r.share) + '%' },
-          { k: '최근 4주 신규 중 비중', v: fmt(r.newShare4w) + '%' },
+          { k: M.recent + ' 신규 중 비중', v: fmt(r[SK] || 0) + '%' },
           { k: '신규 유입 강도', v: r.share ? (lift >= 1 ? '평균 대비 ' + lift.toFixed(2) + '배' : '평균 대비 ' + lift.toFixed(2) + '배') : '–' },
-          { k: s.week + ' 신규', v: fmt(r.newWeek) + '명' }]), ev);
+          { k: (mon ? s.monthRef.month : s.week) + ' 신규', v: fmt(r[NK]) + '명' }]), ev);
       });
       tr.addEventListener('mouseleave', hideTip);
     });
@@ -1093,9 +1162,11 @@ body.locked #gate { display: flex; }
     var rowCur = '<tr><th class="rowh">' + m.thisYear + '년</th>' + m.cur.map(function (v, i) {
       return v == null ? '<td class="na">–</td>' : '<td style="' + shade(v) + '" title="' + m.thisYear + '년 ' + (i + 1) + '월: ' + fmt(v) + '명">' + fmt(v) + '</td>';
     }).join('') + '<td class="sum na">–</td><td class="sum">' + fmt(m.ytdCur) + '</td></tr>';
-    var rowDiff = '<tr class="diff"><th class="rowh">증감</th>' + m.cur.map(function (v, i) { return diffCell(v, m.last[i]); }).join('') +
+    // 진행 중인 이번 달은 작년 같은 달의 같은 날짜까지(동기간)와 비교
+    var base = function (i) { return (i + 1 === cm && m.lastMtd != null) ? m.lastMtd : m.last[i]; };
+    var rowDiff = '<tr class="diff"><th class="rowh">증감</th>' + m.cur.map(function (v, i) { return diffCell(v, base(i)); }).join('') +
       '<td class="na">–</td>' + diffCell(m.ytdCur, m.ytdLast) + '</tr>';
-    var rowRate = '<tr class="diff"><th class="rowh">증감률</th>' + m.cur.map(function (v, i) { return rateCell(v, m.last[i]); }).join('') +
+    var rowRate = '<tr class="diff"><th class="rowh">증감률</th>' + m.cur.map(function (v, i) { return rateCell(v, base(i)); }).join('') +
       '<td class="na">–</td>' + rateCell(m.ytdCur, m.ytdLast) + '</tr>';
     var ytdP = pctTxt(m.ytdCur, m.ytdLast);
     var summary = '<div class="yoy-sum">' +
@@ -1104,7 +1175,7 @@ body.locked #gate { display: flex; }
       '<div><span class="lbl">작년 대비</span>' + (ytdP == null ? '–' : deltaHtml(ytdP, '%', 1)) + '</div>' +
       '<div><span class="lbl">' + m.lastYear + '년 연간</span><span class="big">' + fmt(m.totalLast) + '명</span></div></div>';
     host.innerHTML = summary + '<div class="yoy-wrap"><table class="yoy"><colgroup><col class="c0">' + m.last.map(function () { return '<col>'; }).join('') + '<col class="cs"><col class="cy"></colgroup><thead>' + head + '</thead><tbody>' + rowLast + rowCur + rowDiff + rowRate + '</tbody></table></div>' +
-      '<div class="yoy-note">* ' + cm + '월은 ' + md + '까지 집계된 진행 중 수치입니다. 칸 색이 진할수록 가입자가 많습니다(두 해 같은 기준). 동기간 누적은 작년 같은 날짜까지와 비교합니다.</div>';
+      '<div class="yoy-note">* ' + cm + '월은 ' + md + '까지 집계된 진행 중 수치이며, 증감은 작년 같은 기간(' + String(cm).padStart(2,'0') + '/01~' + md + (m.lastMtd != null ? ', ' + fmt(m.lastMtd) + '명' : '') + ')과 비교합니다. 칸 색이 진할수록 가입자가 많습니다(두 해 같은 기준). 동기간 누적은 작년 같은 날짜까지와 비교합니다.</div>';
     $('#yoySub').textContent = m.lastYear + '년과 ' + m.thisYear + '년의 월별 신규 가입자 수 비교 · 가입일시 기준';
   }
 
