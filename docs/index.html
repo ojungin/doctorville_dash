@@ -145,7 +145,7 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
 .top .btn.primary { background: #ffffff; color: var(--header); border-color: #ffffff; font-weight: 700; }
 .top .btn.primary:disabled { opacity: .6; cursor: progress; }
 .src { font-size: 12px; color: var(--header-sub); }
-#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 30; background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: 10px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transition: opacity .2s; max-width: calc(100% - 32px); }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 30; background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: 10px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transition: opacity .2s; max-width: min(680px, calc(100% - 32px)); line-height: 1.5; }
 #toast.show { opacity: 1; }
 #toast.err { background: var(--down); color: #fff; }
 .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; z-index: 40; padding: 16px; }
@@ -611,9 +611,9 @@ body.locked #gate { display: flex; }
       });
   }
   var toastT;
-  function toast(msg, err) {
+  function toast(msg, err, ms) {
     var t = $('#toast'); t.textContent = msg; t.className = 'show' + (err ? ' err' : '');
-    clearTimeout(toastT); toastT = setTimeout(function () { t.className = ''; }, err ? 6000 : 3500);
+    clearTimeout(toastT); toastT = setTimeout(function () { t.className = ''; }, ms || (err ? 6000 : 3500));
   }
   function apiErrorText(e) {
     if (e.code === 'unauthorized') return '구글시트 연동 비밀번호가 다릅니다. 시트 메뉴 [대시보드 → 비밀번호 설정] 값을 확인해 주세요.';
@@ -642,7 +642,9 @@ body.locked #gate { display: flex; }
       if (!pw) return;
       PW = pw; btn.disabled = true; btn.textContent = '갱신 중…'; $('#app').classList.add('loading');
       return api('refresh').then(function (res) {
-        applyRemote(res); toast(res.snap.week + ' 갱신 완료 · 전체 ' + fmt(res.snap.kpi.total) + '명 · 주간 신규 ' + fmt(res.snap.kpi.newWeek) + '명');
+        applyRemote(res);
+        if (!res.snap.monthlySeries) toast('갱신은 완료됐지만 월간 집계가 빠져 있습니다. ' + OLD_GS_MSG, true, 15000);
+        else toast(res.snap.week + ' 갱신 완료 · 전체 ' + fmt(res.snap.kpi.total) + '명 · 주간 신규 ' + fmt(res.snap.kpi.newWeek) + '명');
       }).catch(function (e) { if (e.code === 'unauthorized') PW = null; toast(apiErrorText(e), true); })
         .then(function () { btn.disabled = false; btn.textContent = '갱신'; $('#app').classList.remove('loading'); });
     });
@@ -722,9 +724,18 @@ body.locked #gate { display: flex; }
       });
     });
   }
+  // 월간 집계가 없는 이유를 상황별로 안내
+  var OLD_GS_MSG = '시트의 Apps Script가 아직 이전 버전입니다. aggregate.gs를 새 내용으로 바꾼 뒤 [배포 → 배포 관리 → 편집(연필) → 버전: 새 버전 → 배포]를 하고 다시 [갱신]을 눌러 주세요.';
+  function noMonthlyReason() {
+    if (!state.remote) return '지금은 저장본(구글시트 미연동 상태)을 보고 있어 월간 집계가 없습니다. 상단 [갱신]을 눌러 시트 데이터를 불러오면 월간 분석을 볼 수 있습니다.';
+    var list = (state.index && state.index.snapshots) || [];
+    var latest = list.length ? list[list.length - 1].week : null;
+    if (latest && state.snap.week !== latest) return state.snap.week + '는 월간 기능 추가 전에 저장된 주차라 월간 집계가 없습니다. 기준 주차를 최신(' + latest + ')으로 바꾸면 볼 수 있습니다.';
+    return '월간 집계가 없습니다. ' + OLD_GS_MSG;
+  }
   function setMode(mode, silent) {
     if (mode === 'month' && state.snap && !state.snap.monthlySeries) {
-      if (!silent) toast('이 데이터에는 월간 집계가 없습니다. [갱신]을 누르면 월간 분석을 볼 수 있습니다.', true);
+      if (!silent) toast(noMonthlyReason(), true, 12000);
       mode = 'week';
     }
     state.mode = mode; state.range = state.ranges[mode];
