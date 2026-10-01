@@ -165,6 +165,9 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
 .modal .warn { font-size: 12px; color: var(--down); }
 .modal .err { font-size: 12.5px; color: var(--down); min-height: 1em; }
 .btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.pstatus { margin-bottom: 12px; font-size: 12.5px; color: var(--ink-2); border-left: 4px solid var(--s3); display: grid; gap: 4px; }
+.pstatus b { color: var(--ink); }
+.pstatus .warn { color: var(--down); }
 .dbar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; border-left: 4px solid var(--accent); }
 .dbar .t { font-weight: 700; font-size: 14px; }
 .dbar .t small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-2); margin-top: 2px; }
@@ -374,6 +377,7 @@ body.locked #gate { display: flex; }
           <button type="button" class="btn accent" id="pExportBtn" title="회원별·항목별 월 적립/사용 내역을 Excel로 내려받습니다 (최대 6개월)">Excel 추출</button>
         </div>
       </div>
+      <div id="pStatus" class="card pstatus" hidden></div>
       <div id="pEmpty" class="empty" hidden></div>
       <div class="kpis p8" id="pKpis"></div>
     </section>
@@ -1252,6 +1256,18 @@ body.locked #gate { display: flex; }
     $('#subtitle').textContent = d ? '포인트 ' + d.range.from + ' ~ ' + d.range.to + ' · 집계 ' + d.generatedAtKst + ' KST' : '포인트 집계 데이터가 아직 없습니다';
     $('#srcLabel').textContent = label || (d ? '데이터: 저장본' : '');
   }
+  // 갱신 결과 안내 (토스트는 금방 사라지므로 화면에 남김)
+  function showPStatus(res) {
+    var d = res.data, fs = (d.files || []).slice().sort(function (a, b) { return (a.loadedAt || '') < (b.loadedAt || '') ? 1 : -1; });
+    var lastF = fs[0], loaded = res.loaded || [], pub = res.publish || {};
+    var html = '<div><b>갱신 결과</b> · ' + (loaded.length
+      ? '신규 파일 ' + loaded.length + '개 적재: ' + loaded.map(function (f) { return esc(f.name) + ' (' + (f.dmin || '').slice(0, 10) + ' ~ ' + (f.dmax || '').slice(0, 10) + ', ' + fmt(f.inserted) + '건)'; }).join(', ')
+      : '새로 추가된 파일이 없습니다. 폴더의 CSV ' + fmt(fs.length) + '개는 모두 이미 적재되어 있습니다.') + '</div>' +
+      (lastF ? '<div>가장 최근 적재 파일: ' + esc(lastF.name) + ' · 거래 ' + (lastF.dmin || '').slice(0, 10) + ' ~ ' + (lastF.dmax || '').slice(0, 10) + ' · ' + esc(lastF.loadedAt || '') + ' 적재</div>' : '') +
+      '<div>현재 집계 데이터: <b>' + d.range.from + ' ~ ' + d.range.to + '</b> · 집계 ' + esc(d.generatedAtKst) + ' KST</div>' +
+      (pub.mode === 'local' ? '<div class="warn">지금 화면은 PC에서 방금 만든 집계입니다. 새로고침하거나 다른 사람이 볼 때도 반영되려면 PC의 <b>publish\\points.enc.json</b> 파일을 저장소 <b>docs/data/</b>에 올려 주세요.</div>' : '');
+    $('#pStatus').innerHTML = html; $('#pStatus').hidden = false;
+  }
   function loadPoints() {
     if (!KEY) return;
     P.loaded = true;
@@ -1290,7 +1306,8 @@ body.locked #gate { display: flex; }
         var n = (res.loaded || []).length, rows = (res.loaded || []).reduce(function (t, f) { return t + f.inserted; }, 0);
         var fl = res.failed || [];
         if (fl.length) toast('형식을 인식하지 못해 건너뛴 파일 ' + fl.length + '개: ' + fl.map(function (f) { return f.name; }).join(', ') + ' — 갱신 서버 창의 안내를 확인해 주세요.', true); else
-        toast((n ? '신규 파일 ' + n + '개 · ' + fmt(rows) + '건 적재. ' : '신규 파일 없음 · 기존 데이터로 다시 집계. ') + (res.publish ? res.publish.message : ''));
+        toast((n ? '신규 파일 ' + n + '개 · ' + fmt(rows) + '건 적재. ' : '새로 추가된 파일 없음 (이미 적재된 파일만 있음) · 다시 집계 완료. ') + '데이터 ~' + res.data.range.to);
+        showPStatus(res);
       }).catch(function (e) {
         if (e.code === 'unauthorized') { PW = null; toast('비밀번호가 대시보드 비밀번호와 다릅니다.', true); }
         else if (e.code === 'offline') {
