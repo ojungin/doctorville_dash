@@ -47,7 +47,7 @@ SSL_CTX = ssl.create_default_context()
 if hasattr(ssl, "VERIFY_X509_STRICT"):
     SSL_CTX.verify_flags &= ~ssl.VERIFY_X509_STRICT
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 HERE = os.path.dirname(os.path.abspath(__file__))
 KST = dt.timezone(dt.timedelta(hours=9))
 
@@ -582,24 +582,26 @@ def aggregate(db, cfg):
         for m in methods[k].values():
             m.setdefault("users", z())
 
-    # 3) 잔여 포인트 (데이터 시작 시점 잔액 0 가정, 적립+취소-사용-소멸 누적)
+    # 3) 잔여 포인트 = 적립 포인트 잔여 + 충전 포인트 잔여
+    #    (데이터 시작 시점 잔액 0 가정, 적립+취소-사용-소멸 누적. 시스템 이관 행 제외)
     net = [kinds["earn"]["amt"][i] + kinds["cancel"]["amt"][i] - kinds["use"]["amt"][i] - kinds["expire"]["amt"][i]
            for i in range(N)]
     bal, acc = [], 0
     for v in net:
         acc += v
         bal.append(round(acc))
-    # 월말 잔여 보유 회원 수는 비용이 커서 생략. 현재 잔여 보유자 분포:
-    holders = {"over0": 0, "over10k": 0, "over50k": 0, "over100k": 0}
-    for (b,) in db.execute("SELECT SUM(a) FROM temp.s GROUP BY usn"):
-        if b > 0:
-            holders["over0"] += 1
-        if b >= 10000:
-            holders["over10k"] += 1
-        if b >= 50000:
-            holders["over50k"] += 1
-        if b >= 100000:
-            holders["over100k"] += 1
+    db.execute("DROP TABLE IF EXISTS temp.c")
+    db.execute("CREATE TEMP TABLE c AS SELECT substr(ts,1,7) ym, usn, SUM(chg) a FROM tx WHERE chg != 0 "
+               "AND cid NOT IN (SELECT cid FROM temp.cat WHERE kind='skip') GROUP BY 1,2")
+    chg_m = z()
+    for ym, sm in db.execute("SELECT ym, SUM(a) FROM temp.c GROUP BY 1"):
+        if ym in mi:
+            chg_m[mi[ym]] = sm
+    bal_c, acc = [], 0
+    for v in chg_m:
+        acc += v
+        bal_c.append(round(acc))
+    holders = {"over0": 0, "over10k": 0, "over50k": 0, "over100k": 0, "negative": 0}
 
     # 4) 잔여 포인트 기준 인원수 — 회원별 월말 잔여(누적 적립+취소−사용−소멸)가 기준 이상인 회원 수
     ths = cfg["earn_user_thresholds"]
@@ -614,11 +616,27 @@ def aggregate(db, cfg):
                 diff[j][i0] += 1
                 diff[j][i1] -= 1
     cu, bal_u, pi = None, 0.0, None
-    for usn, ym, a in db.execute("SELECT usn, ym, SUM(a) FROM temp.s GROUP BY usn, ym ORDER BY usn, ym"):
+    def _final(b):
+        if b > 0:
+            holders["over0"] += 1
+        if b >= 10000:
+            holders["over10k"] += 1
+        if b >= 50000:
+            holders["over50k"] += 1
+        if b >= 100000:
+            holders["over100k"] += 1
+        if b < 0:
+            holders["negative"] += 1
+    for usn, ym, a in db.execute(
+            "SELECT usn, ym, SUM(a) FROM (SELECT usn, ym, a FROM temp.s UNION ALL SELECT usn, ym, a FROM temp.c) "
+            "GROUP BY usn, ym ORDER BY usn, ym"):
+        if ym not in mi:
+            continue
         i = mi[ym]
         if usn != cu:
             if cu is not None:
                 _mark(pi, N, bal_u)
+                _final(bal_u)
             cu, bal_u = usn, 0.0
         else:
             _mark(pi, i, bal_u)
@@ -626,6 +644,7 @@ def aggregate(db, cfg):
         pi = i
     if cu is not None:
         _mark(pi, N, bal_u)
+        _final(bal_u)
     lvm = []
     for j in range(len(lv)):
         acc, row = 0, []
@@ -731,7 +750,9 @@ def aggregate(db, cfg):
         "use": {"amt": rnd(kinds["use"]["amt"]), "cnt": kinds["use"]["cnt"], "users": users["use"]},
         "cancel": {"amt": rnd(kinds["cancel"]["amt"]), "cnt": kinds["cancel"]["cnt"]},
         "expire": {"amt": rnd(kinds["expire"]["amt"]), "cnt": kinds["expire"]["cnt"]},
-        "balance": bal,
+        "balance": bal,                      # 적립 포인트 잔여 (월말)
+        "balanceChg": bal_c,                 # 충전 포인트 잔여 (월말)
+        "balanceTotal": [bal[i] + bal_c[i] for i in range(N)],
         "holders": holders,
         "methods": {k: {c: {"amt": rnd(m["amt"]), "cnt": m["cnt"], "users": m.get("users")} for c, m in v.items()}
                     for k, v in methods.items()},
@@ -745,7 +766,7 @@ def aggregate(db, cfg):
                           "members": rep_total[1], "cats": sorted(BUY_CATS), "list": rep_list},
         },
         "files": files,
-        "rules": {"balance": "데이터 시작 시점 잔액 0 가정, 적립+사용취소-사용-소멸 누적", "excluded": "시스템 이관(적립·충전 포인트 이관) 행 제외",
+        "rules": {"balance": "잔여 = 적립 포인트 잔여 + 충전 포인트 잔여. 데이터 시작 시점 잔액 0 가정, 적립+사용취소-사용-소멸 누적. 회원별 잔여·고액 잔여 기준도 합계 기준", "balanceCheck": "2025-04-19 시스템 이관 잔액(적립 819,283,589P)과 같은 시점 원장 누적 819,574,724P 비교: 회원 36,674명 중 36,517명 일치", "excluded": "시스템 이관(적립·충전 포인트 이관) 행 제외",
                   "use": "사용 = 구매·전환 금액(결제 취소·환불은 별도 표시), 소멸 별도"},
     }
     log("집계 완료 (%.0f초) · 기간 %s ~ %s · 거래 %s건 · 회원 %s명" % (

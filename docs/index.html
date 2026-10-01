@@ -165,6 +165,13 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
 .modal .warn { font-size: 12px; color: var(--down); }
 .modal .err { font-size: 12.5px; color: var(--down); min-height: 1em; }
 .btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.dbar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; border-left: 4px solid var(--accent); }
+.dbar .t { font-weight: 700; font-size: 14px; }
+.dbar .t small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+.dbar input[type=month] { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.dbar .tilde { color: var(--muted); }
+.dbar .err { color: var(--down); font-size: 12px; flex-basis: 100%; }
+.dbar .err:empty { display: none; }
 @media (max-width: 480px) { .modal .xr { grid-template-columns: minmax(0, 1fr); } }
 /* 연간 월별 비교 */
 .yoy-wrap { overflow-x: auto; }
@@ -220,7 +227,7 @@ body.view-points .member-only { display: none !important; }
 /* PDF 내보내기 */
 .pdf-only { display: none; }
 body.pdf-mode .pdf-only { display: block; }
-body.pdf-mode .controls, body.pdf-mode #pExportBtn, body.pdf-mode #tip, body.pdf-mode #toast, body.pdf-mode .dim .more, body.pdf-mode .seg { display: none !important; }
+body.pdf-mode .controls, body.pdf-mode #pExportBtn, body.pdf-mode #dQuick, body.pdf-mode #dExport, body.pdf-mode #tip, body.pdf-mode #toast, body.pdf-mode .dim .more, body.pdf-mode .seg { display: none !important; }
 body.pdf-mode .card { box-shadow: none; }
 .pdf-stamp { font-size: 11px; color: var(--header-sub); margin-top: 6px; }
 /* 로그인 */
@@ -393,7 +400,7 @@ body.locked #gate { display: flex; }
       <div class="grid2">
         <div class="card"><h3>① 월별 포인트 적립</h3><p class="desc">적립 금액 (사용취소·환불 제외)</p><div class="chart" id="pchEarn"></div></div>
         <div class="card"><h3>② 월별 포인트 사용</h3><p class="desc">사용처별 누적 막대 · 결제 취소분 차감 전 · 소멸 포함</p><ul class="legend" id="plgUse"></ul><div class="chart" id="pchUse"></div></div>
-        <div class="card"><h3>③ 월별 잔여 포인트</h3><p class="desc" id="pBalDesc">월말 기준 추정 잔여 = 누적 적립 + 사용취소 − 누적 사용 − 소멸</p><div class="chart" id="pchBal"></div></div>
+        <div class="card"><h3>③ 월별 잔여 포인트</h3><p class="desc" id="pBalDesc">월말 잔여 = 적립 포인트 잔여 + 충전 포인트 잔여</p><ul class="legend" id="plgBal"></ul><div class="chart" id="pchBal"></div></div>
         <div class="card"><h3>⑦ 1인당 월 적립·사용 금액</h3><p class="desc">해당 월 적립(사용) 금액 ÷ 해당 월 적립(사용) 회원 수</p>
           <ul class="legend"><li><i class="line" style="background:var(--s1)"></i>1인당 적립</li><li><i class="line" style="background:var(--s2)"></i>1인당 사용</li></ul>
           <div class="chart" id="pchPer"></div></div>
@@ -410,7 +417,21 @@ body.locked #gate { display: flex; }
     </section>
 
     <section class="pdata">
-      <div class="sec-head"><div><h2>⑤ 적립 방법별 규모·순위 / ⑥ 사용 방법별 규모</h2><p id="pMethodSub">선택한 집계 기간 기준</p></div></div>
+      <div class="card dbar" id="pDetailBar">
+        <div class="t">⑤~⑧ 상세 분석 기간<small id="dNote">위의 집계 기간과 별도로 ⑤ 적립 방법 · ⑥ 사용 방법 · ⑧ 이상치에 적용됩니다</small></div>
+        <div class="pfilter">
+          <input type="month" id="dFrom" aria-label="상세 분석 시작 월"><span class="tilde">~</span><input type="month" id="dTo" aria-label="상세 분석 종료 월">
+          <div class="seg" id="dQuick" role="group" aria-label="빠른 기간 선택">
+            <button type="button" data-q="3">3개월</button><button type="button" data-q="6">6개월</button><button type="button" data-q="12" aria-pressed="true">12개월</button><button type="button" data-q="ytd">올해</button><button type="button" data-q="all">전체</button>
+          </div>
+          <button type="button" class="btn accent" id="dExport" title="⑤·⑥·⑧ 결과를 선택한 기간으로 Excel 파일로 내려받습니다">Excel 추출 (⑤~⑧)</button>
+        </div>
+        <div class="err" id="dErr"></div>
+      </div>
+    </section>
+
+    <section class="pdata">
+      <div class="sec-head"><div><h2>⑤ 적립 방법별 규모·순위 / ⑥ 사용 방법별 규모</h2><p id="pMethodSub">상세 분석 기간 기준</p></div></div>
       <div class="grid2">
         <div class="card"><h3>적립 방법 순위</h3><p class="desc">금액 기준 순위 · 막대는 비중</p><div id="pEarnRank"></div></div>
         <div class="card"><h3>사용 방법별 규모</h3><p class="desc">금액 기준 · 막대는 비중 (소멸·취소는 별도 표시)</p><div id="pUseRank"></div></div>
@@ -418,7 +439,7 @@ body.locked #gate { display: flex; }
     </section>
 
     <section class="pdata">
-      <div class="sec-head"><div><h2>⑧ 이상치 검출</h2><p id="pAnomSub">선택한 집계 기간 기준 · 회원 번호는 마스킹 표시</p></div></div>
+      <div class="sec-head"><div><h2>⑧ 이상치 검출</h2><p id="pAnomSub">상세 분석 기간 기준 · 회원 번호는 마스킹 표시</p></div></div>
       <div class="grid2">
         <div class="card"><h3>건당 고액 적립</h3><p class="desc" id="pBigDesc">1건 100,000P 초과 적립</p>
           <div class="anom-sum" id="pBigSum"></div><div class="chart" id="pchBig"></div><div class="scroll" id="pBigList"></div></div>
@@ -675,7 +696,7 @@ body.locked #gate { display: flex; }
       state.range = +b.dataset.range; renderTrends();
     });
   });
-  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); if (VIEW === 'points' && P.data) renderPYoy(); }, 120); });
+  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); if (VIEW === 'points' && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
 
   function renderAll() {
     if (!state.snap) return;
@@ -1330,7 +1351,8 @@ body.locked #gate { display: flex; }
     var items = [
       { label: '적립 포인트', value: bigP(earn), unit: 'P', meta: fmt(sumIdx(d.earn.cnt, ix)) + '건 · ' + periodName() },
       { label: '사용 포인트', value: bigP(use), unit: 'P', meta: '소멸 ' + bigP(exp) + 'P 별도 · 취소 ' + bigP(can) + 'P' },
-      { label: '잔여 포인트 (' + d.months[last].replace('-', '.') + ' 말, 추정)', value: bigP(d.balance[last]), unit: 'P', meta: '보유 회원 ' + fmt(d.holders.over0) + '명 (현재 기준)' },
+      { label: '잔여 포인트 (' + d.months[last].replace('-', '.') + ' 말)', value: bigP(d.balanceTotal ? d.balanceTotal[last] : d.balance[last]), unit: 'P',
+        meta: d.balanceChg ? '적립 ' + bigP(d.balance[last]) + 'P · 충전 ' + bigP(d.balanceChg[last]) + 'P · 보유 ' + fmt(d.holders.over0) + '명' : '보유 회원 ' + fmt(d.holders.over0) + '명 (현재 기준)' },
       { label: '적립 대비 사용률', value: pct(use + exp - can, earn).toFixed(1), unit: '%', meta: '(사용 + 소멸 − 취소) ÷ 적립' },
       { label: '1인당 월평균 적립', value: fmt(Math.round(avg(perE))), unit: 'P', meta: '월 적립 회원 평균 ' + fmt(Math.round(avg(ix.map(function (i) { return d.earn.users[i]; })))) + '명' },
       { label: '1인당 월평균 사용', value: fmt(Math.round(avg(perU))), unit: 'P', meta: '월 사용 회원 평균 ' + fmt(Math.round(avg(ix.map(function (i) { return d.use.users[i]; })))) + '명' },
@@ -1421,14 +1443,18 @@ body.locked #gate { display: flex; }
       }
     });
     // ③ 잔여
-    pLines($('#pchBal'), labels, [{ vals: pick(d.balance), color: css('--s1') }], {
+    var balT = d.balanceTotal || d.balance, balC = d.balanceChg || d.balance.map(function () { return 0; });
+    $('#plgBal').innerHTML = d.balanceChg ? '<li><i class="line" style="background:' + css('--s1') + '"></i>잔여 합계 (적립 + 충전)</li>' : '';
+    pLines($('#pchBal'), labels, [{ vals: pick(balT), color: css('--s1') }], {
       label: '월별 잔여 포인트', lastLabel: function (v) { return bigP(v) + 'P'; },
       tip: function (k) {
         var i = ix[k], net = d.earn.amt[i] + d.cancel.amt[i] - d.use.amt[i] - d.expire.amt[i];
-        return tipRows(titleOf(k) + ' 말', [{ k: '잔여(추정)', v: fmt(d.balance[i]) + 'P', color: css('--s1') }, { k: '당월 증감', v: (net >= 0 ? '+' : '') + fmt(net) + 'P' }]);
+        return tipRows(titleOf(k) + ' 말', [{ k: '잔여 합계', v: fmt(balT[i]) + 'P', color: css('--s1') },
+          { k: '· 적립 포인트', v: fmt(d.balance[i]) + 'P' }, { k: '· 충전 포인트', v: fmt(balC[i]) + 'P' },
+          { k: '당월 적립P 증감', v: (net >= 0 ? '+' : '') + fmt(net) + 'P' }]);
       }
     });
-    $('#pBalDesc').textContent = '월말 추정 잔여 = 누적(적립 + 사용취소 − 사용 − 소멸) · ' + d.range.from + ' 이전 잔액은 0으로 가정';
+    $('#pBalDesc').textContent = '월말 잔여 = 적립 포인트 잔여 + 충전 포인트 잔여 · 누적(적립 + 사용취소 − 사용 − 소멸) · ' + d.range.from + '부터 계산, 시스템 이관 내역 제외';
     // ⑦ 1인당
     var pe = ix.map(function (i) { return d.earn.users[i] ? Math.round(d.earn.amt[i] / d.earn.users[i]) : null; });
     var pu = ix.map(function (i) { return d.use.users[i] ? Math.round(d.use.amt[i] / d.use.users[i]) : null; });
@@ -1453,16 +1479,6 @@ body.locked #gate { display: flex; }
         tip: function (k) { return tipRows(titleOf(k) + ' 말', th.values.map(function (v, j) { return { k: '잔여 ' + bigP(v) + 'P 이상', v: fmt(th.monthly[j][ix[k]]) + '명', color: tc[j] }; }).concat([{ k: '잔여 보유 회원', v: fmt(th.monthlyHolders[ix[k]]) + '명' }])); }
       });
     }
-    // ⑧ 이상치 월별
-    var a = d.anomaly;
-    pBars($('#pchBig'), labels, [{ vals: pick(a.bigEarn.monthly), color: css('--s2') }], {
-      label: '월별 고액 적립 건수', h: 150, fmtY: function (v) { return fmt(Math.round(v)); },
-      tip: function (k) { var i = ix[k]; return tipRows(titleOf(k), [{ k: '건수', v: fmt(a.bigEarn.monthly[i]) + '건', color: css('--s2') }, { k: '금액', v: fmt(a.bigEarn.monthlyAmt[i]) + 'P' }]); }
-    });
-    pBars($('#pchRep'), labels, [{ vals: pick(a.repeatBuy.monthly), color: css('--s2') }], {
-      label: '월별 반복 구매 건수', h: 150, fmtY: function (v) { return fmt(Math.round(v)); },
-      tip: function (k) { var i = ix[k]; return tipRows(titleOf(k), [{ k: '해당 회원·월', v: fmt(a.repeatBuy.monthly[i]) + '건', color: css('--s2') }, { k: '구매 금액', v: fmt(a.repeatBuy.monthlyAmt[i]) + 'P' }]); }
-    });
   }
 
   function renderPTh() {
@@ -1598,9 +1614,45 @@ body.locked #gate { display: flex; }
     return Object.keys(obj || {}).map(function (c) { return { name: c, amt: sumIdx(obj[c].amt, ix), cnt: sumIdx(obj[c].cnt, ix) }; })
       .filter(function (m) { return m.amt > 0; }).sort(function (a, b) { return b.amt - a.amt; });
   }
+  // ---- ⑤~⑧ 상세 분석 기간 (집계 기간과 별도) -------------------------------
+  P.d2 = null; P.d2q = '12';
+  function d2Init() {
+    var ms = P.data.months, last = ms[ms.length - 1], first = ms[0];
+    ['#dFrom', '#dTo'].forEach(function (q) { $(q).min = first; $(q).max = last; });
+    if (!P.d2 || P.d2.to > last || P.d2.from < first) d2Quick(P.d2q || '12');
+    $('#dFrom').value = P.d2.from; $('#dTo').value = P.d2.to;
+  }
+  function d2Quick(q) {
+    var ms = P.data.months, last = ms[ms.length - 1], first = ms[0], from;
+    if (q === 'all') from = first;
+    else if (q === 'ytd') from = last.slice(0, 4) + '-01';
+    else from = addMonths(last, -(+q - 1));
+    if (from < first) from = first;
+    P.d2 = { from: from, to: last }; P.d2q = q;
+    document.querySelectorAll('#dQuick button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.q === q ? 'true' : 'false'); });
+  }
+  function idx2() { var ix = []; P.data.months.forEach(function (m, i) { if (m >= P.d2.from && m <= P.d2.to) ix.push(i); }); return ix; }
+  function inP2(ym) { return ym >= P.d2.from && ym <= P.d2.to; }
+  function name2() { return P.d2.from.replace('-', '.') + ' ~ ' + P.d2.to.replace('-', '.') + ' (' + monthsBetween(P.d2.from, P.d2.to) + '개월)'; }
+  function renderDetail() { renderPMethods(); renderPAnom(); }
+  document.querySelectorAll('#dQuick button').forEach(function (b) {
+    b.addEventListener('click', function () { if (!P.data) return; d2Quick(b.dataset.q); $('#dFrom').value = P.d2.from; $('#dTo').value = P.d2.to; $('#dErr').textContent = ''; P.bigAll = P.repAll = false; renderDetail(); });
+  });
+  ['#dFrom', '#dTo'].forEach(function (q) {
+    $(q).addEventListener('change', function () {
+      var f = $('#dFrom').value, t = $('#dTo').value;
+      if (!f || !t) { $('#dErr').textContent = '시작 월과 종료 월을 모두 선택해 주세요.'; return; }
+      if (f > t) { $('#dErr').textContent = '시작 월이 종료 월보다 늦습니다.'; return; }
+      $('#dErr').textContent = '';
+      P.d2 = { from: f, to: t }; P.d2q = null; P.bigAll = P.repAll = false;
+      document.querySelectorAll('#dQuick button').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
+      renderDetail();
+    });
+  });
+
   function renderPMethods() {
-    var d = P.data, ix = periodIdx();
-    $('#pMethodSub').textContent = periodName() + ' 기준 · 내용(사유) 텍스트를 방법별로 묶어 집계';
+    var d = P.data; d2Init(); var ix = idx2();
+    $('#pMethodSub').textContent = '상세 분석 기간 ' + name2() + ' 기준 · 내용(사유) 텍스트를 방법별로 묶어 집계';
     var el1 = methodList(d.methods.earn, ix), ul = methodList(d.methods.use, ix);
     $('#pEarnRank').innerHTML = rankTable(el1, el1.reduce(function (t, m) { return t + m.amt; }, 0), { head: '적립 방법', color: css('--s1') }) +
       '<div class="pnote">세미나 설문은 회차 번호를 묶어 한 항목으로 집계합니다. 결제 취소·환불로 돌려받은 포인트는 적립에서 제외했습니다.</div>';
@@ -1611,10 +1663,20 @@ body.locked #gate { display: flex; }
   }
 
   function renderPAnom() {
-    var d = P.data, a = d.anomaly, ix = periodIdx(), LIM = 30;
-    $('#pAnomSub').textContent = periodName() + ' 기준 · 회원 번호는 마스킹 표시 · 목록은 최근 ' + fmt(a.bigEarn.list.length > a.repeatBuy.list.length ? a.bigEarn.list.length : a.repeatBuy.list.length) + '건까지 보관';
+    var d = P.data, a = d.anomaly; d2Init(); var ix = idx2(), LIM = 30;
+    $('#pAnomSub').textContent = '상세 분석 기간 ' + name2() + ' 기준 · 회원 번호는 마스킹 표시 · 목록은 전체 기간 최근 ' + fmt(a.bigEarn.list.length > a.repeatBuy.list.length ? a.bigEarn.list.length : a.repeatBuy.list.length) + '건까지 보관';
+    var labels = ix.map(function (i) { return mLabel(d.months[i]); }), pick = function (arr) { return ix.map(function (i) { return arr[i] || 0; }); };
+    var titleOf = function (k) { return d.months[ix[k]].replace('-', '년 ') + '월'; };
+    pBars($('#pchBig'), labels, [{ vals: pick(a.bigEarn.monthly), color: css('--s2') }], {
+      label: '월별 고액 적립 건수', h: 150, fmtY: function (v) { return fmt(Math.round(v)); },
+      tip: function (k) { var i = ix[k]; return tipRows(titleOf(k), [{ k: '건수', v: fmt(a.bigEarn.monthly[i]) + '건', color: css('--s2') }, { k: '금액', v: fmt(a.bigEarn.monthlyAmt[i]) + 'P' }]); }
+    });
+    pBars($('#pchRep'), labels, [{ vals: pick(a.repeatBuy.monthly), color: css('--s2') }], {
+      label: '월별 반복 구매 건수', h: 150, fmtY: function (v) { return fmt(Math.round(v)); },
+      tip: function (k) { var i = ix[k]; return tipRows(titleOf(k), [{ k: '해당 회원·월', v: fmt(a.repeatBuy.monthly[i]) + '건', color: css('--s2') }, { k: '구매 금액', v: fmt(a.repeatBuy.monthlyAmt[i]) + 'P' }]); }
+    });
     // 고액 적립
-    var b = a.bigEarn, bl = b.list.filter(function (r) { return inPeriod(r.ts.slice(0, 7)); });
+    var b = a.bigEarn, bl = b.list.filter(function (r) { return inP2(r.ts.slice(0, 7)); });
     $('#pBigDesc').textContent = '1건 ' + fmt(b.threshold) + 'P 초과 적립 (사용취소·환불 제외)';
     $('#pBigSum').innerHTML = '<span><b>' + fmt(sumIdx(b.monthly, ix)) + '</b>건</span><span><b>' + bigP(sumIdx(b.monthlyAmt, ix)) + '</b>P</span>';
     var showB = P.bigAll ? bl : bl.slice(0, LIM);
@@ -1623,7 +1685,7 @@ body.locked #gate { display: flex; }
       (bl.length > LIM ? '<button class="dim more" type="button" id="pBigMore" style="background:none;border:0;color:var(--accent);cursor:pointer;padding:6px 0">' + (P.bigAll ? '접기' : '전체 ' + fmt(bl.length) + '건 보기') + '</button>' : '')
       : '<div class="empty">해당 기간에 검출된 건이 없습니다.</div>';
     // 반복 구매
-    var r = a.repeatBuy, rl = r.list.filter(function (x) { return inPeriod(x.ym); });
+    var r = a.repeatBuy, rl = r.list.filter(function (x) { return inP2(x.ym); });
     $('#pRepDesc').textContent = '한 회원이 한 달에 ' + r.min + '회 이상 구매 (대상: ' + r.cats.join('·') + ')';
     $('#pRepSum').innerHTML = '<span><b>' + fmt(sumIdx(r.monthly, ix)) + '</b>건 (회원·월)</span><span><b>' + bigP(sumIdx(r.monthlyAmt, ix)) + '</b>P 구매</span>';
     var showR = P.repAll ? rl : rl.slice(0, LIM);
@@ -1634,6 +1696,147 @@ body.locked #gate { display: flex; }
     if ($('#pBigMore')) $('#pBigMore').onclick = function () { P.bigAll = !P.bigAll; renderPAnom(); };
     if ($('#pRepMore')) $('#pRepMore').onclick = function () { P.repAll = !P.repAll; renderPAnom(); };
   }
+
+  // ---- 브라우저용 최소 XLSX 작성기 (무압축 ZIP) -----------------------------
+  var CRC = (function () { var t = [], c; for (var n = 0; n < 256; n++) { c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u) { var c = 0xFFFFFFFF; for (var i = 0; i < u.length; i++) c = CRC[(c ^ u[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function zipStore(files) {
+    var enc = new TextEncoder(), parts = [], cen = [], off = 0;
+    var u16 = function (v) { return [v & 255, (v >>> 8) & 255]; }, u32 = function (v) { return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]; };
+    files.forEach(function (f) {
+      var name = enc.encode(f.name), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data, crc = crc32(data);
+      var head = [].concat(u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0x21), u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0));
+      parts.push(new Uint8Array(head), name, data);
+      cen.push(new Uint8Array([].concat(u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0x21), u32(crc), u32(data.length), u32(data.length),
+        u16(name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(off))), name);
+      off += head.length + name.length + data.length;
+    });
+    var cl = cen.reduce(function (t, x) { return t + x.length; }, 0);
+    return new Blob(parts.concat(cen, [new Uint8Array([].concat(u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(cl), u32(off), u16(0)))]),
+      { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
+  function xcol(n) { var s = ''; n++; while (n) { var r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; }
+  function xesc(v) { return String(v).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  // sheet: { name, widths, freeze, rows: [{ c: [값...], s: 스타일 }] } · 스타일 1 헤더, 2 숫자, 3 합계, 4 제목, 6 줄바꿈, 7 비율(%)
+  function sheetXml(sh) {
+    var o = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'];
+    if (sh.freeze) o.push('<sheetViews><sheetView workbookViewId="0"><pane ySplit="' + sh.freeze + '" topLeftCell="A' + (sh.freeze + 1) + '" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>');
+    if (sh.widths) o.push('<cols>' + sh.widths.map(function (w, i) { return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>'; }).join('') + '</cols>');
+    o.push('<sheetData>');
+    sh.rows.forEach(function (row, r) {
+      var cs = [];
+      (row.c || []).forEach(function (v, c) {
+        if (v == null || v === '') return;
+        var ref = xcol(c) + (r + 1), st = row.s;
+        if (typeof v === 'number' && isFinite(v)) {
+          var ns = st === 1 ? 1 : (st === 7 || (row.pct && row.pct.indexOf(c) >= 0)) ? 7 : st === 3 ? 3 : 2;
+          cs.push('<c r="' + ref + '" s="' + ns + '"><v>' + (Math.round(v * 10000) / 10000) + '</v></c>');
+        } else {
+          var ts = st === 3 ? 5 : st === 2 || st === 7 ? 0 : (st || 0);
+          cs.push('<c r="' + ref + '" s="' + ts + '" t="inlineStr"><is><t xml:space="preserve">' + xesc(v) + '</t></is></c>');
+        }
+      });
+      o.push('<row r="' + (r + 1) + '">' + cs.join('') + '</row>');
+    });
+    o.push('</sheetData>');
+    if (sh.filter) o.push('<autoFilter ref="' + sh.filter + '"/>');
+    o.push('</worksheet>');
+    return o.join('');
+  }
+  var XSTYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0"/><numFmt numFmtId="165" formatCode="0.0%"/></numFmts>' +
+    '<fonts count="3"><font><sz val="10"/><name val="맑은 고딕"/></font><font><b/><sz val="10"/><name val="맑은 고딕"/></font><font><b/><sz val="13"/><name val="맑은 고딕"/></font></fonts>' +
+    '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFDCE6F2"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top/><bottom style="thin"><color rgb="FF9FB3CC"/></bottom><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+    '<xf numFmtId="164" fontId="1" fillId="3" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>' +
+    '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>' +
+    '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+    '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  function xlsxBlob(sheets) {
+    var R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    var files = [
+      { name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+        '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        sheets.map(function (_, i) { return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('') + '</Types>' },
+      { name: '_rels/.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' + R + '/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+      { name: 'xl/workbook.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="' + R + '"><sheets>' +
+        sheets.map(function (sh, i) { return '<sheet name="' + xesc(sh.name.slice(0, 31)) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>'; }).join('') + '</sheets></workbook>' },
+      { name: 'xl/_rels/workbook.xml.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        sheets.map(function (_, i) { return '<Relationship Id="rId' + (i + 1) + '" Type="' + R + '/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>'; }).join('') +
+        '<Relationship Id="rId' + (sheets.length + 1) + '" Type="' + R + '/styles" Target="styles.xml"/></Relationships>' },
+      { name: 'xl/styles.xml', data: XSTYLES }
+    ];
+    sheets.forEach(function (sh, i) { files.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: sheetXml(sh) }); });
+    return zipStore(files);
+  }
+  function tableSheet(name, head, body, totals, widths, pctCols) {
+    var rows = [{ c: head, s: 1 }].concat(body.map(function (c) { return { c: c, pct: pctCols }; }));
+    if (totals) rows.push({ c: totals, s: 3, pct: pctCols });
+    return { name: name, widths: widths, freeze: 1, rows: rows, filter: 'A1:' + xcol(head.length - 1) + (body.length + 1) };
+  }
+
+  // ---- ⑤~⑧ Excel 추출 (집계값만 사용 · 회원 번호는 마스킹 상태 그대로) --------
+  $('#dExport').addEventListener('click', function () {
+    var d = P.data; if (!d) return;
+    d2Init();
+    var ix = idx2(), ms = ix.map(function (i) { return d.months[i]; }), a = d.anomaly, nm = name2();
+    var share = function (v, t) { return t ? v / t : 0; };
+    var mlist = function (obj) { return methodList(obj, ix); };
+    var el1 = mlist(d.methods.earn), ul = mlist(d.methods.use);
+    var te = el1.reduce(function (t, m) { return t + m.amt; }, 0), tu = ul.reduce(function (t, m) { return t + m.amt; }, 0);
+    var expA = sumIdx(d.expire.amt, ix), expC = sumIdx(d.expire.cnt, ix), canA = sumIdx(d.cancel.amt, ix), canC = sumIdx(d.cancel.cnt, ix);
+    var info = { name: '안내', widths: [22, 90], rows: [
+      { c: ['닥터빌 포인트 상세 분석 (⑤~⑧)'], s: 4 }, { c: [] },
+      { c: ['상세 분석 기간', nm], s: 6 },
+      { c: ['데이터 기준', d.range.from + ' ~ ' + d.range.to + ' · 집계 ' + d.generatedAtKst + ' KST'], s: 6 },
+      { c: ['⑤ 적립 방법', '적립 방법별 금액·비중·건수 (결제 취소·환불로 돌려받은 포인트 제외)'], s: 6 },
+      { c: ['⑥ 사용 방법', '사용 방법별 금액·비중·건수 (소멸·결제 취소·환불은 별도 행)'], s: 6 },
+      { c: ['⑧ 이상치', '건당 고액 적립(1건 ' + fmt(a.bigEarn.threshold) + 'P 초과), 개인 월 반복 구매(월 ' + a.repeatBuy.min + '회 이상)'], s: 6 },
+      { c: ['이상치 목록', '회원 번호는 마스킹 상태입니다. 목록은 전체 기간 최근 ' + fmt(a.bigEarn.list.length) + ' / ' + fmt(a.repeatBuy.list.length) + '건까지만 보관되어, 기간이 길면 일부만 포함될 수 있습니다. 월별 건수·금액은 전체 기준입니다.'], s: 6 },
+      { c: ['제외', '2025-04-19 시스템 이관(적립·충전 포인트 이관) 내역'], s: 6 }] };
+    var rankRows = function (list, tot) { return list.map(function (m, i) { return [i + 1, m.name, m.amt, share(m.amt, tot), m.cnt, Math.round(m.amt / Math.max(1, ms.length))]; }); };
+    var s5 = tableSheet('⑤ 적립 방법 순위', ['순위', '적립 방법', '금액(P)', '비중', '건수', '월평균 금액(P)'], rankRows(el1, te),
+      ['', '합계', te, 1, el1.reduce(function (t, m) { return t + m.cnt; }, 0), Math.round(te / Math.max(1, ms.length))], [8, 28, 16, 10, 12, 16], [3]);
+    var s6 = tableSheet('⑥ 사용 방법 규모', ['순위', '사용 방법', '금액(P)', '비중', '건수', '월평균 금액(P)'], rankRows(ul, tu),
+      ['', '합계', tu, 1, ul.reduce(function (t, m) { return t + m.cnt; }, 0), Math.round(tu / Math.max(1, ms.length))], [8, 28, 16, 10, 12, 16], [3]);
+    s6.rows.push({ c: ['별도', '포인트 소멸', expA, '', expC, Math.round(expA / Math.max(1, ms.length))] }, { c: ['별도', '결제 취소·환불 (사용 복원)', canA, '', canC, Math.round(canA / Math.max(1, ms.length))] });
+    var monthSheet = function (name, obj, extra) {
+      var keys = Object.keys(obj || {}).filter(function (c) { return sumIdx(obj[c].amt, ix) > 0; }).sort(function (x, y) { return sumIdx(obj[y].amt, ix) - sumIdx(obj[x].amt, ix); });
+      var rowsA = keys.map(function (c) { var v = ix.map(function (i) { return obj[c].amt[i] || 0; }); return [c].concat(v, [v.reduce(function (t, x) { return t + x; }, 0)]); });
+      var rowsN = keys.map(function (c) { var v = ix.map(function (i) { return obj[c].cnt[i] || 0; }); return [c].concat(v, [v.reduce(function (t, x) { return t + x; }, 0)]); });
+      (extra || []).forEach(function (x) {
+        var va = ix.map(function (i) { return x.amt[i] || 0; }), vn = ix.map(function (i) { return x.cnt[i] || 0; });
+        rowsA.push([x.name].concat(va, [va.reduce(function (t, v) { return t + v; }, 0)])); rowsN.push([x.name].concat(vn, [vn.reduce(function (t, v) { return t + v; }, 0)]));
+      });
+      var head = ['방법'].concat(ms, ['기간 합계']);
+      var colTot = function (rows, n) { var t = []; for (var j = 1; j <= ms.length + 1; j++) t.push(rows.slice(0, n).reduce(function (s, r) { return s + r[j]; }, 0)); return [extra ? '합계 (별도 제외)' : '합계'].concat(t); };
+      var rows = [{ c: ['금액(P)'], s: 5 }, { c: head, s: 1 }].concat(rowsA.map(function (c) { return { c: c }; }), [{ c: colTot(rowsA, keys.length), s: 3 }, { c: [] }, { c: ['건수'], s: 5 }, { c: head, s: 1 }],
+        rowsN.map(function (c) { return { c: c }; }), [{ c: colTot(rowsN, keys.length), s: 3 }]);
+      return { name: name, widths: [28].concat(ms.map(function () { return 13; }), [15]), freeze: 2, rows: rows };
+    };
+    var s5m = monthSheet('⑤ 적립 방법 월별', d.methods.earn);
+    var s6m = monthSheet('⑥ 사용 방법 월별', d.methods.use, [{ name: '(별도) 포인트 소멸', amt: d.expire.amt, cnt: d.expire.cnt }, { name: '(별도) 결제 취소·환불', amt: d.cancel.amt, cnt: d.cancel.cnt }]);
+    var s8m = tableSheet('⑧ 이상치 월별', ['월', '고액 적립 건수', '고액 적립 금액(P)', '반복 구매 (회원·월)', '반복 구매 금액(P)'],
+      ix.map(function (i) { return [d.months[i], a.bigEarn.monthly[i] || 0, a.bigEarn.monthlyAmt[i] || 0, a.repeatBuy.monthly[i] || 0, a.repeatBuy.monthlyAmt[i] || 0]; }),
+      ['합계', sumIdx(a.bigEarn.monthly, ix), sumIdx(a.bigEarn.monthlyAmt, ix), sumIdx(a.repeatBuy.monthly, ix), sumIdx(a.repeatBuy.monthlyAmt, ix)], [10, 15, 17, 18, 17]);
+    var bl = a.bigEarn.list.filter(function (r) { return inP2(r.ts.slice(0, 7)); }), rl = a.repeatBuy.list.filter(function (x) { return inP2(x.ym); });
+    var s8a = tableSheet('⑧ 고액 적립 목록', ['일시', '회원(마스킹)', '적립 방법', '내용', '금액(P)'], bl.map(function (r) { return [r.ts, r.id, r.cat, r.text, r.amt]; }), null, [17, 14, 18, 44, 13]);
+    var s8b = tableSheet('⑧ 반복 구매 목록', ['월', '회원(마스킹)', '주 구매처', '구매 횟수', '구매 금액(P)'], rl.map(function (x) { return [x.ym, x.id, x.cat, x.cnt, x.amt]; }), null, [10, 14, 18, 12, 14]);
+    var blob = xlsxBlob([info, s5, s6, s5m, s6m, s8m, s8a, s8b]);
+    var url = URL.createObjectURL(blob), link = document.createElement('a');
+    link.href = url; link.download = 'DoctorVille_Point_Detail_' + P.d2.from.replace('-', '') + '-' + P.d2.to.replace('-', '') + '.xlsx';
+    document.body.appendChild(link); link.click(); link.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    toast('⑤~⑧ Excel 추출 완료 · ' + nm);
+  });
 
   function renderPFiles() {
     var fs = P.data.files || [];
