@@ -87,7 +87,10 @@ function menuCheckPassword() {
 function menuRefresh() {
   var snap = buildSnapshot_();
   saveSnapshot_(snap);
-  SpreadsheetApp.getUi().alert(snap.week + ' 집계 완료: 총 ' + snap.kpi.total + '명, 주간 신규 ' + snap.kpi.newWeek + '명');
+  var monthly = snap.monthlySeries
+    ? '\n월간 집계: 포함 (기준 월 ' + snap.monthRef.month + ', 월간 신규 ' + snap.kpi.newMonth + '명)\n\n※ 대시보드 [갱신]에도 반영하려면 배포 → 배포 관리 → 편집 → 버전: 새 버전 → 배포를 해야 합니다.'
+    : '\n월간 집계: 없음 — aggregate.gs가 이전 버전입니다. 저장소의 apps-script/aggregate.gs 내용으로 바꿔 주세요.';
+  SpreadsheetApp.getUi().alert(snap.week + ' 집계 완료: 총 ' + snap.kpi.total + '명, 주간 신규 ' + snap.kpi.newWeek + '명' + monthly);
 }
 
 // ---- 집계·저장 -----------------------------------------------------------
