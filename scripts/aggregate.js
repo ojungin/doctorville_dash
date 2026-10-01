@@ -149,10 +149,18 @@
     var refStart = curWeek - 7 * DAY;       // 직전 완료 주(보고 대상 주)
     var prevStart = refStart - 7 * DAY;
     var recent4Start = refStart - 21 * DAY; // 최근 4주 (보고 주 포함)
+    // 월 단위 기준: 직전 완료 월(보고 월), 최근 3개월(보고 월 포함), 추이 24개월
+    var MONTHS = opt.months || 24;
+    var nk = kstDate(now), curY = nk.getUTCFullYear(), curM = nk.getUTCMonth();
+    var monthStart = function (y, m) { return Date.UTC(y, m, 1) - KST; };
+    var mKey = function (ms) { var d = kstDate(ms); return d.getUTCFullYear() * 12 + d.getUTCMonth(); };
+    var curMonthIdx = curY * 12 + curM, refMonthIdx = curMonthIdx - 1;
+    var firstMonthIdx = refMonthIdx - (MONTHS - 1);
+    var monthly = {}, joinedBeforeFirstMonth = 0, newRefM = 0, newPrevM = 0, recent3 = 0;
     var firstWeek = refStart - (WEEKS - 1) * 7 * DAY;
 
     var dims = {};
-    DIMS.forEach(function (d) { dims[d.key] = { all: {}, week: {}, recent4: {} }; });
+    DIMS.forEach(function (d) { dims[d.key] = { all: {}, week: {}, recent4: {}, month: {}, recent3: {} }; });
     var weekly = {};   // weekStartMs -> { n, route:{}, job:{} }
     var total = 0, joinedBeforeFirst = 0, newRef = 0, newPrev = 0, recent4 = 0, afterRef = 0;
     var active7 = 0, active30 = 0, integrated = 0, smsYes = 0, emailYes = 0;
@@ -160,7 +168,7 @@
     // 연간 월별 비교 (올해 vs 작년, KST)
     var nowK = kstDate(now), Y = nowK.getUTCFullYear();
     var cutoffMD = (nowK.getUTCMonth() + 1) * 100 + nowK.getUTCDate(); // 동기간 비교 기준 (MMDD)
-    var monCur = [0,0,0,0,0,0,0,0,0,0,0,0], monLast = [0,0,0,0,0,0,0,0,0,0,0,0], ytdLast = 0;
+    var monCur = [0,0,0,0,0,0,0,0,0,0,0,0], monLast = [0,0,0,0,0,0,0,0,0,0,0,0], ytdLast = 0, lastMtd = 0;
 
     for (var r = 1; r < rows.length; r++) {
       var row = rows[r];
@@ -170,6 +178,15 @@
       var vals = {};
       DIMS.forEach(function (d) { vals[d.key] = norm(d.key, row[idx[d.field]], ctx); });
 
+      var mi = j != null ? mKey(j) : null;
+      var inRefM = mi === refMonthIdx, inR3 = mi != null && mi >= refMonthIdx - 2 && mi <= refMonthIdx;
+      if (inRefM) newRefM++;
+      if (mi === refMonthIdx - 1) newPrevM++;
+      if (inR3) recent3++;
+      if (mi != null && mi <= refMonthIdx) {
+        if (mi < firstMonthIdx) joinedBeforeFirstMonth++;
+        else { var mo = monthly[mi] || (monthly[mi] = { n: 0, route: {}, job: {} }); mo.n++; inc(mo.route, vals.route); inc(mo.job, vals.job); }
+      } else if (mi == null) joinedBeforeFirstMonth++;
       var inRef = j != null && j >= refStart && j < refStart + 7 * DAY;
       var inR4 = j != null && j >= recent4Start && j < refStart + 7 * DAY;
       if (inRef) newRef++;
@@ -180,6 +197,8 @@
       DIMS.forEach(function (d) {
         inc(dims[d.key].all, vals[d.key]);
         if (inRef) inc(dims[d.key].week, vals[d.key]);
+        if (inRefM) inc(dims[d.key].month, vals[d.key]);
+        if (inR3) inc(dims[d.key].recent3, vals[d.key]);
         if (inR4) inc(dims[d.key].recent4, vals[d.key]);
       });
 
@@ -197,7 +216,10 @@
         if (jy === Y) monCur[jm]++;
         else if (jy === Y - 1) {
           monLast[jm]++;
-          if ((jm + 1) * 100 + jd.getUTCDate() <= cutoffMD) ytdLast++;
+          if ((jm + 1) * 100 + jd.getUTCDate() <= cutoffMD) {
+            ytdLast++;
+            if (jm === nowK.getUTCMonth()) lastMtd++; // 작년 같은 달 1일~오늘 날짜
+          }
         }
       }
 
@@ -210,6 +232,16 @@
         }
       } else joinedBeforeFirst++;
     }
+
+    // 월간 시계열 (직전 완료 월까지)
+    var mseries = [], mcum = joinedBeforeFirstMonth;
+    for (var q = firstMonthIdx; q <= refMonthIdx; q++) {
+      var yy = Math.floor(q / 12), mm = q % 12, mo2 = monthly[q] || { n: 0, route: {}, job: {} };
+      mcum += mo2.n;
+      var ms0 = monthStart(yy, mm), ms1 = monthStart(yy, mm + 1) - DAY;
+      mseries.push({ month: yy + '-' + (mm < 9 ? '0' : '') + (mm + 1), start: ymd(ms0), end: ymd(ms1), new: mo2.n, cumulative: mcum, route: suppress(mo2.route), job: suppress(mo2.job) });
+    }
+    var refY = Math.floor(refMonthIdx / 12), refMm = refMonthIdx % 12;
 
     // 주간 시계열
     var series = [], cum = joinedBeforeFirst;
@@ -235,7 +267,11 @@
           var name = p[0];
           var w = name === SMALL ? sumSmall(wk, keep) : (wk[name] || 0);
           var n4 = name === SMALL ? sumSmall(r4, keep) : (r4[name] || 0);
-          return { name: name, count: p[1], share: pct(p[1], total), newWeek: w < MIN_CELL && w > 0 ? '<' + MIN_CELL : w, newShare4w: pct(n4, recent4) };
+          var mo3 = dims[d.key].month, r3 = dims[d.key].recent3;
+          var wm = name === SMALL ? sumSmall(mo3, keep) : (mo3[name] || 0);
+          var n3 = name === SMALL ? sumSmall(r3, keep) : (r3[name] || 0);
+          return { name: name, count: p[1], share: pct(p[1], total), newWeek: w < MIN_CELL && w > 0 ? '<' + MIN_CELL : w, newShare4w: pct(n4, recent4),
+            newMonth: wm < MIN_CELL && wm > 0 ? '<' + MIN_CELL : wm, newShare3m: pct(n3, recent3) };
         })
       };
     });
@@ -262,6 +298,9 @@
         newPrevWeek: newPrev,
         newSinceWeekEnd: afterRef,
         new4w: recent4,
+        newMonth: newRefM,
+        newPrevMonth: newPrevM,
+        new3m: recent3,
         active7: active7,
         active30: active30,
         active7Rate: pct(active7, total),
@@ -272,6 +311,8 @@
       },
       dims: outDims,
       weekly: series,
+      monthRef: { month: mseries[mseries.length - 1].month, start: ymd(monthStart(refY, refMm)), end: ymd(monthStart(refY, refMm + 1) - DAY) },
+      monthlySeries: mseries,
       deptAge: { ages: AGE_ORDER, rows: heat },
       monthly: {
         thisYear: Y, lastYear: Y - 1, asOf: ymd(now), currentMonth: nowK.getUTCMonth() + 1,
@@ -279,6 +320,7 @@
         last: monLast,
         ytdCur: monCur.reduce(function (a, b) { return a + b; }, 0),
         ytdLast: ytdLast,
+        lastMtd: lastMtd,
         totalLast: monLast.reduce(function (a, b) { return a + b; }, 0)
       }
     };
