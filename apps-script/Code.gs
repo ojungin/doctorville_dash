@@ -19,6 +19,7 @@ var SHEET_NAME = '시트1';                  // 회원 데이터가 있는 탭 �
 var HISTORY_SHEET = '_dashboard_history';  // 주차별 집계 저장 탭 (자동 생성, 숨김)
 var MAX_FAILS = 10;                        // 10분 안에 이 횟수만큼 틀리면 잠금
 var PW_ITER = 2000;
+var HIST_FROM = '2025-W01';                // 과거 주차 재계산을 허용하는 첫 주차
 
 // ---- 웹앱 진입점 ---------------------------------------------------------
 function doPost(e) {
@@ -136,8 +137,12 @@ function loadAll_() {
 // 목록(요약) + 선택 주차 + 직전 주차
 function bundle_(week) {
   var all = loadAll_();
-  if (!all.length) return { ok: true, index: { snapshots: [] }, snap: null, prev: null };
   var i = week ? all.map(function (s) { return s.week; }).indexOf(week) : all.length - 1;
+  // 저장되지 않은 과거 주차는 시트 원본으로 그 시점 기준 재계산 (저장하지 않음)
+  if (week && i < 0) {
+    return { ok: true, index: { snapshots: all.map(MemberAggregate.historyEntry) }, snap: historicalSnapshot_(week), prev: null };
+  }
+  if (!all.length) return { ok: true, index: { snapshots: [] }, snap: null, prev: null };
   if (i < 0) i = all.length - 1;
   return {
     ok: true,
@@ -145,6 +150,24 @@ function bundle_(week) {
     snap: all[i],
     prev: i > 0 ? all[i - 1] : null
   };
+}
+
+// 과거 주차 재계산: 해당 주 다음 월요일 정오(KST)를 기준 시각으로 집계
+// 가입 관련 지표는 그 주 기준, 로그인·수신 동의·회원 상태는 현재 값 기준
+function historicalSnapshot_(week) {
+  var ms = MemberAggregate.isoWeekStart(week);
+  var from = MemberAggregate.isoWeekStart(HIST_FROM);
+  var latest = new Date().getTime() - 7 * 86400000;
+  if (ms == null || ms < from || ms > latest) throw new Error('선택할 수 없는 주차입니다: ' + week);
+  var cache = CacheService.getScriptCache(), key = 'hist:' + week;
+  var hit = cache.get(key);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sheet) throw new Error('시트 탭을 찾을 수 없습니다: ' + SHEET_NAME);
+  var snap = MemberAggregate.aggregate(sheet.getDataRange().getDisplayValues(),
+    { now: ms + 7 * 86400000 + 3 * 3600000, asOf: true });
+  try { var j = JSON.stringify(snap); if (j.length < 95000) cache.put(key, j, 1800); } catch (e) {}
+  return snap;
 }
 
 // ---- 유틸 ----------------------------------------------------------------
