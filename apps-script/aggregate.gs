@@ -59,6 +59,14 @@
     var w = Math.floor((Date.UTC(y, d.getUTCMonth(), d.getUTCDate()) - jan1) / (7 * DAY)) + 1;
     return y + '-W' + (w < 10 ? '0' + w : w);
   }
+  // 'YYYY-Www' → 그 주 월요일 00:00 (KST) epoch ms (형식이 틀리면 null)
+  function isoWeekStart(week) {
+    var m = /^(\d{4})-W(\d{2})$/.exec(String(week || ''));
+    if (!m) return null;
+    var jan4 = Date.UTC(+m[1], 0, 4), dow = (new Date(jan4).getUTCDay() + 6) % 7;
+    var ms = jan4 - dow * DAY + (+m[2] - 1) * 7 * DAY - KST;
+    return isoWeek(ms) === week ? ms : null;
+  }
 
   // ---- 값 정규화 --------------------------------------------------------
   function norm(key, raw, ctx) {
@@ -131,7 +139,8 @@
 
   /**
    * @param {string[][]} rows  첫 행이 헤더인 원본 행
-   * @param {object} [opt]     { now: epoch ms, weeks: 추이 주 수(기본 52) }
+   * @param {object} [opt]     { now: epoch ms, weeks: 추이 주 수(기본 52),
+   *                              asOf: true → 과거 시점 재계산(now 이후 가입자 제외, 로그인 경과는 activityNow 기준) }
    */
   function aggregate(rows, opt) {
     opt = opt || {};
@@ -144,7 +153,8 @@
     var missing = need.filter(function (f) { return !(f in idx); });
     if (missing.length) throw new Error('시트에 필요한 필드가 없습니다: ' + missing.join(', '));
 
-    var ctx = { now: now };
+    var asOf = !!opt.asOf;
+    var ctx = { now: asOf ? (opt.activityNow || Date.now()) : now };
     var curWeek = weekStart(now);           // 진행 중인 주
     var refStart = curWeek - 7 * DAY;       // 직전 완료 주(보고 대상 주)
     var prevStart = refStart - 7 * DAY;
@@ -173,8 +183,9 @@
     for (var r = 1; r < rows.length; r++) {
       var row = rows[r];
       if (!row || !row.length || row.every(function (c) { return !String(c || '').trim(); })) continue;
-      total++;
       var j = parseKst(row[idx['가입일시']]);
+      if (asOf && j != null && j >= curWeek) continue;   // 과거 재계산: 기준 주 이후 가입자는 제외
+      total++;
       var vals = {};
       DIMS.forEach(function (d) { vals[d.key] = norm(d.key, row[idx[d.field]], ctx); });
 
@@ -286,6 +297,7 @@
 
     return {
       schema: 1,
+      historical: asOf || undefined,
       generatedAt: new Date(now).toISOString(),
       generatedAtKst: ymd(now) + ' ' + kstDate(now).toISOString().slice(11, 16),
       week: isoWeek(refStart),
@@ -340,5 +352,5 @@
     };
   }
 
-  return { aggregate: aggregate, historyEntry: historyEntry, DIMS: DIMS, MIN_CELL: MIN_CELL, isoWeek: isoWeek };
+  return { aggregate: aggregate, historyEntry: historyEntry, DIMS: DIMS, MIN_CELL: MIN_CELL, isoWeek: isoWeek, isoWeekStart: isoWeekStart };
 });
