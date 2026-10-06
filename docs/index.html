@@ -291,8 +291,8 @@ body.locked #gate { display: flex; }
         <button type="button" data-mode="week" aria-pressed="true">주간</button>
         <button type="button" data-mode="month">월간</button>
       </div>
-      <label for="weekSel" class="member-only">기준 주차</label>
-      <select id="weekSel" class="member-only" aria-label="기준 주차 선택"></select>
+      <label for="weekSel" class="member-only" id="periodLbl">기준 주차</label>
+      <select id="weekSel" class="member-only" aria-label="기준 기간 선택"></select>
       <span class="src" id="srcLabel"></span>
       <button class="btn primary" id="refreshBtn" type="button" title="구글시트의 최신 값을 불러와 다시 집계합니다">갱신</button>
       <button class="btn" id="pdfBtn" type="button" title="현재 화면을 PDF 파일로 내려받습니다">PDF</button>
@@ -506,7 +506,7 @@ body.locked #gate { display: flex; }
   var css = function (v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); };
   var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var NS = 'http://www.w3.org/2000/svg';
-  var state = { index: null, snap: null, prev: null, range: 26, mode: 'week', ranges: { week: 26, month: 12 } };
+  var state = { index: null, snap: null, prev: null, range: 26, mode: 'week', ranges: { week: 26, month: 12 }, weekCtx: null, month: null };
   // 분석 단위별 설정 (주간 / 월간)
   var MODES = {
     week: { name: '주간', unit: '주', ranges: [12, 26, 52], ma: 4, newKey: 'newWeek', shareKey: 'newShare4w', recent: '최근 4주',
@@ -678,9 +678,28 @@ body.locked #gate { display: flex; }
     return jan4 - dow * DAY_MS + (+m[2] - 1) * 7 * DAY_MS - KST_MS;
   }
   function mmdd(ms) { return new Date(ms + KST_MS).toISOString().slice(5, 10); }
-  function setIndex(idx) {
-    state.index = idx;
-    var sel = $('#weekSel'); sel.innerHTML = '';
+  function setIndex(idx) { state.index = idx; fillSel(); }
+  // 직전 완료 월 'YYYY-MM' (KST)
+  function lastDoneMonth() { var d = new Date(Date.now() + KST_MS); var y = d.getUTCFullYear(), m = d.getUTCMonth(); if (m === 0) { y--; m = 12; } return y + '-' + (m < 10 ? '0' : '') + m; }
+  function monthLabel(m) { var p = m.split('-'); return p[0] + '년 ' + (+p[1]) + '월'; }
+  var HIST_FROM_MONTH = '2025-01';
+  // 기준 기간 선택 목록: 주간 = 주차, 월간 = 월
+  function fillSel() {
+    var sel = $('#weekSel'), idx = state.index; if (!idx) return;
+    $('#periodLbl').textContent = state.mode === 'month' ? '기준 월' : '기준 주차';
+    if (state.mode === 'month') {
+      sel.innerHTML = '';
+      var base = state.weekCtx && state.weekCtx.snap, months = [];
+      if (state.remote) {
+        var last = lastDoneMonth(), y = +HIST_FROM_MONTH.slice(0, 4), mo = +HIST_FROM_MONTH.slice(5);
+        for (;;) { var k = y + '-' + (mo < 10 ? '0' : '') + mo; if (k > last) break; months.push(k); if (++mo > 12) { mo = 1; y++; } }
+      }
+      if (base && base.monthRef && months.indexOf(base.monthRef.month) < 0) months.push(base.monthRef.month);
+      months.sort().reverse().forEach(function (m) { var o = document.createElement('option'); o.value = m; o.textContent = monthLabel(m) + (base && base.monthRef && base.monthRef.month === m && !base.historical ? '' : (state.remote ? ' · 재계산' : '')); sel.appendChild(o); });
+      if (state.month) sel.value = state.month;
+      return;
+    }
+    sel.innerHTML = '';
     var saved = {}; idx.snapshots.forEach(function (s) { saved[s.week] = s; });
     var weeks;
     if (state.remote) {
@@ -696,13 +715,45 @@ body.locked #gate { display: flex; }
       o.value = w; o.textContent = w + ' (' + mmdd(t) + '~' + mmdd(t + 6 * DAY_MS) + ')' + (saved[w] ? '' : ' · 재계산');
       sel.appendChild(o);
     });
+    var cur = state.weekCtx && state.weekCtx.snap; if (cur) sel.value = cur.week;
+  }
+  // 주간 기준 스냅샷을 받은 뒤 현재 모드에 맞게 표시
+  function setWeekSnap(snap, prev) {
+    state.weekCtx = { snap: snap, prev: prev };
+    if (state.mode === 'month') { fillSel(); return loadMonth(state.month || defaultMonth()); }
+    state.snap = snap; state.prev = prev;
+    var sel = $('#weekSel'); if (snap && sel.value !== snap.week) sel.value = snap.week;
+    renderAll();
+  }
+  function defaultMonth() { var b = state.weekCtx && state.weekCtx.snap; return (b && b.monthRef && !b.historical) ? b.monthRef.month : lastDoneMonth(); }
+  // 월간: 기준 월 선택 → 해당 월 지표로 전환
+  function loadMonth(m) {
+    state.month = m; $('#weekSel').value = m;
+    var base = state.weekCtx && state.weekCtx.snap;
+    if (base && !base.historical && base.monthlySeries && base.monthRef.month === m) { state.snap = base; state.prev = null; renderAll(); return Promise.resolve(); }
+    if (!state.remote) {
+      if (base && base.monthlySeries) { toast('다른 월은 구글시트 연동 상태에서 선택할 수 있습니다. [갱신]을 눌러 주세요.', true); state.month = base.monthRef.month; fillSel(); state.snap = base; state.prev = null; renderAll(); }
+      else { toast(noMonthlyReason(), true, 12000); setMode('week', true); }
+      return Promise.resolve();
+    }
+    $('#app').classList.add('loading');
+    return api('get', { month: m }).then(function (res) {
+      if (!res.snap || !res.snap.monthRef || res.snap.monthRef.month !== m || !res.snap.monthlySeries) {
+        toast('월별 선택은 ' + OLD_GS_MSG, true, 12000);
+        if (base && base.monthlySeries) { state.month = base.monthRef.month; fillSel(); state.snap = base; state.prev = null; renderAll(); }
+        else setMode('week', true);
+        return;
+      }
+      if (state.mode !== 'month' || state.month !== m) return;   // 그사이 다른 선택을 한 경우 무시
+      state.snap = res.snap; state.prev = null; renderAll();
+    }).catch(function (e) { toast(apiErrorText(e), true); })
+      .then(function () { $('#app').classList.remove('loading'); });
   }
   function applyRemote(res) {
     setSource(true);
+    state.weekCtx = { snap: res.snap, prev: res.prev };
     setIndex(res.index);
-    state.snap = res.snap; state.prev = res.prev;
-    $('#weekSel').value = res.snap.week;
-    renderAll();
+    setWeekSnap(res.snap, res.prev);
   }
   function loadStatic(week) {
     var list = state.index.snapshots;
@@ -710,12 +761,12 @@ body.locked #gate { display: flex; }
     return Promise.all([
       getJson('data/snapshots/' + week + '.enc.json'),
       i > 0 ? getJson('data/snapshots/' + list[i - 1].week + '.enc.json').catch(function () { return null; }) : Promise.resolve(null)
-    ]).then(function (res) { state.snap = res[0]; state.prev = res[1]; renderAll(); });
+    ]).then(function (res) { setWeekSnap(res[0], res[1]); });
   }
   function load(week) {
     $('#app').classList.add('loading');
     var p = state.remote
-      ? api('get', { week: week }).then(function (res) { state.snap = res.snap; state.prev = res.prev; renderAll(); })
+      ? api('get', { week: week }).then(function (res) { setWeekSnap(res.snap, res.prev); })
       : loadStatic(week);
     return p.catch(function (e) { toast(state.remote ? apiErrorText(e) : '데이터를 불러오지 못했습니다.', true); })
       .then(function () { $('#app').classList.remove('loading'); });
@@ -731,7 +782,7 @@ body.locked #gate { display: flex; }
   function start() {
     if (started) return; started = true;
     if (VIEW === 'points') loadPoints();
-    $('#weekSel').addEventListener('change', function () { load(this.value); });
+    $('#weekSel').addEventListener('change', function () { if (state.mode === 'month') loadMonth(this.value); else load(this.value); });
     var p = (CONFIG.appsScriptUrl && PW)
       ? api('get').then(function (res) { if (res.snap) applyRemote(res); else return startStatic().then(function () { toast('저장된 시트 집계가 아직 없습니다. [갱신]을 눌러 주세요.'); }); })
           .catch(function (e) { toast(apiErrorText(e) + ' 저장본을 표시합니다.', true); return startStatic(); })
@@ -762,7 +813,8 @@ body.locked #gate { display: flex; }
     return '월간 집계가 없습니다. ' + OLD_GS_MSG;
   }
   function setMode(mode, silent) {
-    if (mode === 'month' && state.snap && !state.snap.monthlySeries) {
+    var base = state.weekCtx && state.weekCtx.snap;
+    if (mode === 'month' && base && !base.monthlySeries && !state.remote) {
       if (!silent) toast(noMonthlyReason(), true, 12000);
       mode = 'week';
     }
@@ -770,6 +822,10 @@ body.locked #gate { display: flex; }
     try { localStorage.setItem('mv-mode', mode); } catch (e) {}
     $('#modeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.mode === mode ? 'true' : 'false'); });
     buildRangeSeg();
+    fillSel();
+    if (!base) return;
+    if (mode === 'month') return loadMonth(state.month || defaultMonth());
+    state.snap = base; state.prev = state.weekCtx.prev; $('#weekSel').value = base.week;
     renderAll();
   }
   $('#modeSeg').querySelectorAll('button').forEach(function (b) {
@@ -782,11 +838,11 @@ body.locked #gate { display: flex; }
   function renderAll() {
     if (!state.snap) return;
     var s = state.snap;
-    if (state.mode === 'month' && !s.monthlySeries) { setMode('week', true); return; }
+    if (state.mode === 'month' && !s.monthlySeries) { toast(noMonthlyReason(), true, 12000); setMode('week', true); return; }
     var mon = state.mode === 'month';
     $('#subtitle').textContent = (mon
       ? '기준 월 ' + s.monthRef.month + ' (' + s.monthRef.start + ' ~ ' + s.monthRef.end + ')'
-      : '기준 주차 ' + s.week + ' (' + s.weekStart + ' ~ ' + s.weekEnd + ')') + (s.historical ? ' · 과거 주차 재계산 (로그인·수신 동의·회원 상태는 현재 값)' : ' · 집계 ' + s.generatedAtKst + ' KST');
+      : '기준 주차 ' + s.week + ' (' + s.weekStart + ' ~ ' + s.weekEnd + ')') + (s.historical ? (s.historical === 'month' ? ' · 과거 월 재계산' : ' · 과거 주차 재계산') + ' (로그인·수신 동의·회원 상태는 현재 값)' : ' · 집계 ' + s.generatedAtKst + ' KST');
     $('#minCell').textContent = s.minCell;
     $('#keyMk').textContent = MD().recent + ' 신규 가입자 중 비중 (막대보다 오른쪽이면 최근 유입이 늘어난 항목)';
     $('#keyDelta').textContent = mon
@@ -916,7 +972,7 @@ body.locked #gate { display: flex; }
     var recentN = mon ? k.new3m : k.new4w, avg = Math.round(recentN / (mon ? 3 : 4));
     var items = [
       { label: '전체 회원', value: fmt(k.total), unit: '명',
-        meta: (p && !mon) ? deltaHtml(k.total - p.total, '명') + ' 직전 스냅샷 대비' : (hist ? (mon ? '해당 주 말 기준 · 기준 월 신규 +' : '해당 주 말 기준 · 주간 신규 +') : (mon ? '지난달 신규 +' : '이번 주 신규 +')) + fmt(cur) + '명' },
+        meta: (p && !mon) ? deltaHtml(k.total - p.total, '명') + ' 직전 스냅샷 대비' : (hist ? (state.snap.historical === 'month' ? '해당 월 말 기준 · 월간 신규 +' : mon ? '해당 주 말 기준 · 기준 월 신규 +' : '해당 주 말 기준 · 주간 신규 +') : (mon ? '지난달 신규 +' : '이번 주 신규 +')) + fmt(cur) + '명' },
       { label: mon ? '월간 신규 가입' : '주간 신규 가입', value: fmt(cur), unit: '명',
         meta: deltaHtml(chg, '%', 1) + (mon ? ' 전월(' : ' 전주(') + fmt(prv) + '명) 대비' },
       { label: mon ? '최근 3개월 신규' : '최근 4주 신규', value: fmt(recentN), unit: '명', meta: (mon ? '월 평균 ' : '주 평균 ') + fmt(avg) + '명' },
@@ -1192,9 +1248,9 @@ body.locked #gate { display: flex; }
       var cls = p > 0 ? 'up' : p < 0 ? 'down' : 'flat';
       return '<td><span class="delta ' + cls + '">' + (p > 0 ? '▲ ' : p < 0 ? '▼ ' : '') + Math.abs(p).toFixed(1) + '%</span></td>';
     };
-    var cm = m.currentMonth, md = m.asOf.slice(5).replace('-', '/');
+    var cm = m.currentMonth, md = m.asOf.slice(5).replace('-', '/'), full = state.snap.historical === 'month';
     var head = '<tr><th></th>' + m.last.map(function (_, i) {
-      return '<th' + (i + 1 === cm ? ' class="cur"' : '') + '>' + (i + 1) + '월' + (i + 1 === cm ? '*' : '') + '</th>';
+      return '<th' + (i + 1 === cm ? ' class="cur"' : '') + '>' + (i + 1) + '월' + (i + 1 === cm && !full ? '*' : '') + '</th>';
     }).join('') + '<th>연간 합계</th><th>동기간 누적<br>(1/1~' + md + ')</th></tr>';
     var rowLast = '<tr><th class="rowh">' + m.lastYear + '년</th>' + m.last.map(function (v, i) {
       return '<td style="' + shade(v) + '" title="' + m.lastYear + '년 ' + (i + 1) + '월: ' + fmt(v) + '명">' + fmt(v) + '</td>';
@@ -1215,7 +1271,7 @@ body.locked #gate { display: flex; }
       '<div><span class="lbl">작년 대비</span>' + (ytdP == null ? '–' : deltaHtml(ytdP, '%', 1)) + '</div>' +
       '<div><span class="lbl">' + m.lastYear + '년 연간</span><span class="big">' + fmt(m.totalLast) + '명</span></div></div>';
     host.innerHTML = summary + '<div class="yoy-wrap"><table class="yoy"><colgroup><col class="c0">' + m.last.map(function () { return '<col>'; }).join('') + '<col class="cs"><col class="cy"></colgroup><thead>' + head + '</thead><tbody>' + rowLast + rowCur + rowDiff + rowRate + '</tbody></table></div>' +
-      '<div class="yoy-note">* ' + cm + '월은 ' + md + '까지 집계된 진행 중 수치이며, 증감은 작년 같은 기간(' + String(cm).padStart(2,'0') + '/01~' + md + (m.lastMtd != null ? ', ' + fmt(m.lastMtd) + '명' : '') + ')과 비교합니다. 칸 색이 진할수록 가입자가 많습니다(두 해 같은 기준). 동기간 누적은 작년 같은 날짜까지와 비교합니다.</div>';
+      '<div class="yoy-note">* ' + (full ? '기준 월 말일(' + m.asOf + ') 기준으로 다시 집계한 값이며, ' + cm + '월 증감은' : cm + '월은 ' + md + '까지 집계된 진행 중 수치이며, 증감은') + ' 작년 같은 기간(' + String(cm).padStart(2,'0') + '/01~' + md + (m.lastMtd != null ? ', ' + fmt(m.lastMtd) + '명' : '') + ')과 비교합니다. 칸 색이 진할수록 가입자가 많습니다(두 해 같은 기준). 동기간 누적은 작년 같은 날짜까지와 비교합니다.</div>';
     $('#yoySub').textContent = m.lastYear + '년과 ' + m.thisYear + '년의 월별 신규 가입자 수 비교 · 가입일시 기준';
   }
 
