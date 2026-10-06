@@ -21,6 +21,14 @@ var MAX_FAILS = 10;                        // 10분 안에 이 횟수만큼 틀�
 var PW_ITER = 2000;
 var HIST_FROM = '2025-W01';                // 과거 주차 재계산을 허용하는 첫 주차
 var HIST_FROM_MONTH = '2025-01';           // 과거 월 재계산을 허용하는 첫 달
+// 활동성 탭: '닥터빌 주간/월간 데이터 자동 시트' (GA 기반 집계, 개인 식별 정보 없음)
+var ACTIVITY_SHEET_ID = '1h-2L8oN7NMJ0BNmc3tJlugis8BetsndeP8-SpG3GgqU';
+var ACTIVITY_SHEETS = [   // [응답 키, 시트 이름, 중복 판단 열(0부터)]
+  ['weekly', '주간지표', [0, 2]],
+  ['monthly', '월간지표', [0, 1]],
+  ['pageWeekly', '페이지별지표_주간', [0, 2]],
+  ['pageMonthly', '페이지별지표_월간', [0, 1]]
+];
 
 // ---- 웹앱 진입점 ---------------------------------------------------------
 function doPost(e) {
@@ -42,6 +50,7 @@ function doPost(e) {
       saveSnapshot_(snap);
       return json_(bundle_(snap.week));
     }
+    if (req.action === 'activity') return json_({ ok: true, activity: activityData_(!!req.fresh) }); // 활동성 탭
     if (req.month) return json_({ ok: true, snap: monthSnapshot_(String(req.month)), prev: null }); // 월간 기준 월 선택
     return json_(bundle_(req.week || null)); // action: 'get'
   } catch (err) {
@@ -57,6 +66,7 @@ function onOpen() {
     .addItem('비밀번호 설정', 'menuSetPassword')
     .addItem('비밀번호 확인 (테스트)', 'menuCheckPassword')
     .addItem('지금 집계하기 (테스트)', 'menuRefresh')
+    .addItem('활동성 시트 연결 확인', 'menuCheckActivity')
     .addToUi();
 }
 
@@ -187,6 +197,45 @@ function monthSnapshot_(month) {
     { now: next + 3 * 3600000, asOf: true, cutoff: next, kind: 'month' });
   try { var j = JSON.stringify(snap); if (j.length < 95000) cache.put(key, j, 1800); } catch (e) {}
   return snap;
+}
+
+// 활동성 지표: 4개 시트를 읽어 (날짜 → yyyy-MM-dd, 같은 기간·기기/페이지 중복은 마지막 행 우선, 기간순 정렬) 반환
+// '(표시)' 열은 화면용 문자열이라 제외
+function activityData_(fresh) {
+  var cache = CacheService.getScriptCache();
+  if (!fresh) { var hit = cache.get('activity'); if (hit) { try { return JSON.parse(hit); } catch (e) {} } }
+  var ss = SpreadsheetApp.openById(ACTIVITY_SHEET_ID), out = { fetchedAt: new Date().toISOString() };
+  ACTIVITY_SHEETS.forEach(function (d) {
+    var sh = ss.getSheetByName(d[1]);
+    if (!sh) throw new Error('활동성 시트에서 탭을 찾을 수 없습니다: ' + d[1]);
+    var v = sh.getDataRange().getValues();
+    var head = v[0].map(function (h) { return String(h).trim(); });
+    var keep = []; head.forEach(function (h, i) { if (h && h.indexOf('(표시)') < 0) keep.push(i); });
+    var map = {}, order = [];
+    for (var r = 1; r < v.length; r++) {
+      var row = v[r];
+      if (!row[0]) continue;
+      var vals = keep.map(function (i) {
+        var x = row[i];
+        if (x instanceof Date) return Utilities.formatDate(x, 'Asia/Seoul', 'yyyy-MM-dd');
+        return typeof x === 'number' ? x : String(x).trim();
+      });
+      var key = d[2].map(function (i) { return vals[keep.indexOf(i)]; }).join('|');
+      if (!(key in map)) order.push(key);
+      map[key] = vals;
+    }
+    var rows = order.map(function (k) { return map[k]; });
+    rows.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+    out[d[0]] = { cols: keep.map(function (i) { return head[i]; }), rows: rows };
+  });
+  try { var j = JSON.stringify(out); if (j.length < 95000) cache.put('activity', j, 600); } catch (e) {}
+  return out;
+}
+
+function menuCheckActivity() {
+  var a = activityData_(true);
+  var last = function (t) { return t.rows.length ? t.rows[t.rows.length - 1][0] : '없음'; };
+  SpreadsheetApp.getUi().alert('활동성 시트 연결 정상\n주간지표: ' + a.weekly.rows.length + '행 (마지막 주 ' + last(a.weekly) + ')\n월간지표: ' + a.monthly.rows.length + '행 (마지막 달 ' + last(a.monthly) + ')\n페이지별(주간): ' + a.pageWeekly.rows.length + '행 · 페이지별(월간): ' + a.pageMonthly.rows.length + '행');
 }
 
 // ---- 유틸 ----------------------------------------------------------------
