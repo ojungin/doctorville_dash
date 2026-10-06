@@ -140,7 +140,8 @@
   /**
    * @param {string[][]} rows  첫 행이 헤더인 원본 행
    * @param {object} [opt]     { now: epoch ms, weeks: 추이 주 수(기본 52),
-   *                              asOf: true → 과거 시점 재계산(now 이후 가입자 제외, 로그인 경과는 activityNow 기준) }
+   *                              asOf: true → 과거 시점 재계산(cutoff 이후 가입자 제외, 로그인 경과는 activityNow 기준)
+   *                              cutoff: 제외 기준 시각(기본: 기준 주 다음 월요일), kind: 'week' | 'month' }
    */
   function aggregate(rows, opt) {
     opt = opt || {};
@@ -176,7 +177,9 @@
     var active7 = 0, active30 = 0, integrated = 0, smsYes = 0, emailYes = 0;
     var deptAge = {};
     // 연간 월별 비교 (올해 vs 작년, KST)
-    var nowK = kstDate(now), Y = nowK.getUTCFullYear();
+    // 월 기준 재계산이면 작년 대비 표는 그 달 말일 기준
+    var yoyNow = (opt.asOf && opt.kind === 'month' && opt.cutoff) ? opt.cutoff - 1 : now;
+    var nowK = kstDate(yoyNow), Y = nowK.getUTCFullYear();
     var cutoffMD = (nowK.getUTCMonth() + 1) * 100 + nowK.getUTCDate(); // 동기간 비교 기준 (MMDD)
     var monCur = [0,0,0,0,0,0,0,0,0,0,0,0], monLast = [0,0,0,0,0,0,0,0,0,0,0,0], ytdLast = 0, lastMtd = 0;
 
@@ -184,7 +187,7 @@
       var row = rows[r];
       if (!row || !row.length || row.every(function (c) { return !String(c || '').trim(); })) continue;
       var j = parseKst(row[idx['가입일시']]);
-      if (asOf && j != null && j >= curWeek) continue;   // 과거 재계산: 기준 주 이후 가입자는 제외
+      if (asOf && j != null && j >= (opt.cutoff || curWeek)) continue;   // 과거 재계산: 기준 시점 이후 가입자는 제외
       total++;
       var vals = {};
       DIMS.forEach(function (d) { vals[d.key] = norm(d.key, row[idx[d.field]], ctx); });
@@ -222,7 +225,7 @@
       if (!deptAge[vals.dept]) deptAge[vals.dept] = {};
       inc(deptAge[vals.dept], vals.age);
 
-      if (j != null && j <= now) {
+      if (j != null && j <= yoyNow) {
         var jd = kstDate(j), jy = jd.getUTCFullYear(), jm = jd.getUTCMonth();
         if (jy === Y) monCur[jm]++;
         else if (jy === Y - 1) {
@@ -297,7 +300,7 @@
 
     return {
       schema: 1,
-      historical: asOf || undefined,
+      historical: asOf ? (opt.kind || 'week') : undefined,
       generatedAt: new Date(now).toISOString(),
       generatedAtKst: ymd(now) + ' ' + kstDate(now).toISOString().slice(11, 16),
       week: isoWeek(refStart),
@@ -327,7 +330,7 @@
       monthlySeries: mseries,
       deptAge: { ages: AGE_ORDER, rows: heat },
       monthly: {
-        thisYear: Y, lastYear: Y - 1, asOf: ymd(now), currentMonth: nowK.getUTCMonth() + 1,
+        thisYear: Y, lastYear: Y - 1, asOf: ymd(yoyNow), currentMonth: nowK.getUTCMonth() + 1,
         cur: monCur.map(function (n, i) { return i <= nowK.getUTCMonth() ? n : null; }),
         last: monLast,
         ytdCur: monCur.reduce(function (a, b) { return a + b; }, 0),
@@ -352,5 +355,12 @@
     };
   }
 
-  return { aggregate: aggregate, historyEntry: historyEntry, DIMS: DIMS, MIN_CELL: MIN_CELL, isoWeek: isoWeek, isoWeekStart: isoWeekStart };
+  // 'YYYY-MM' → 그 달 1일 00:00 (KST) epoch ms (형식이 틀리면 null)
+  function monthStartOf(month) {
+    var m = /^(\d{4})-(\d{2})$/.exec(String(month || ''));
+    if (!m || +m[2] < 1 || +m[2] > 12) return null;
+    return Date.UTC(+m[1], +m[2] - 1, 1) - KST;
+  }
+
+  return { aggregate: aggregate, historyEntry: historyEntry, DIMS: DIMS, MIN_CELL: MIN_CELL, isoWeek: isoWeek, isoWeekStart: isoWeekStart, monthStartOf: monthStartOf };
 });
