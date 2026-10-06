@@ -211,6 +211,18 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
 .tabs button[aria-selected="true"] { background: rgba(255,255,255,0.14); color: var(--header-ink); border-color: rgba(255,255,255,0.45); }
 body.view-points #memberMain, body:not(.view-points) #pointMain { display: none; }
 body.view-points .member-only { display: none !important; }
+body.view-activity #memberMain, body.view-activity #pointMain, body:not(.view-activity) #actMain { display: none; }
+body.view-activity .member-only { display: none !important; }
+/* 활동성 */
+.ptable th.sortable { cursor: pointer; user-select: none; }
+.ptable th.sortable:hover { color: var(--ink); }
+.mbar { height: 4px; background: var(--grid); border-radius: 2px; margin-top: 3px; min-width: 60px; }
+.mbar i { display: block; height: 100%; background: var(--s1); border-radius: 2px; }
+.ascroll { max-height: 560px; overflow: auto; }
+.ascroll thead th { position: sticky; top: 0; background: var(--surface); }
+.anote { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+#aPages td.l, #aPages th.l { padding-left: 10px; }
+#aPages td.rk, #aPages th:first-child { padding-left: 0; text-align: left; width: 28px; }
 /* 포인트 */
 .kpis.p8 .value { font-size: 24px; }
 .ptable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -284,6 +296,7 @@ body.locked #gate { display: flex; }
       <div class="tabs" role="tablist" aria-label="대시보드 화면">
         <button type="button" role="tab" id="tabMembers" data-view="members" aria-selected="true">회원 정보</button>
         <button type="button" role="tab" id="tabPoints" data-view="points" aria-selected="false">포인트 관리</button>
+        <button type="button" role="tab" id="tabActivity" data-view="activity" aria-selected="false">활동성</button>
       </div>
     </div>
     <div class="controls">
@@ -360,6 +373,54 @@ body.locked #gate { display: flex; }
       이 페이지는 집계 수치만 게시합니다. 회원 USN·이메일·면허번호·병원명 등 개인 식별 정보는 포함하지 않으며,
       <span id="minCell">3</span>명 미만 항목은 "기타(소수)"로 합쳐 표시합니다. 데이터는 매주 월요일 09:00(KST) 자동 갱신됩니다.
     </footer>
+  </div>
+</main>
+
+<main id="actMain">
+  <div class="wrap" id="actApp">
+    <section>
+      <div class="sec-head">
+        <div>
+          <h2>활동성</h2>
+          <p>닥터빌 주간/월간 데이터 자동 시트(웹 분석 집계) 기준 · 개인 식별 정보 없음</p>
+        </div>
+        <div class="pfilter">
+          <div class="seg" id="aModeSeg" role="group" aria-label="활동성 분석 단위">
+            <button type="button" data-amode="week" aria-pressed="true">주간</button>
+            <button type="button" data-amode="month">월간</button>
+          </div>
+          <label for="aPeriod" id="aPeriodLbl">기준 주차</label>
+          <select id="aPeriod" aria-label="활동성 기준 기간"></select>
+          <div class="seg" id="aDevSeg" role="group" aria-label="기기">
+            <button type="button" data-dev="전체" aria-pressed="true">전체</button>
+            <button type="button" data-dev="PC">PC</button>
+            <button type="button" data-dev="MO">모바일</button>
+          </div>
+        </div>
+      </div>
+      <div id="aEmpty" class="empty" hidden></div>
+      <div class="adata">
+        <div class="kpis" id="aKpis"></div>
+        <p class="anote" id="aKpiNote"></p>
+      </div>
+    </section>
+    <section class="adata">
+      <div class="sec-head"><div><h2>활동성 추이</h2><p id="aTrendDesc"></p></div></div>
+      <div class="grid2">
+        <div class="card"><h3>활성 사용자 (DAU · WAU · MAU)</h3><ul class="legend" id="alUsers"></ul><div class="chart" id="achUsers"></div></div>
+        <div class="card"><h3>조회수</h3><p class="desc">진한 막대: 선택한 기간</p><div class="chart" id="achViews"></div></div>
+        <div class="card"><h3>고착도 (DAU/MAU) — 기기별</h3><ul class="legend" id="alStick"></ul><div class="chart" id="achStick"></div></div>
+        <div class="card"><h3>평균 세션 시간 — 기기별</h3><ul class="legend" id="alSess"></ul><div class="chart" id="achSess"></div></div>
+      </div>
+    </section>
+    <section class="adata">
+      <div class="sec-head"><div><h2>페이지별 지표</h2><p id="aPageSub"></p></div></div>
+      <div class="card"><div id="aPages" class="ascroll"></div><p class="anote">열 제목을 누르면 정렬됩니다. 조회수 비중·이탈률·재방문자 비율은 시트 값 그대로입니다.</p></div>
+    </section>
+    <section class="adata">
+      <div class="sec-head"><div><h2>주요 페이지그룹 조회수 추이</h2><p id="aPageTrendDesc"></p></div></div>
+      <div class="card"><ul class="legend" id="alPages"></ul><div class="chart" id="achPages"></div></div>
+    </section>
   </div>
 </main>
 
@@ -641,6 +702,7 @@ body.locked #gate { display: flex; }
   $('#refreshBtn').addEventListener('click', function () {
     var btn = this;
     if (VIEW === 'points') return pointRefresh(btn);
+    if (VIEW === 'activity') return loadActivity(true, btn);
     if (!CONFIG.appsScriptUrl) { toast('구글시트 연동 주소(docs/data/config.json)가 아직 설정되지 않았습니다.', true); return; }
     (PW ? Promise.resolve(PW) : askPw()).then(function (pw) {
       if (!pw) return;
@@ -782,6 +844,7 @@ body.locked #gate { display: flex; }
   function start() {
     if (started) return; started = true;
     if (VIEW === 'points') loadPoints();
+    if (VIEW === 'activity') loadActivity(false);
     $('#weekSel').addEventListener('change', function () { if (state.mode === 'month') loadMonth(this.value); else load(this.value); });
     var p = (CONFIG.appsScriptUrl && PW)
       ? api('get').then(function (res) { if (res.snap) applyRemote(res); else return startStatic().then(function () { toast('저장된 시트 집계가 아직 없습니다. [갱신]을 눌러 주세요.'); }); })
@@ -833,7 +896,7 @@ body.locked #gate { display: flex; }
   });
   buildRangeSeg();
   $('#modeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.mode === state.mode ? 'true' : 'false'); });
-  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); if (VIEW === 'points' && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
+  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'points' && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
 
   function renderAll() {
     if (!state.snap) return;
@@ -850,6 +913,7 @@ body.locked #gate { display: flex; }
       : (state.prev ? '증감: 직전 스냅샷(' + state.prev.week + ') 대비 회원 수 변화' : '증감: 직전 스냅샷이 쌓이면 표시됩니다 (현재는 이번 주 신규만 표시)');
     renderKpis(); renderMonthly(); renderTrends(); renderDims(); renderHeat();
     if (VIEW === 'points') setPointHeader();
+    if (VIEW === 'activity') setActHeader();
   }
 
   // ---- PDF 내려받기 (브라우저 안에서 생성, 서버 전송 없음) ----------------
@@ -929,8 +993,8 @@ body.locked #gate { display: flex; }
       });
   }
   $('#pdfBtn').addEventListener('click', function () {
-    var isP = VIEW === 'points';
-    if (isP ? !P.data : !state.snap) return;
+    var isP = VIEW === 'points', isA = VIEW === 'activity';
+    if (isA ? !A.data : isP ? !P.data : !state.snap) return;
     var btn = this, root = document.documentElement, prevTheme = root.getAttribute('data-theme');
     var prevRange = state.range, s = state.snap, restore = null;
     var now = new Date(), pad = function (n) { return n < 10 ? '0' + n : n; };
@@ -941,17 +1005,17 @@ body.locked #gate { display: flex; }
       root.setAttribute('data-theme', 'light');        // 인쇄용 밝은 테마로 고정
       document.body.classList.add('pdf-mode');
       document.body.style.minWidth = '1280px';          // 모바일에서도 데스크톱 배치로 출력
-      state.range = MD().ranges[MD().ranges.length - 1]; P.prevRange = P.range; P.range = 0; renderAll(); renderPoints();   // 추이는 최대 기간(52주/24개월), 포인트는 전체 기간으로 출력
+      state.range = MD().ranges[MD().ranges.length - 1]; P.prevRange = P.range; P.range = 0; renderAll(); renderPoints(); renderActivity();   // 추이는 최대 기간(52주/24개월), 포인트는 전체 기간으로 출력
       return new Promise(function (r) { setTimeout(r, 250); });
     }).then(function () { return svgsToImages($('#pdfRoot')); })
-      .then(function (fn) { restore = fn; return buildPdf($('#pdfRoot'), isP ? '닥터빌_포인트대시보드_' + P.data.range.to + '.pdf' : '닥터빌_회원대시보드_' + s.week + '.pdf'); })
+      .then(function (fn) { restore = fn; return buildPdf($('#pdfRoot'), isA ? '닥터빌_활동성_' + A.period + '.pdf' : isP ? '닥터빌_포인트대시보드_' + P.data.range.to + '.pdf' : '닥터빌_회원대시보드_' + s.week + '.pdf'); })
       .then(function () { toast('PDF를 내려받았습니다. 대외비 자료이니 외부 공유 전 승인을 받아 주세요.'); })
       .catch(function (e) { toast((e && e.message) || 'PDF 생성에 실패했습니다.', true); })
       .then(function () {
         if (restore) restore();
         document.body.classList.remove('pdf-mode'); document.body.style.minWidth = '';
         if (prevTheme) root.setAttribute('data-theme', prevTheme); else root.removeAttribute('data-theme');
-        state.range = prevRange; P.range = P.prevRange; renderAll(); renderPoints();
+        state.range = prevRange; P.range = P.prevRange; renderAll(); renderPoints(); renderActivity();
         btn.disabled = false; btn.textContent = 'PDF';
       });
   });
@@ -1319,17 +1383,210 @@ body.locked #gate { display: flex; }
   function pct(a, b) { return b ? (a / b * 100) : 0; }
   function sumIdx(arr, ix) { var t = 0; ix.forEach(function (i) { t += arr[i] || 0; }); return t; }
 
+  // =====================================================================
+  // 활동성 (닥터빌 주간/월간 데이터 자동 시트 → Apps Script 'activity')
+  // =====================================================================
+  var A = { data: null, loading: false, mode: 'week', period: null, dev: '전체', sort: { k: 'views', d: -1 }, err: '' };
+  try { var am = localStorage.getItem('mv-act-mode'); if (am === 'week' || am === 'month') A.mode = am; } catch (e) {}
+  // 시트 열 이름 → 내부 키
+  var ACOL = {
+    'DAU': 'dau', 'WAU': 'wau', 'MAU': 'mau', '조회수': 'views', '사용자당조회수': 'vpu', '활성사용자당조회수': 'vpu',
+    '평균세션시간(분)': 'sess', 'DAU/WAU(%)': 'dw', 'DAU/MAU(%)': 'dm', 'WAU/MAU(%)': 'wm', '신규사용자': 'newU', '재방문자': 'ret',
+    '일별평균조회수(월~금)': 'vday', '세션당평균참여시간(분)': 'eng', '활성사용자당참여세션수': 'spu', '세션당조회수': 'vps',
+    '페이지그룹': 'page', '활성사용자': 'users', '재방문자비율(%)': 'retRate', '평균참여시간(분, 근사)': 'eng', '이탈률(%)': 'bounce',
+    '조회수비중(%)': 'viewShare', '활성사용자비중(%)': 'userShare', '기기': 'dev', 'MAU(YTD)': 'mauYtd'
+  };
+  function aTable(t) {   // {cols, rows} → [{period, end?, ...}]
+    if (!t) return [];
+    var keys = t.cols.map(function (c, i) { return i === 0 ? 'period' : (c.indexOf('종료일') >= 0 ? 'end' : (ACOL[c] || c)); });
+    return t.rows.map(function (r) { var o = {}; keys.forEach(function (k, i) { o[k] = r[i]; }); return o; });
+  }
+  function aSets() {
+    var d = A.data, wk = A.mode === 'week';
+    return { tot: aTable(wk ? d.weekly : d.monthly), page: aTable(wk ? d.pageWeekly : d.pageMonthly) };
+  }
+  function aPeriods(rows) { var s = {}; rows.forEach(function (r) { s[r.period] = 1; }); return Object.keys(s).sort(); }
+  function aLabel(p) {
+    if (A.mode === 'month') return p.slice(0, 4) + '년 ' + (+p.slice(5, 7)) + '월';
+    var t = weekMonday(isoWeekOf(Date.parse(p + 'T12:00:00+09:00')));
+    return isoWeekOf(t) + ' (' + mmdd(t) + '~' + mmdd(t + 6 * DAY_MS) + ')';
+  }
+  function aAxis(p) { return A.mode === 'month' ? p.slice(2, 4) + '.' + p.slice(5, 7) : p.slice(5).replace('-', '/'); }
+  function minSec(m) { if (m == null || isNaN(m)) return '–'; var s = Math.round(m * 60); return Math.floor(s / 60) + '분 ' + (s % 60) + '초'; }
+  function num(v, d) { return v == null || v === '' || isNaN(v) ? '–' : (d ? (+v).toFixed(d) : fmt(Math.round(+v))); }
+
+  function setActHeader() {
+    if (VIEW !== 'activity') return;
+    var d = A.data;
+    $('#subtitle').textContent = d ? '활동성 · ' + (A.period ? aLabel(A.period) : '') + ' · 불러온 시각 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : (A.loading ? '활동성 데이터를 불러오는 중…' : '활동성 데이터를 불러오지 못했습니다');
+    $('#srcLabel').textContent = d ? '데이터: 활동성 시트' : '';
+  }
+  function loadActivity(fresh, btn) {
+    if (!CONFIG.appsScriptUrl) { A.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; renderActivity(); return Promise.resolve(); }
+    return (PW ? Promise.resolve(PW) : askPw('활동성 시트를 불러오려면 비밀번호를 입력해 주세요.')).then(function (pw) {
+      if (!pw) return;
+      PW = pw; A.loading = true; A.err = ''; setActHeader();
+      if (btn) { btn.disabled = true; btn.textContent = '갱신 중…'; }
+      $('#actApp').classList.add('loading');
+      return api('activity', fresh ? { fresh: true } : {}).then(function (res) {
+        if (!res.activity) throw new Error(OLD_GS_MSG);
+        A.data = res.activity; A.period = null;
+        if (fresh) toast('활동성 데이터를 새로 불러왔습니다.');
+      }).catch(function (e) {
+        if (e.code === 'unauthorized') PW = null;
+        A.err = e.code ? apiErrorText(e) : (/openById|권한|permission|Exception/i.test(e.message || '') ? '활동성 시트를 열 권한이 없습니다. 시트 메뉴 [대시보드 → 활동성 시트 연결 확인]을 한 번 실행해 권한을 승인해 주세요. (' + e.message + ')' : (e.message === 'error' || /activity/.test(e.message || '') ? OLD_GS_MSG : '활동성 데이터를 불러오지 못했습니다: ' + e.message));
+        toast(A.err, true, 12000);
+      }).then(function () {
+        A.loading = false; $('#actApp').classList.remove('loading');
+        if (btn) { btn.disabled = false; btn.textContent = '갱신'; }
+        renderActivity();
+      });
+    });
+  }
+  function renderActivity() {
+    if (VIEW !== 'activity') return;
+    $('#aEmpty').hidden = !!A.data; document.querySelectorAll('#actApp .adata').forEach(function (s) { s.hidden = !A.data; });
+    if (!A.data) { $('#aEmpty').textContent = A.err || (A.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); setActHeader(); return; }
+    var S = aSets(), ps = aPeriods(S.tot);
+    if (!A.period || ps.indexOf(A.period) < 0) A.period = ps[ps.length - 1];
+    var sel = $('#aPeriod'); sel.innerHTML = ps.slice().reverse().map(function (p) { return '<option value="' + p + '">' + aLabel(p) + '</option>'; }).join(''); sel.value = A.period;
+    $('#aPeriodLbl').textContent = A.mode === 'month' ? '기준 월' : '기준 주차';
+    document.querySelectorAll('#aModeSeg button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.amode === A.mode ? 'true' : 'false'); });
+    document.querySelectorAll('#aDevSeg button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.dev === A.dev ? 'true' : 'false'); });
+    setActHeader();
+    renderAKpis(S, ps); renderATrends(S, ps); renderAPages(S); renderAPageTrend(S);
+  }
+  function aRow(rows, p, dev) { for (var i = rows.length - 1; i >= 0; i--) if (rows[i].period === p && (!dev || rows[i].dev === dev)) return rows[i]; return null; }
+  function renderAKpis(S, ps) {
+    var wk = A.mode === 'week', i = ps.indexOf(A.period), cur = aRow(S.tot, A.period, A.dev), prv = i > 0 ? aRow(S.tot, ps[i - 1], A.dev) : null;
+    var pl = wk ? '전주' : '전월';
+    var chg = function (k) { return (cur && prv && prv[k]) ? deltaHtml((cur[k] - prv[k]) / prv[k] * 100, '%', 1) + ' ' + pl + ' 대비' : ''; };
+    var chgP = function (k) { return (cur && prv && prv[k] != null) ? deltaHtml(cur[k] - prv[k], '%p', 1) + ' ' + pl + ' 대비' : ''; };
+    var c = cur || {};
+    var items = wk ? [
+      { l: 'DAU (일 평균)', v: num(c.dau), u: '명', m: chg('dau') },
+      { l: 'WAU', v: num(c.wau), u: '명', m: chg('wau') },
+      { l: 'MAU (최근 30일)', v: num(c.mau), u: '명', m: chg('mau') },
+      { l: '조회수', v: num(c.views), u: '회', m: chg('views') },
+      { l: '사용자당 조회수', v: num(c.vpu, 1), u: '회', m: chg('vpu') },
+      { l: '평균 세션 시간', v: minSec(c.sess), u: '', m: chg('sess') },
+      { l: 'DAU/MAU (고착도)', v: num(c.dm, 1), u: '%', m: chgP('dm') },
+      { l: 'WAU/MAU', v: num(c.wm, 1), u: '%', m: chgP('wm') }
+    ] : [
+      { l: 'DAU (일 평균)', v: num(c.dau), u: '명', m: chg('dau') },
+      { l: 'MAU', v: num(c.mau), u: '명', m: chg('mau') },
+      { l: '신규 사용자', v: num(c.newU), u: '명', m: chg('newU') },
+      { l: '재방문자', v: num(c.ret), u: '명', m: chg('ret') },
+      { l: '조회수', v: num(c.views), u: '회', m: chg('views') },
+      { l: '활성 사용자당 조회수', v: num(c.vpu, 1), u: '회', m: chg('vpu') },
+      { l: '평균 세션 시간', v: minSec(c.sess), u: '', m: chg('sess') },
+      { l: 'DAU/MAU (고착도)', v: num(c.dm, 1), u: '%', m: chgP('dm') }
+    ];
+    $('#aKpis').innerHTML = items.map(function (it) {
+      return '<div class="card kpi"><div class="label">' + it.l + '</div><div class="value">' + it.v + '<small>' + it.u + '</small></div><div class="meta">' + (it.m || (cur ? '' : '이 기간 데이터 없음')) + '</div></div>';
+    }).join('');
+    $('#aKpiNote').textContent = '기기: ' + A.dev + ' · ' + (wk ? '주 단위(월~일)' : '월 단위') + ' · 증감은 ' + pl + ' 같은 기기 기준';
+  }
+  // 공통 선 그래프: series = [{name, color, vals}], 선택 기간 표시
+  function aLineChart(host, labels, series, opts) {
+    var all = []; series.forEach(function (s) { s.vals.forEach(function (v) { if (v != null && !isNaN(v)) all.push(+v); }); });
+    if (!all.length) { host.innerHTML = '<p class="empty">데이터가 없습니다.</p>'; return; }
+    var mn = Math.min.apply(null, all), mx = Math.max.apply(null, all);
+    var lo = opts.zero ? 0 : Math.max(0, mn - (mx - mn) * 0.2), hi = niceMax(mx * 1.05);
+    if (!opts.zero) { var st = Math.pow(10, Math.floor(Math.log10(Math.max(1, hi - lo)))); lo = Math.floor(lo / st) * st; }
+    var f = frame(host, { min: lo, max: hi, ml: opts.ml || 48, fmtY: opts.fmtY, label: opts.label || '' });
+    var n = labels.length, xOf = function (i) { return f.m.l + (n === 1 ? f.iw / 2 : f.iw * i / (n - 1)); };
+    if (opts.hi != null && opts.hi >= 0) el('rect', { x: xOf(opts.hi) - Math.max(3, f.iw / Math.max(1, n - 1) / 2), y: f.m.t, width: Math.max(6, f.iw / Math.max(1, n - 1)), height: f.ih, fill: css('--accent'), opacity: 0.08 }, f.svg);
+    var dots = series.map(function (s) {
+      var d = '', pen = false;
+      s.vals.forEach(function (v, i) { if (v == null || isNaN(v)) { pen = false; return; } d += (pen ? 'L' : 'M') + xOf(i) + ',' + f.y(+v); pen = true; });
+      el('path', { d: d, fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-dasharray': s.dash || '' }, f.svg);
+      return el('circle', { r: 4, fill: s.color, stroke: css('--surface'), 'stroke-width': 2, opacity: 0 }, f.svg);
+    });
+    xLabels(f, labels, xOf);
+    hoverCols(f, n, xOf, f.iw / Math.max(1, n - 1), function (i) {
+      return tipRows(opts.title(i), series.map(function (s) { return { k: s.name, v: s.vals[i] == null ? '–' : opts.fmtV(s.vals[i]), color: s.color }; }));
+    }, function (h) { dots.forEach(function (dt, k) { var v = series[k].vals[h]; if (h < 0 || v == null) dt.setAttribute('opacity', 0); else { dt.setAttribute('cx', xOf(h)); dt.setAttribute('cy', f.y(+v)); dt.setAttribute('opacity', 1); } }); });
+  }
+  function aLegend(id, series) { $(id).innerHTML = series.map(function (s) { return '<li><i class="line" style="background:' + s.color + '"></i>' + esc(s.name) + '</li>'; }).join(''); }
+  function renderATrends(S, ps) {
+    var wk = A.mode === 'week', labels = ps.map(aAxis), hi = ps.indexOf(A.period);
+    var get = function (dev, k) { return ps.map(function (p) { var r = aRow(S.tot, p, dev); return r ? r[k] : null; }); };
+    var ttl = function (i) { return aLabel(ps[i]); };
+    var ser = [{ name: 'DAU', color: css('--s1'), vals: get(A.dev, 'dau') }, { name: wk ? 'WAU' : 'WAU', color: css('--s2'), vals: get(A.dev, 'wau') }, { name: 'MAU', color: css('--s3'), vals: get(A.dev, 'mau') }];
+    aLegend('#alUsers', ser);
+    aLineChart($('#achUsers'), labels, ser, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '활성 사용자 추이' });
+    // 조회수 막대
+    (function () {
+      var host = $('#achViews'), vals = get(A.dev, 'views');
+      var f = frame(host, { max: niceMax(Math.max.apply(null, vals.map(function (v) { return v || 0; })) || 1), ml: 52, label: '조회수 추이' });
+      var n = vals.length, bw = f.iw / n, gap = Math.min(2, bw * 0.25), xOf = function (i) { return f.m.l + bw * i + bw / 2; };
+      var bars = vals.map(function (v, i) { return el('path', { d: barPath(f.m.l + bw * i + gap / 2, f.y(0), bw - gap, f.y(v || 0)), fill: css('--s1'), opacity: i === hi ? 1 : 0.55 }, f.svg); });
+      xLabels(f, labels, xOf);
+      hoverCols(f, n, xOf, bw, function (i) { return tipRows(ttl(i), [{ k: '조회수', v: num(vals[i]) + '회', color: css('--s1') }, { k: wk ? '사용자당 조회수' : '활성 사용자당 조회수', v: num(get(A.dev, 'vpu')[i], 1) + '회' }]); },
+        function (h) { bars.forEach(function (b, i) { b.setAttribute('opacity', h < 0 ? (i === hi ? 1 : 0.55) : (h === i ? 1 : 0.4)); }); });
+    })();
+    var devs = [{ d: '전체', c: css('--s1') }, { d: 'PC', c: css('--s2') }, { d: 'MO', c: css('--s3') }];
+    var serR = devs.map(function (x) { return { name: x.d === 'MO' ? '모바일(MO)' : x.d, color: x.c, vals: get(x.d, 'dm') }; });
+    aLegend('#alStick', serR);
+    aLineChart($('#achStick'), labels, serR, { hi: hi, title: ttl, fmtV: function (v) { return (+v).toFixed(1) + '%'; }, fmtY: function (v) { return Math.round(v) + '%'; }, label: 'DAU/MAU 추이' });
+    var serS = devs.map(function (x) { return { name: x.d === 'MO' ? '모바일(MO)' : x.d, color: x.c, vals: get(x.d, 'sess') }; });
+    aLegend('#alSess', serS);
+    aLineChart($('#achSess'), labels, serS, { zero: true, hi: hi, title: ttl, fmtV: minSec, fmtY: function (v) { return (+v).toFixed(v < 10 ? 1 : 0) + '분'; }, label: '평균 세션 시간 추이' });
+    $('#aTrendDesc').textContent = (wk ? '주 단위(월~일) · ' : '월 단위 · ') + '선택한 기간은 음영으로 표시 · 활성 사용자·조회수는 위 기기 선택 기준';
+  }
+  function renderAPages(S) {
+    var wk = A.mode === 'week', pp = aPeriods(S.page), cur = S.page.filter(function (r) { return r.period === A.period; });
+    var i = pp.indexOf(A.period), prevP = i > 0 ? pp[i - 1] : null, prev = {};
+    if (prevP) S.page.forEach(function (r) { if (r.period === prevP) prev[r.page] = r; });
+    $('#aPageSub').textContent = (cur.length ? aLabel(A.period) + ' · 페이지그룹 ' + cur.length + '개' : aLabel(A.period) + ' · 이 기간의 페이지별 데이터가 없습니다') + (prevP ? ' · 증감은 ' + aLabel(prevP) + ' 대비' : '') + ' · 기기 구분 없음';
+    if (!cur.length) { $('#aPages').innerHTML = ''; return; }
+    var rows = cur.map(function (r) { var p = prev[r.page]; return { r: r, chg: p && p.views ? (r.views - p.views) / p.views * 100 : null }; });
+    var k = A.sort.k, d = A.sort.d;
+    rows.sort(function (a, b) { var x = k === 'chg' ? a.chg : (k === 'page' ? a.r.page : a.r[k]), y = k === 'chg' ? b.chg : (k === 'page' ? b.r.page : b.r[k]); if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * d; });
+    var maxV = Math.max.apply(null, cur.map(function (r) { return r.views || 0; })) || 1;
+    var cols = [['page', '페이지그룹', 'l'], ['views', '조회수'], ['viewShare', '조회수 비중'], ['chg', '조회수 증감'], ['users', '활성 사용자'], ['vpu', '사용자당 조회수'], ['eng', '평균 참여시간'], ['bounce', '이탈률'], ['retRate', '재방문자 비율']];
+    var th = '<tr><th class="l">#</th>' + cols.map(function (c) { return '<th class="' + (c[2] || '') + ' sortable" data-k="' + c[0] + '">' + c[1] + (k === c[0] ? (d < 0 ? ' ▼' : ' ▲') : '') + '</th>'; }).join('') + '</tr>';
+    var tb = rows.map(function (x, n) {
+      var r = x.r;
+      return '<tr><td class="rk">' + (n + 1) + '</td><td class="l">' + esc(r.page) + '</td><td>' + num(r.views) +
+        '<div class="mbar"><i style="width:' + (r.views / maxV * 100).toFixed(1) + '%"></i></div></td><td>' + num(r.viewShare, 1) + '%</td><td>' + (x.chg == null ? '–' : deltaHtml(x.chg, '%', 1)) + '</td><td>' + num(r.users) +
+        '</td><td>' + num(r.vpu, 1) + '</td><td>' + minSec(r.eng) + '</td><td>' + num(r.bounce, 1) + '%</td><td>' + num(r.retRate, 1) + '%</td></tr>';
+    }).join('');
+    $('#aPages').innerHTML = '<div class="scroll"><table class="ptable"><thead>' + th + '</thead><tbody>' + tb + '</tbody></table></div>';
+    $('#aPages').querySelectorAll('th.sortable').forEach(function (h) {
+      h.addEventListener('click', function () { var kk = h.dataset.k; A.sort = { k: kk, d: A.sort.k === kk ? -A.sort.d : (kk === 'page' ? 1 : -1) }; renderAPages(aSets()); });
+    });
+  }
+  function renderAPageTrend(S) {
+    var pp = aPeriods(S.page);
+    if (!pp.length) { $('#achPages').innerHTML = ''; return; }
+    var sums = {}; S.page.forEach(function (r) { sums[r.page] = (sums[r.page] || 0) + (r.views || 0); });
+    var top = Object.keys(sums).sort(function (a, b) { return sums[b] - sums[a]; }).slice(0, 6);
+    var colors = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6'];
+    var ser = top.map(function (pg, k) { return { name: pg, color: css(colors[k]), vals: pp.map(function (p) { var r = aRow(S.page.filter(function (x) { return x.page === pg; }), p); return r ? r.views : null; }) }; });
+    aLegend('#alPages', ser);
+    aLineChart($('#achPages'), pp.map(aAxis), ser, { zero: true, hi: pp.indexOf(A.period), ml: 52, title: function (i) { return aLabel(pp[i]); }, fmtV: function (v) { return fmt(Math.round(v)) + '회'; }, label: '주요 페이지그룹 조회수 추이' });
+    $('#aPageTrendDesc').textContent = '전체 기간 조회수 합계 상위 6개 페이지그룹 · ' + (A.mode === 'week' ? '주 단위 (페이지별 데이터가 있는 주만 표시)' : '월 단위');
+  }
+  document.querySelectorAll('#aModeSeg button').forEach(function (b) { b.addEventListener('click', function () { if (A.mode === b.dataset.amode) return; A.mode = b.dataset.amode; A.period = null; try { localStorage.setItem('mv-act-mode', A.mode); } catch (e) {} renderActivity(); }); });
+  document.querySelectorAll('#aDevSeg button').forEach(function (b) { b.addEventListener('click', function () { A.dev = b.dataset.dev; renderActivity(); }); });
+  $('#aPeriod').addEventListener('change', function () { A.period = this.value; renderActivity(); });
+
   function setView(v, fromHash) {
-    VIEW = v === 'points' ? 'points' : 'members';
+    VIEW = v === 'points' || v === 'activity' ? v : 'members';
     document.body.classList.toggle('view-points', VIEW === 'points');
+    document.body.classList.toggle('view-activity', VIEW === 'activity');
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.view === VIEW ? 'true' : 'false'); });
-    $('#refreshBtn').title = VIEW === 'points' ? '담당 PC의 포인트 갱신 서버에서 신규 CSV만 적재·집계합니다' : '구글시트의 최신 값을 불러와 다시 집계합니다';
-    if (!fromHash) { try { history.replaceState(null, '', VIEW === 'points' ? '#points' : location.pathname + location.search); } catch (e) {} }
+    $('#refreshBtn').title = VIEW === 'points' ? '담당 PC의 포인트 갱신 서버에서 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : '구글시트의 최신 값을 불러와 다시 집계합니다';
+    if (!fromHash) { try { history.replaceState(null, '', VIEW === 'points' ? '#points' : VIEW === 'activity' ? '#activity' : location.pathname + location.search); } catch (e) {} }
     if (VIEW === 'points') { if (!P.loaded) loadPoints(); else { setPointHeader(); renderPoints(); } }
+    else if (VIEW === 'activity') { if (!A.data && !A.loading && started) loadActivity(false); else renderActivity(); }
     else { setSource(state.remote); if (state.snap) renderAll(); else $('#subtitle').textContent = '데이터를 불러오는 중…'; }
   }
   document.querySelectorAll('.tabs button').forEach(function (b) { b.addEventListener('click', function () { setView(b.dataset.view); }); });
   if (location.hash === '#points') setView('points', true);
+  else if (location.hash === '#activity') setView('activity', true);
 
   function setPointHeader(label) {
     if (VIEW !== 'points') return;
