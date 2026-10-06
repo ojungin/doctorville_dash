@@ -221,6 +221,7 @@ body.view-activity .member-only { display: none !important; }
 .ascroll { max-height: 560px; overflow: auto; }
 .ascroll thead th { position: sticky; top: 0; background: var(--surface); }
 .anote { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+@media (min-width: 861px) { #aKpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 #aPages td.l, #aPages th.l { padding-left: 10px; }
 #aPages td.rk, #aPages th:first-child { padding-left: 0; text-align: left; width: 28px; }
 /* 포인트 */
@@ -1410,7 +1411,7 @@ body.locked #gate { display: flex; }
   }
   function aSets() {
     var d = A.data, wk = A.mode === 'week';
-    return { tot: aTable(wk ? d.weekly : d.monthly), page: aTable(wk ? d.pageWeekly : d.pageMonthly) };
+    return { tot: aTable(wk ? d.weekly : d.monthly), page: aTable(wk ? d.pageWeekly : d.pageMonthly), wk: aTable(d.weekly) };
   }
   function aPeriods(rows) { var s = {}; rows.forEach(function (r) { s[r.period] = 1; }); return Object.keys(s).sort(); }
   function aLabel(p) {
@@ -1463,6 +1464,13 @@ body.locked #gate { display: flex; }
     setActHeader();
     renderAKpis(S, ps); renderATrends(S, ps); renderAPages(S); renderAPageTrend(S);
   }
+  // MAU(YTD): 주간지표에만 있는 값. 월간은 그 달에 시작한 마지막 주의 값을 사용
+  function aYtd(S, p, dev) {
+    if (A.mode === 'week') { var r = aRow(S.wk, p, dev); return r ? r.mauYtd : null; }
+    var m = p.slice(0, 7), v = null;
+    S.wk.forEach(function (r) { if (r.dev === dev && String(r.period).slice(0, 7) === m && r.mauYtd != null && r.mauYtd !== '') v = r.mauYtd; });
+    return v;
+  }
   function aRow(rows, p, dev) { for (var i = rows.length - 1; i >= 0; i--) if (rows[i].period === p && (!dev || rows[i].dev === dev)) return rows[i]; return null; }
   function renderAKpis(S, ps) {
     var wk = A.mode === 'week', i = ps.indexOf(A.period), cur = aRow(S.tot, A.period, A.dev), prv = i > 0 ? aRow(S.tot, ps[i - 1], A.dev) : null;
@@ -1470,10 +1478,13 @@ body.locked #gate { display: flex; }
     var chg = function (k) { return (cur && prv && prv[k]) ? deltaHtml((cur[k] - prv[k]) / prv[k] * 100, '%', 1) + ' ' + pl + ' 대비' : ''; };
     var chgP = function (k) { return (cur && prv && prv[k] != null) ? deltaHtml(cur[k] - prv[k], '%p', 1) + ' ' + pl + ' 대비' : ''; };
     var c = cur || {};
+    var ytd = aYtd(S, A.period, A.dev), ytdP = i > 0 ? aYtd(S, ps[i - 1], A.dev) : null;
+    var ytdItem = { l: 'MAU (YTD · 연초 누적)', v: num(ytd), u: '명', m: ((ytd != null && ytdP) ? deltaHtml((ytd - ytdP) / ytdP * 100, '%', 1) + ' ' + pl + ' 대비' : '') + (wk ? '' : (ytd != null ? ' · 그 달 마지막 주 기준' : '주간지표에 값 없음')) };
     var items = wk ? [
       { l: 'DAU (일 평균)', v: num(c.dau), u: '명', m: chg('dau') },
       { l: 'WAU', v: num(c.wau), u: '명', m: chg('wau') },
       { l: 'MAU (최근 30일)', v: num(c.mau), u: '명', m: chg('mau') },
+      ytdItem,
       { l: '조회수', v: num(c.views), u: '회', m: chg('views') },
       { l: '사용자당 조회수', v: num(c.vpu, 1), u: '회', m: chg('vpu') },
       { l: '평균 세션 시간', v: minSec(c.sess), u: '', m: chg('sess') },
@@ -1482,6 +1493,7 @@ body.locked #gate { display: flex; }
     ] : [
       { l: 'DAU (일 평균)', v: num(c.dau), u: '명', m: chg('dau') },
       { l: 'MAU', v: num(c.mau), u: '명', m: chg('mau') },
+      ytdItem,
       { l: '신규 사용자', v: num(c.newU), u: '명', m: chg('newU') },
       { l: '재방문자', v: num(c.ret), u: '명', m: chg('ret') },
       { l: '조회수', v: num(c.views), u: '회', m: chg('views') },
@@ -1520,7 +1532,7 @@ body.locked #gate { display: flex; }
     var wk = A.mode === 'week', labels = ps.map(aAxis), hi = ps.indexOf(A.period);
     var get = function (dev, k) { return ps.map(function (p) { var r = aRow(S.tot, p, dev); return r ? r[k] : null; }); };
     var ttl = function (i) { return aLabel(ps[i]); };
-    var ser = [{ name: 'DAU', color: css('--s1'), vals: get(A.dev, 'dau') }, { name: wk ? 'WAU' : 'WAU', color: css('--s2'), vals: get(A.dev, 'wau') }, { name: 'MAU', color: css('--s3'), vals: get(A.dev, 'mau') }];
+    var ser = [{ name: 'DAU', color: css('--s1'), vals: get(A.dev, 'dau') }, { name: wk ? 'WAU' : 'WAU', color: css('--s2'), vals: get(A.dev, 'wau') }, { name: 'MAU', color: css('--s3'), vals: get(A.dev, 'mau') }, { name: 'MAU (YTD)', color: css('--s4'), dash: '5 4', vals: ps.map(function (p) { return aYtd(S, p, A.dev); }) }];
     aLegend('#alUsers', ser);
     aLineChart($('#achUsers'), labels, ser, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '활성 사용자 추이' });
     // 조회수 막대
