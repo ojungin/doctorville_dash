@@ -664,12 +664,36 @@ body.locked #gate { display: flex; }
     return subtle.importKey('raw', unb64(saved), { name: 'AES-GCM' }, false, ['decrypt']).then(useKey).then(restorePw).then(unlock).catch(function () { lock(); });
   }).catch(function () { $('#gateMsg').textContent = '데이터 정보를 불러오지 못했습니다.'; });
 
+  // ISO 주차 계산 (KST 월요일 기준)
+  var KST_MS = 9 * 3600000, DAY_MS = 86400000, HIST_FROM = '2025-W01';
+  function kstMonday(ms) { var d = new Date(ms + KST_MS), dow = (d.getUTCDay() + 6) % 7; return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dow) - KST_MS; }
+  function isoWeekOf(ms) {
+    var d = new Date(kstMonday(ms) + 3 * DAY_MS + KST_MS), y = d.getUTCFullYear();
+    var w = Math.floor((Date.UTC(y, d.getUTCMonth(), d.getUTCDate()) - Date.UTC(y, 0, 1)) / (7 * DAY_MS)) + 1;
+    return y + '-W' + (w < 10 ? '0' + w : w);
+  }
+  function weekMonday(week) {
+    var m = /^(\d{4})-W(\d{2})$/.exec(week); if (!m) return null;
+    var jan4 = Date.UTC(+m[1], 0, 4), dow = (new Date(jan4).getUTCDay() + 6) % 7;
+    return jan4 - dow * DAY_MS + (+m[2] - 1) * 7 * DAY_MS - KST_MS;
+  }
+  function mmdd(ms) { return new Date(ms + KST_MS).toISOString().slice(5, 10); }
   function setIndex(idx) {
     state.index = idx;
     var sel = $('#weekSel'); sel.innerHTML = '';
-    idx.snapshots.slice().reverse().forEach(function (s) {
-      var o = document.createElement('option');
-      o.value = s.week; o.textContent = s.week + ' (' + s.weekStart.slice(5) + '~' + s.weekEnd.slice(5) + ')';
+    var saved = {}; idx.snapshots.forEach(function (s) { saved[s.week] = s; });
+    var weeks;
+    if (state.remote) {
+      // 시트 연동 시: 2025-W01부터 직전 완료 주까지 전체 (저장되지 않은 주는 시트 원본으로 재계산)
+      weeks = []; var last = kstMonday(Date.now()) - 7 * DAY_MS;
+      idx.snapshots.forEach(function (s) { var t = weekMonday(s.week); if (t != null && t > last) last = t; });
+      for (var t = weekMonday(HIST_FROM); t <= last; t += 7 * DAY_MS) weeks.push(isoWeekOf(t));
+      idx.snapshots.forEach(function (s) { if (weeks.indexOf(s.week) < 0) weeks.push(s.week); });
+      weeks.sort();
+    } else weeks = idx.snapshots.map(function (s) { return s.week; });
+    weeks.slice().reverse().forEach(function (w) {
+      var o = document.createElement('option'), t = weekMonday(w);
+      o.value = w; o.textContent = w + ' (' + mmdd(t) + '~' + mmdd(t + 6 * DAY_MS) + ')' + (saved[w] ? '' : ' · 재계산');
       sel.appendChild(o);
     });
   }
@@ -762,7 +786,7 @@ body.locked #gate { display: flex; }
     var mon = state.mode === 'month';
     $('#subtitle').textContent = (mon
       ? '기준 월 ' + s.monthRef.month + ' (' + s.monthRef.start + ' ~ ' + s.monthRef.end + ')'
-      : '기준 주차 ' + s.week + ' (' + s.weekStart + ' ~ ' + s.weekEnd + ')') + ' · 집계 ' + s.generatedAtKst + ' KST';
+      : '기준 주차 ' + s.week + ' (' + s.weekStart + ' ~ ' + s.weekEnd + ')') + (s.historical ? ' · 과거 주차 재계산 (로그인·수신 동의·회원 상태는 현재 값)' : ' · 집계 ' + s.generatedAtKst + ' KST');
     $('#minCell').textContent = s.minCell;
     $('#keyMk').textContent = MD().recent + ' 신규 가입자 중 비중 (막대보다 오른쪽이면 최근 유입이 늘어난 항목)';
     $('#keyDelta').textContent = mon
@@ -885,14 +909,14 @@ body.locked #gate { display: flex; }
     return '<span class="delta ' + cls + '">' + sign + fmt(Math.abs(r)) + unit + '</span>';
   }
   function renderKpis() {
-    var k = state.snap.kpi, p = state.prev && state.prev.kpi;
+    var k = state.snap.kpi, p = state.prev && state.prev.kpi, hist = !!state.snap.historical;
     var mon = state.mode === 'month' && k.newMonth != null;
     var cur = mon ? k.newMonth : k.newWeek, prv = mon ? k.newPrevMonth : k.newPrevWeek;
     var chg = prv ? (cur - prv) / prv * 100 : null;
     var recentN = mon ? k.new3m : k.new4w, avg = Math.round(recentN / (mon ? 3 : 4));
     var items = [
       { label: '전체 회원', value: fmt(k.total), unit: '명',
-        meta: (p && !mon) ? deltaHtml(k.total - p.total, '명') + ' 직전 스냅샷 대비' : (mon ? '지난달 신규 +' : '이번 주 신규 +') + fmt(cur) + '명' },
+        meta: (p && !mon) ? deltaHtml(k.total - p.total, '명') + ' 직전 스냅샷 대비' : (hist ? (mon ? '해당 주 말 기준 · 기준 월 신규 +' : '해당 주 말 기준 · 주간 신규 +') : (mon ? '지난달 신규 +' : '이번 주 신규 +')) + fmt(cur) + '명' },
       { label: mon ? '월간 신규 가입' : '주간 신규 가입', value: fmt(cur), unit: '명',
         meta: deltaHtml(chg, '%', 1) + (mon ? ' 전월(' : ' 전주(') + fmt(prv) + '명) 대비' },
       { label: mon ? '최근 3개월 신규' : '최근 4주 신규', value: fmt(recentN), unit: '명', meta: (mon ? '월 평균 ' : '주 평균 ') + fmt(avg) + '명' },
@@ -904,6 +928,7 @@ body.locked #gate { display: flex; }
       { label: 'SMS 수신 동의율', value: fmt(k.smsOptInRate), unit: '%', meta: p ? deltaHtml(k.smsOptInRate - p.smsOptInRate, '%p', 2) + ' 직전 대비' : '미설정 포함 전체 기준' },
       { label: '이메일 수신 동의율', value: fmt(k.emailOptInRate), unit: '%', meta: p ? deltaHtml(k.emailOptInRate - p.emailOptInRate, '%p', 2) + ' 직전 대비' : '미설정 포함 전체 기준' }
     ];
+    if (hist) items.slice(3).forEach(function (it) { it.meta = '현재 값 기준 · ' + it.meta; });
     $('#kpis').innerHTML = items.map(function (it) {
       return '<div class="card kpi"><div class="label">' + it.label + '</div><div class="value">' + it.value + '<small>' + it.unit + '</small></div><div class="meta">' + it.meta + '</div></div>';
     }).join('');
