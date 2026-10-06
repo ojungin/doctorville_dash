@@ -20,6 +20,7 @@ var HISTORY_SHEET = '_dashboard_history';  // 주차별 집계 저장 탭 (자�
 var MAX_FAILS = 10;                        // 10분 안에 이 횟수만큼 틀리면 잠금
 var PW_ITER = 2000;
 var HIST_FROM = '2025-W01';                // 과거 주차 재계산을 허용하는 첫 주차
+var HIST_FROM_MONTH = '2025-01';           // 과거 월 재계산을 허용하는 첫 달
 
 // ---- 웹앱 진입점 ---------------------------------------------------------
 function doPost(e) {
@@ -41,6 +42,7 @@ function doPost(e) {
       saveSnapshot_(snap);
       return json_(bundle_(snap.week));
     }
+    if (req.month) return json_({ ok: true, snap: monthSnapshot_(String(req.month)), prev: null }); // 월간 기준 월 선택
     return json_(bundle_(req.week || null)); // action: 'get'
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message || err) });
@@ -166,6 +168,23 @@ function historicalSnapshot_(week) {
   if (!sheet) throw new Error('시트 탭을 찾을 수 없습니다: ' + SHEET_NAME);
   var snap = MemberAggregate.aggregate(sheet.getDataRange().getDisplayValues(),
     { now: ms + 7 * 86400000 + 3 * 3600000, asOf: true });
+  try { var j = JSON.stringify(snap); if (j.length < 95000) cache.put(key, j, 1800); } catch (e) {}
+  return snap;
+}
+
+// 기준 월 재계산: 그 달 말일까지 가입한 회원 기준, 다음 달 1일 새벽(KST)을 기준 시각으로 집계
+function monthSnapshot_(month) {
+  var ms = MemberAggregate.monthStartOf(month);
+  if (ms == null || ms < MemberAggregate.monthStartOf(HIST_FROM_MONTH)) throw new Error('선택할 수 없는 기준 월입니다: ' + month);
+  var d = new Date(ms + 9 * 3600000), next = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) - 9 * 3600000;
+  if (next > new Date().getTime()) throw new Error('아직 끝나지 않은 달입니다: ' + month);
+  var cache = CacheService.getScriptCache(), key = 'histm:' + month;
+  var hit = cache.get(key);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  if (!sheet) throw new Error('시트 탭을 찾을 수 없습니다: ' + SHEET_NAME);
+  var snap = MemberAggregate.aggregate(sheet.getDataRange().getDisplayValues(),
+    { now: next + 3 * 3600000, asOf: true, cutoff: next, kind: 'month' });
   try { var j = JSON.stringify(snap); if (j.length < 95000) cache.put(key, j, 1800); } catch (e) {}
   return snap;
 }
