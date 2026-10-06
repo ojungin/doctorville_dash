@@ -684,7 +684,9 @@ body.locked #gate { display: flex; }
     if (e.code === 'unauthorized') return '구글시트 연동 비밀번호가 다릅니다. 시트 메뉴 [대시보드 → 비밀번호 설정] 값을 확인해 주세요.';
     if (e.code === 'locked') return '비밀번호 오류가 반복되어 10분간 갱신이 잠겼습니다.';
     if (e.code === 'password_not_set') return '구글시트에 연동 비밀번호가 아직 저장되지 않았습니다. 시트 메뉴 [대시보드 → 비밀번호 설정]을 실행해 주세요.';
-    return '구글시트 연동 실패: ' + (e.message || e);
+    var msg = String(e.message || e);
+    if (/Unexpected token|JSON|Failed to fetch|NetworkError/i.test(msg)) return '구글시트 연동 실패: Apps Script가 정상 응답을 보내지 않았습니다(배포 권한·코드 오류 가능). 시트 메뉴 [대시보드 → 연동 진단]을 실행해 원인을 확인해 주세요. (' + msg.slice(0, 80) + ')';
+    return '구글시트 연동 실패: ' + msg + ' — 시트 메뉴 [대시보드 → 연동 진단]으로 원인을 확인할 수 있습니다.';
   }
   function askPw(msg) {
     $('#pwModalMsg').textContent = msg || '구글시트에서 최신 데이터를 불러오려면 비밀번호를 한 번 더 입력해 주세요.';
@@ -697,8 +699,13 @@ body.locked #gate { display: flex; }
   }
   function setSource(remote) {
     state.remote = remote;
-    $('#srcLabel').textContent = remote ? '데이터: 구글시트 집계' : (CONFIG.appsScriptUrl ? '데이터: 저장본' : '데이터: 저장본 (시트 연동 미설정)');
+    if (remote) state.remoteErr = '';
+    var lb = $('#srcLabel');
+    lb.textContent = remote ? '데이터: 구글시트 집계' : (!CONFIG.appsScriptUrl ? '데이터: 저장본 (시트 연동 미설정)' : state.remoteErr ? '데이터: 저장본 · 시트 연동 오류 ⓘ' : '데이터: 저장본');
+    lb.title = (!remote && state.remoteErr) ? state.remoteErr : '';
+    lb.style.cursor = (!remote && state.remoteErr) ? 'pointer' : '';
   }
+  $('#srcLabel').addEventListener('click', function () { if (!state.remote && state.remoteErr && VIEW === 'members') toast(state.remoteErr, true, 15000); });
   $('#refreshBtn').addEventListener('click', function () {
     var btn = this;
     if (VIEW === 'points') return pointRefresh(btn);
@@ -848,7 +855,7 @@ body.locked #gate { display: flex; }
     $('#weekSel').addEventListener('change', function () { if (state.mode === 'month') loadMonth(this.value); else load(this.value); });
     var p = (CONFIG.appsScriptUrl && PW)
       ? api('get').then(function (res) { if (res.snap) applyRemote(res); else return startStatic().then(function () { toast('저장된 시트 집계가 아직 없습니다. [갱신]을 눌러 주세요.'); }); })
-          .catch(function (e) { toast(apiErrorText(e) + ' 저장본을 표시합니다.', true); return startStatic(); })
+          .catch(function (e) { state.remoteErr = apiErrorText(e) + ' 지금은 저장본을 표시합니다.'; toast(state.remoteErr, true, 15000); return startStatic(); })
       : startStatic();
     p.catch(function (e) { $('#subtitle').textContent = '데이터를 불러오지 못했습니다: ' + e.message; });
   }
