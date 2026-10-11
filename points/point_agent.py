@@ -47,7 +47,7 @@ SSL_CTX = ssl.create_default_context()
 if hasattr(ssl, "VERIFY_X509_STRICT"):
     SSL_CTX.verify_flags &= ~ssl.VERIFY_X509_STRICT
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 HERE = os.path.dirname(os.path.abspath(__file__))
 KST = dt.timezone(dt.timedelta(hours=9))
 
@@ -76,6 +76,7 @@ DEFAULTS = {
     "earn_user_thresholds": [100000, 200000],
     "list_limit": 300,              # 이상치 목록 최대 표시 건수
     "export_max_months": 6,         # Excel 추출 최대 기간(개월)
+    "weekly_weeks": 156,            # 주간 분석으로 내보낼 최근 주 수 (잔여는 전체 기간 누적으로 계산)
 }
 
 
@@ -741,6 +742,7 @@ def aggregate(db, cfg):
         "SELECT name, rows, inserted, dmin, dmax, loaded_at FROM files ORDER BY dmin")]
 
     rnd = lambda arr: [round(v) for v in arr]
+    weekly = weekly_block(db, cfg, J, rng)
     out = {
         "v": 1,
         "generatedAtKst": dt.datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
@@ -765,12 +767,97 @@ def aggregate(db, cfg):
             "repeatBuy": {"min": rb, "monthly": rep_m, "monthlyAmt": rnd(rep_amt_m), "total": rep_total[0],
                           "members": rep_total[1], "cats": sorted(BUY_CATS), "list": rep_list},
         },
+        "weekly": weekly,
         "files": files,
         "rules": {"balance": "잔여 = 적립 포인트 잔여 + 충전 포인트 잔여. 데이터 시작 시점 잔액 0 가정, 적립+사용취소-사용-소멸 누적. 회원별 잔여·고액 잔여 기준도 합계 기준", "balanceCheck": "2025-04-19 시스템 이관 잔액(적립 819,283,589P)과 같은 시점 원장 누적 819,574,724P 비교: 회원 36,674명 중 36,517명 일치", "excluded": "시스템 이관(적립·충전 포인트 이관) 행 제외",
                   "use": "사용 = 구매·전환 금액(결제 취소·환불은 별도 표시), 소멸 별도"},
     }
     log("집계 완료 (%.0f초) · 기간 %s ~ %s · 거래 %s건 · 회원 %s명" % (
         time.time() - t0, out["range"]["from"], out["range"]["to"], format(rng[2], ","), format(rng[3], ",")))
+    return out
+
+
+def weekly_block(db, cfg, J, rng):
+    """주간(월~일, KST 기준) 집계. 대시보드 포인트 탭의 [주간] 분석용.
+    잔여는 데이터 시작부터 누적한 뒤 최근 weekly_weeks 주만 내보낸다."""
+    log("주간 집계 중…")
+    t0 = time.time()
+    WK = "date(substr(tx.ts,1,10),'weekday 0','-6 days')"     # 해당 주 월요일
+    db.execute("DROP TABLE IF EXISTS temp.sw")
+    db.execute("CREATE TEMP TABLE sw AS SELECT %s wk, tx.usn usn, tx.cid cid, (tx.amt > 0) pos, "
+               "SUM(tx.amt) a, COUNT(*) n %s WHERE c.kind != 'skip' GROUP BY 1,2,3,4" % (WK, J))
+    SW = "FROM temp.sw t JOIN temp.cat c ON c.cid = t.cid AND c.pos = t.pos"
+    r = db.execute("SELECT MIN(wk), MAX(wk) FROM temp.sw").fetchone()
+    if not r[0]:
+        return None
+    w0, w1 = dt.date.fromisoformat(r[0]), dt.date.fromisoformat(r[1])
+    weeks = []
+    d = w0
+    while d <= w1:
+        weeks.append(d.isoformat())
+        d += dt.timedelta(days=7)
+    wi = {w: i for i, w in enumerate(weeks)}
+    N = len(weeks)
+    z = lambda: [0] * N
+    kinds = {k: {"amt": z(), "cnt": z()} for k in ("earn", "cancel", "use", "expire")}
+    methods = {"earn": {}, "use": {}, "expire": {}, "cancel": {}}
+    for wk, kind, c, sm, n in db.execute("SELECT wk, c.kind, c.cat, SUM(a), SUM(n) %s GROUP BY 1,2,3" % SW):
+        i = wi[wk]
+        a = abs(sm)
+        kinds[kind]["amt"][i] += a
+        kinds[kind]["cnt"][i] += n
+        m = methods[kind].setdefault(c, {"amt": z(), "cnt": z()})
+        m["amt"][i] += a
+        m["cnt"][i] += n
+    users = {"earn": z(), "use": z()}
+    for wk, kind, u in db.execute(
+            "SELECT wk, c.kind, COUNT(DISTINCT usn) %s WHERE c.kind IN ('earn','use') GROUP BY 1,2" % SW):
+        users[kind][wi[wk]] = u
+    for wk, kind, c, u in db.execute(
+            "SELECT wk, c.kind, c.cat, COUNT(DISTINCT usn) %s WHERE c.kind IN ('earn','use') GROUP BY 1,2,3" % SW):
+        methods[kind][c].setdefault("users", z())[wi[wk]] = u
+    # 잔여 (주말 기준): 적립 포인트 잔여 + 충전 포인트 잔여, 데이터 시작부터 누적
+    net = [kinds["earn"]["amt"][i] + kinds["cancel"]["amt"][i] - kinds["use"]["amt"][i] - kinds["expire"]["amt"][i]
+           for i in range(N)]
+    chg = z()
+    for wk, sm in db.execute(
+            "SELECT %s, SUM(chg) FROM tx WHERE chg != 0 AND cid NOT IN (SELECT cid FROM temp.cat WHERE kind='skip') "
+            "GROUP BY 1" % WK):
+        if wk in wi:
+            chg[wi[wk]] = sm
+    bal, acc, acc_c = [], 0, 0
+    for i in range(N):
+        acc += net[i]
+        acc_c += chg[i]
+        bal.append(round(acc + acc_c))
+    # 건당 고액 적립 (주별 건수·금액)
+    big = cfg["big_earn_threshold"]
+    big_n, big_a = z(), z()
+    for wk, n, sm in db.execute(
+            "SELECT %s, COUNT(*), SUM(amt) %s WHERE c.kind='earn' AND amt > ? GROUP BY 1" % (WK, J), (big,)):
+        if wk in wi:
+            big_n[wi[wk]] = n
+            big_a[wi[wk]] = sm
+    K = max(1, int(cfg.get("weekly_weeks") or 156))
+    s0 = max(0, N - K)
+    cut = lambda arr: [round(v) for v in arr[s0:]]
+    last_day = (rng[1] or "")[:10]
+    last_week_end = (w1 + dt.timedelta(days=6)).isoformat()
+    out = {
+        "weeks": weeks[s0:],
+        "earn": {"amt": cut(kinds["earn"]["amt"]), "cnt": cut(kinds["earn"]["cnt"]), "users": cut(users["earn"])},
+        "use": {"amt": cut(kinds["use"]["amt"]), "cnt": cut(kinds["use"]["cnt"]), "users": cut(users["use"])},
+        "cancel": {"amt": cut(kinds["cancel"]["amt"]), "cnt": cut(kinds["cancel"]["cnt"])},
+        "expire": {"amt": cut(kinds["expire"]["amt"]), "cnt": cut(kinds["expire"]["cnt"])},
+        "balanceTotal": bal[s0:],
+        "methods": {k: {c: {"amt": cut(m["amt"]), "cnt": cut(m["cnt"]),
+                            "users": cut(m["users"]) if m.get("users") else None} for c, m in v.items()}
+                    for k, v in methods.items()},
+        "bigEarn": {"threshold": big, "cnt": cut(big_n), "amt": cut(big_a)},
+        "lastDay": last_day,
+        "partialLast": bool(last_day) and last_day < last_week_end,
+    }
+    log("주간 집계 완료 (%.0f초) · %d주 중 최근 %d주" % (time.time() - t0, N, len(out["weeks"])))
     return out
 
 
