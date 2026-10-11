@@ -221,6 +221,9 @@ body.view-activity .member-only { display: none !important; }
 .ascroll { max-height: 560px; overflow: auto; }
 .ascroll thead th { position: sticky; top: 0; background: var(--surface); }
 .anote { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+/* 포인트 주간/월간 */
+body.pweek-mode #pointApp .pmonth, body:not(.pweek-mode) #pointApp .pweek { display: none !important; }
+.pstatus[hidden] { display: none !important; }
 @media (min-width: 861px) { #aKpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 #aPages td.l, #aPages th.l { padding-left: 10px; }
 #aPages td.rk, #aPages th:first-child { padding-left: 0; text-align: left; width: 28px; }
@@ -434,7 +437,11 @@ body.locked #gate { display: flex; }
           <p id="pSub">포인트 적립·사용 내역을 월 단위로 집계합니다.</p>
         </div>
         <div class="pfilter">
-          <label for="pPeriod">집계 기간</label>
+          <div class="seg" id="pModeSeg" role="group" aria-label="포인트 분석 단위">
+            <button type="button" data-pmode="month" aria-pressed="true">월간</button>
+            <button type="button" data-pmode="week">주간</button>
+          </div>
+          <label for="pPeriod" id="pPeriodLbl">집계 기간</label>
           <select id="pPeriod" aria-label="집계 기간"></select>
           <button type="button" class="btn accent" id="pExportBtn" title="회원별·항목별 월 적립/사용 내역을 Excel로 내려받습니다 (최대 6개월)">Excel 추출</button>
         </div>
@@ -442,9 +449,38 @@ body.locked #gate { display: flex; }
       <div id="pStatus" class="card pstatus" hidden></div>
       <div id="pEmpty" class="empty" hidden></div>
       <div class="kpis p8" id="pKpis"></div>
+      <p class="anote pweek" id="pwNote"></p>
     </section>
 
-    <section class="pdata">
+    <section class="pdata pweek">
+      <div class="sec-head">
+        <div><h2>주별 추이</h2><p id="pwTrendDesc">주 단위(월~일)</p></div>
+        <div class="seg" id="pwSeg" role="group" aria-label="주별 추이 기간">
+          <button type="button" data-wrange="12">12주</button>
+          <button type="button" data-wrange="26" aria-pressed="true">26주</button>
+          <button type="button" data-wrange="52">52주</button>
+          <button type="button" data-wrange="0">전체</button>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>① 주별 포인트 적립</h3><p class="desc">적립 금액 (사용취소·환불 제외)</p><div class="chart" id="pwchEarn"></div></div>
+        <div class="card"><h3>② 주별 포인트 사용</h3><p class="desc">사용처별 누적 막대 · 소멸 포함</p><ul class="legend" id="pwlgUse"></ul><div class="chart" id="pwchUse"></div></div>
+        <div class="card"><h3>③ 주말 잔여 포인트</h3><p class="desc">일요일 기준 잔여 = 적립 포인트 잔여 + 충전 포인트 잔여 (데이터 시작부터 누적)</p><div class="chart" id="pwchBal"></div></div>
+        <div class="card"><h3>⑦ 1인당 주 적립·사용 금액</h3><p class="desc">해당 주 적립(사용) 금액 ÷ 해당 주 적립(사용) 회원 수</p>
+          <ul class="legend"><li><i class="line" style="background:var(--s1)"></i>1인당 적립</li><li><i class="line" style="background:var(--s2)"></i>1인당 사용</li></ul>
+          <div class="chart" id="pwchPer"></div></div>
+      </div>
+    </section>
+
+    <section class="pdata pweek">
+      <div class="sec-head"><div><h2>⑤ 적립 방법 / ⑥ 사용 방법 — 선택한 주</h2><p id="pwMethodSub"></p></div></div>
+      <div class="grid2">
+        <div class="card"><h3>적립 방법 순위</h3><p class="desc">금액 기준 · 전주 대비 증감</p><div id="pwEarnRank"></div></div>
+        <div class="card"><h3>사용 방법별 규모</h3><p class="desc">금액 기준 · 소멸·취소는 별도 표시</p><div id="pwUseRank"></div></div>
+      </div>
+    </section>
+
+    <section class="pdata pmonth">
       <div class="sec-head">
         <div><h2>월별 적립·사용 — 작년 대비</h2><p id="pYoySub">데이터 마지막 날짜 기준 올해와 작년의 같은 달을 비교합니다.</p></div>
         <div class="seg" id="pYoySeg" role="group" aria-label="비교 항목">
@@ -459,7 +495,7 @@ body.locked #gate { display: flex; }
       </div>
     </section>
 
-    <section class="pdata">
+    <section class="pdata pmonth">
       <div class="sec-head">
         <div><h2>월별 추이</h2><p>적립·사용·잔여 포인트와 1인당 평균 (포인트 = P)</p></div>
         <div class="seg" id="pSeg" role="group" aria-label="추이 기간">
@@ -478,7 +514,7 @@ body.locked #gate { display: flex; }
       </div>
     </section>
 
-    <section class="pdata">
+    <section class="pdata pmonth">
       <div class="sec-head"><div><h2>④ 고액 잔여 포인트 보유 회원 수</h2><p>회원별 잔여 포인트(누적 적립 + 사용취소 − 사용 − 소멸) 기준</p></div></div>
       <div class="grid2">
         <div class="card"><h3>연도별 연말 · 현재 잔여 기준</h3><p class="desc">각 연도 말(진행 중 연도는 마지막 달 말) 잔여 포인트가 기준 이상인 회원 수</p><div id="pThTable"></div></div>
@@ -487,7 +523,7 @@ body.locked #gate { display: flex; }
       </div>
     </section>
 
-    <section class="pdata">
+    <section class="pdata pmonth">
       <div class="card dbar" id="pDetailBar">
         <div class="t">⑤~⑧ 상세 분석 기간<small id="dNote">위의 집계 기간과 별도로 ⑤ 적립 방법 · ⑥ 사용 방법 · ⑧ 이상치에 적용됩니다</small></div>
         <div class="pfilter">
@@ -501,7 +537,7 @@ body.locked #gate { display: flex; }
       </div>
     </section>
 
-    <section class="pdata">
+    <section class="pdata pmonth">
       <div class="sec-head"><div><h2>⑤ 적립 방법별 규모·순위 / ⑥ 사용 방법별 규모</h2><p id="pMethodSub">상세 분석 기간 기준</p></div></div>
       <div class="grid2">
         <div class="card"><h3>적립 방법 순위</h3><p class="desc">금액 기준 순위 · 막대는 비중</p><div id="pEarnRank"></div></div>
@@ -509,7 +545,7 @@ body.locked #gate { display: flex; }
       </div>
     </section>
 
-    <section class="pdata">
+    <section class="pdata pmonth">
       <div class="sec-head"><div><h2>⑧ 이상치 검출</h2><p id="pAnomSub">상세 분석 기간 기준 · 회원 번호는 마스킹 표시</p></div></div>
       <div class="grid2">
         <div class="card"><h3>건당 고액 적립</h3><p class="desc" id="pBigDesc">1건 100,000P 초과 적립</p>
@@ -904,7 +940,7 @@ body.locked #gate { display: flex; }
   });
   buildRangeSeg();
   $('#modeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.mode === state.mode ? 'true' : 'false'); });
-  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'points' && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
+  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); renderPWTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'points' && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
 
   function renderAll() {
     if (!state.snap) return;
@@ -1749,6 +1785,7 @@ body.locked #gate { display: flex; }
   function buildPeriods() {
     var sel = $('#pPeriod'), d = P.data; sel.innerHTML = '';
     if (!d) return;
+    if (P.mode === 'week' && d.weekly) return buildWeeks();
     var years = [];
     d.months.forEach(function (m) { var y = m.slice(0, 4); if (years.indexOf(y) < 0) years.push(y); });
     var opts = [['all', '전체 기간'], ['last12', '최근 12개월']].concat(years.slice().reverse().map(function (y) { return ['y' + y, y + '년']; }));
@@ -1756,7 +1793,7 @@ body.locked #gate { display: flex; }
     if (!opts.some(function (o) { return o[0] === P.period; })) P.period = 'all';
     sel.value = P.period;
   }
-  $('#pPeriod').addEventListener('change', function () { P.period = this.value; P.bigAll = P.repAll = false; renderPoints(); });
+  $('#pPeriod').addEventListener('change', function () { if (P.mode === 'week') { P.wsel = this.value; renderPoints(); return; } P.period = this.value; P.bigAll = P.repAll = false; renderPoints(); });
   document.querySelectorAll('#pSeg button').forEach(function (b) {
     b.addEventListener('click', function () {
       document.querySelectorAll('#pSeg button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
@@ -1790,8 +1827,141 @@ body.locked #gate { display: flex; }
       $('#pEmpty').innerHTML = '아직 게시된 포인트 집계가 없습니다.<br>포인트 Raw 폴더가 있는 PC에서 「포인트_갱신서버_실행.bat」을 실행한 뒤 상단 <b>[갱신]</b>을 눌러 주세요.';
       return;
     }
+    if (P.mode === 'week' && !P.data.weekly) {
+      P.mode = 'month'; document.body.classList.remove('pweek-mode');
+      document.querySelectorAll('#pModeSeg button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.pmode === 'month' ? 'true' : 'false'); });
+      $('#pPeriodLbl').textContent = '집계 기간'; buildPeriods();
+      toast('주간 포인트 집계가 아직 없습니다. 포인트 PC의 point_agent.py를 v1.5.0으로 바꾼 뒤 [갱신]을 눌러 주세요.', true, 12000);
+    }
+    if (P.mode === 'week') { if ($('#pPeriod').options.length === 0 || $('#pPeriod').value !== P.wsel) buildPeriods(); renderPWeek(); renderPFiles(); return; }
     renderPKpis(); renderPYoy(); renderPTrends(); renderPTh(); renderPMethods(); renderPAnom(); renderPFiles();
   }
+  // ---- 주간 분석 (point_agent.py v1.5.0 이상의 weekly 블록) ------------------
+  P.mode = 'month'; P.wsel = null; P.wrange = 26;
+  try { var pm0 = localStorage.getItem('mv-pmode'); if (pm0 === 'week' || pm0 === 'month') P.mode = pm0; } catch (e) {}
+  function pwLabel(w) { var t = weekMonday(isoWeekOf(Date.parse(w + 'T12:00:00+09:00'))); return isoWeekOf(t) + ' (' + mmdd(t) + '~' + mmdd(t + 6 * DAY_MS) + ')'; }
+  function pwAxis(w) { return w.slice(5).replace('-', '/'); }
+  function setPMode(m, silent) {
+    if (m === 'week' && P.data && !P.data.weekly) {
+      if (!silent) toast('주간 포인트 집계가 아직 없습니다. 포인트 PC의 point_agent.py를 v1.5.0으로 바꾼 뒤 [갱신]을 눌러 주세요.', true, 12000);
+      m = 'month';
+    }
+    P.mode = m;
+    try { localStorage.setItem('mv-pmode', m); } catch (e) {}
+    document.body.classList.toggle('pweek-mode', m === 'week');
+    document.querySelectorAll('#pModeSeg button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.pmode === m ? 'true' : 'false'); });
+    $('#pPeriodLbl').textContent = m === 'week' ? '기준 주차' : '집계 기간';
+    $('#pSub').textContent = m === 'week' ? '포인트 적립·사용 내역을 주 단위(월~일)로 집계합니다.' : '포인트 적립·사용 내역을 월 단위로 집계합니다.';
+    buildPeriods();
+    renderPoints();
+  }
+  document.querySelectorAll('#pModeSeg button').forEach(function (b) { b.addEventListener('click', function () { if (P.mode !== b.dataset.pmode) setPMode(b.dataset.pmode); }); });
+  document.querySelectorAll('#pwSeg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#pwSeg button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      P.wrange = +b.dataset.wrange; renderPWTrends();
+    });
+  });
+  function buildWeeks() {
+    var sel = $('#pPeriod'), w = P.data.weekly, ws = w.weeks; sel.innerHTML = '';
+    ws.slice().reverse().forEach(function (x, k) {
+      var o = document.createElement('option'); o.value = x;
+      o.textContent = pwLabel(x) + (k === 0 && w.partialLast ? ' · 진행 중(' + w.lastDay.slice(5).replace('-', '/') + '까지)' : '');
+      sel.appendChild(o);
+    });
+    if (!P.wsel || ws.indexOf(P.wsel) < 0) P.wsel = (w.partialLast && ws.length > 1) ? ws[ws.length - 2] : ws[ws.length - 1];
+    sel.value = P.wsel;
+  }
+  function renderPWeek() {
+    var w = P.data.weekly, i = w.weeks.indexOf(P.wsel), j = i - 1;
+    var part = w.partialLast && i === w.weeks.length - 1;
+    var ch = function (a) { return j >= 0 && a[j] ? deltaHtml((a[i] - a[j]) / a[j] * 100, '%', 1) + ' 전주 대비' : ''; };
+    var per = function (k, x) { return w[k].users[x] ? w[k].amt[x] / w[k].users[x] : null; };
+    var pe = per('earn', i), pu = per('use', i), peP = j >= 0 ? per('earn', j) : null, puP = j >= 0 ? per('use', j) : null;
+    var rate = function (x) { return w.earn.amt[x] ? (w.use.amt[x] + w.expire.amt[x] - w.cancel.amt[x]) / w.earn.amt[x] * 100 : null; };
+    var r = rate(i), rP = j >= 0 ? rate(j) : null;
+    var items = [
+      { l: '적립 포인트', v: bigP(w.earn.amt[i]), u: 'P', m: ch(w.earn.amt) + ' · ' + fmt(w.earn.cnt[i]) + '건' },
+      { l: '사용 포인트', v: bigP(w.use.amt[i]), u: 'P', m: ch(w.use.amt) + ' · 소멸 ' + bigP(w.expire.amt[i]) + 'P 별도' },
+      { l: '적립 회원', v: fmt(w.earn.users[i]), u: '명', m: ch(w.earn.users) },
+      { l: '사용 회원', v: fmt(w.use.users[i]), u: '명', m: ch(w.use.users) },
+      { l: '1인당 적립', v: pe == null ? '–' : fmt(Math.round(pe)), u: 'P', m: (pe != null && peP) ? deltaHtml((pe - peP) / peP * 100, '%', 1) + ' 전주 대비' : '' },
+      { l: '1인당 사용', v: pu == null ? '–' : fmt(Math.round(pu)), u: 'P', m: (pu != null && puP) ? deltaHtml((pu - puP) / puP * 100, '%', 1) + ' 전주 대비' : '' },
+      { l: '잔여 포인트 (주말 기준)', v: bigP(w.balanceTotal[i]), u: 'P', m: j >= 0 ? '전주 대비 ' + (w.balanceTotal[i] - w.balanceTotal[j] >= 0 ? '+' : '') + bigP(w.balanceTotal[i] - w.balanceTotal[j]) + 'P' : '' },
+      { l: '적립 대비 사용률 · 고액 적립', v: r == null ? '–' : r.toFixed(1), u: '%', m: (r != null && rP != null ? deltaHtml(r - rP, '%p', 1) + ' · ' : '') + '고액 적립 ' + fmt(w.bigEarn.cnt[i]) + '건' }
+    ];
+    $('#pKpis').innerHTML = items.map(function (it) {
+      return '<div class="card kpi"><div class="label">' + esc(it.l) + '</div><div class="value">' + it.v + '<small>' + it.u + '</small></div><div class="meta">' + it.m + '</div></div>';
+    }).join('');
+    $('#pwNote').textContent = pwLabel(P.wsel) + (part ? ' · 진행 중인 주(' + w.lastDay + '까지)라 전주 대비가 작게 보일 수 있습니다' : '') + ' · 사용률 = (사용 + 소멸 − 취소) ÷ 적립 · 고액 적립 = 1건 ' + fmt(w.bigEarn.threshold) + 'P 초과';
+    renderPWTrends(); renderPWMethods();
+  }
+  function renderPWTrends() {
+    if (VIEW !== 'points' || !P.data || !P.data.weekly || P.mode !== 'week') return;
+    var w = P.data.weekly, N = w.weeks.length, from = P.wrange ? Math.max(0, N - P.wrange) : 0;
+    var ix = []; for (var i = from; i < N; i++) ix.push(i);
+    var labels = ix.map(function (i) { return pwAxis(w.weeks[i]); });
+    var pick = function (arr) { return ix.map(function (i) { return arr[i] || 0; }); };
+    var ttl = function (k) { return pwLabel(w.weeks[ix[k]]) + (w.partialLast && ix[k] === N - 1 ? ' · 진행 중' : ''); };
+    var selK = ix.indexOf(w.weeks.indexOf(P.wsel));
+    pBars($('#pwchEarn'), labels, [{ vals: pick(w.earn.amt), color: css('--s1') }], {
+      label: '주별 포인트 적립', tip: function (k) { var i = ix[k]; return tipRows(ttl(k), [{ k: '적립', v: fmt(w.earn.amt[i]) + 'P', color: css('--s1') }, { k: '건수', v: fmt(w.earn.cnt[i]) + '건' }, { k: '적립 회원', v: fmt(w.earn.users[i]) + '명' }]); }
+    });
+    var um = w.methods.use || {}, colors = ['--s1', '--s2', '--s3', '--s4'].map(css);
+    var top = USE_TOP.filter(function (c) { return um[c]; });
+    var rest = ix.map(function (i) { var t = 0; Object.keys(um).forEach(function (c) { if (top.indexOf(c) < 0) t += um[c].amt[i]; }); return t; });
+    var ser = top.map(function (c, k) { return { name: c, vals: pick(um[c].amt), color: colors[k] }; });
+    ser.push({ name: '그 외 사용', vals: rest, color: colors[3] });
+    ser.push({ name: '포인트 소멸', vals: pick(w.expire.amt), color: css('--muted') });
+    $('#pwlgUse').innerHTML = ser.map(function (s) { return '<li><i style="background:' + s.color + '"></i>' + esc(s.name) + '</li>'; }).join('');
+    pBars($('#pwchUse'), labels, ser, {
+      label: '주별 포인트 사용', tip: function (k, tot) {
+        return tipRows(ttl(k) + ' · ' + fmt(tot) + 'P', ser.map(function (s) { return { k: s.name, v: fmt(s.vals[k]) + 'P', color: s.color }; }).reverse()
+          .concat([{ k: '결제 취소·환불', v: fmt(w.cancel.amt[ix[k]]) + 'P' }, { k: '사용 회원', v: fmt(w.use.users[ix[k]]) + '명' }]));
+      }
+    });
+    pLines($('#pwchBal'), labels, [{ vals: pick(w.balanceTotal), color: css('--s1') }], {
+      label: '주말 잔여 포인트', lastLabel: function (v) { return bigP(v) + 'P'; },
+      tip: function (k) { var i = ix[k], net = w.earn.amt[i] + w.cancel.amt[i] - w.use.amt[i] - w.expire.amt[i]; return tipRows(ttl(k) + ' 말', [{ k: '잔여 합계', v: fmt(w.balanceTotal[i]) + 'P', color: css('--s1') }, { k: '해당 주 적립P 증감', v: (net >= 0 ? '+' : '') + fmt(net) + 'P' }]); }
+    });
+    var pe = ix.map(function (i) { return w.earn.users[i] ? Math.round(w.earn.amt[i] / w.earn.users[i]) : null; });
+    var pu = ix.map(function (i) { return w.use.users[i] ? Math.round(w.use.amt[i] / w.use.users[i]) : null; });
+    pLines($('#pwchPer'), labels, [{ vals: pe, color: css('--s1') }, { vals: pu, color: css('--s2') }], {
+      label: '1인당 주 적립·사용', fmtY: function (v) { return fmt(Math.round(v)); },
+      tip: function (k) { var i = ix[k]; return tipRows(ttl(k), [{ k: '1인당 적립', v: pe[k] == null ? '–' : fmt(pe[k]) + 'P', color: css('--s1') }, { k: '1인당 사용', v: pu[k] == null ? '–' : fmt(pu[k]) + 'P', color: css('--s2') }, { k: '적립 / 사용 회원', v: fmt(w.earn.users[i]) + ' / ' + fmt(w.use.users[i]) + '명' }]); }
+    });
+    // 선택한 주 표시 (적립·사용 막대 강조)
+    if (selK >= 0) ['#pwchEarn', '#pwchUse'].forEach(function (q) {
+      var svg = $(q + ' svg'); if (!svg) return;
+      var gs = svg.querySelectorAll('g'), cols = [];
+      gs.forEach(function (g) { if (g.parentNode === svg && g.querySelector('path,rect') && !g.querySelector('line')) cols.push(g); });
+      cols.forEach(function (g, k) { if (k !== selK) g.setAttribute('opacity', 0.55); });
+    });
+    $('#pwTrendDesc').textContent = '주 단위(월~일) · 진한 막대: 선택한 주 · ' + (w.partialLast ? '마지막 주는 ' + w.lastDay + '까지 진행 중' : '');
+  }
+  function renderPWMethods() {
+    var w = P.data.weekly, i = w.weeks.indexOf(P.wsel), j = i - 1;
+    var table = function (obj, head, color, extra) {
+      var list = Object.keys(obj || {}).map(function (c) { var m = obj[c]; return { name: c, amt: m.amt[i] || 0, cnt: m.cnt[i] || 0, users: m.users ? m.users[i] : null, prev: j >= 0 ? (m.amt[j] || 0) : null }; })
+        .filter(function (m) { return m.amt > 0 || m.prev > 0; }).sort(function (a, b) { return b.amt - a.amt; });
+      if (!list.length) return '<div class="empty">이 주의 데이터가 없습니다.</div>';
+      var tot = list.reduce(function (t, m) { return t + m.amt; }, 0), mx = list[0].amt || 1;
+      return '<table class="ptable"><thead><tr><th class="l">순위</th><th class="l">' + head + '</th><th class="barcell"></th><th>금액(P)</th><th>비중</th><th>전주 대비</th><th>건수</th><th>회원</th></tr></thead><tbody>' +
+        list.map(function (m, k) {
+          return '<tr><td class="l rk">' + (k + 1) + '</td><td class="l">' + esc(m.name) + '</td><td class="barcell"><div class="bar"><div class="fill" style="width:' + (m.amt / mx * 100).toFixed(1) + '%;background:' + color + '"></div></div></td>' +
+            '<td>' + fmt(m.amt) + '</td><td>' + pct(m.amt, tot).toFixed(1) + '%</td><td>' + (m.prev ? deltaHtml((m.amt - m.prev) / m.prev * 100, '%', 1) : '–') + '</td><td>' + fmt(m.cnt) + '</td><td>' + (m.users == null ? '–' : fmt(m.users)) + '</td></tr>';
+        }).join('') +
+        '<tr class="tot"><td></td><td class="l">합계</td><td></td><td>' + fmt(tot) + '</td><td>100%</td><td></td><td>' + fmt(list.reduce(function (t, m) { return t + m.cnt; }, 0)) + '</td><td></td></tr>' +
+        (extra || []).map(function (x) { return '<tr class="sub"><td></td><td class="l">' + esc(x.name) + ' <span class="pill">별도</span></td><td></td><td>' + fmt(x.amt) + '</td><td>–</td><td></td><td>' + fmt(x.cnt) + '</td><td></td></tr>'; }).join('') +
+        '</tbody></table>';
+    };
+    $('#pwMethodSub').textContent = pwLabel(P.wsel) + ' 기준' + (j >= 0 ? ' · 증감은 ' + pwLabel(w.weeks[j]) + ' 대비' : '');
+    $('#pwEarnRank').innerHTML = table(w.methods.earn, '적립 방법', css('--s1'));
+    $('#pwUseRank').innerHTML = table(w.methods.use, '사용 방법', css('--s2'), [{ name: '포인트 소멸', amt: w.expire.amt[i], cnt: w.expire.cnt[i] }, { name: '결제 취소·환불 (사용 복원)', amt: w.cancel.amt[i], cnt: w.cancel.cnt[i] }]);
+  }
+  document.body.classList.toggle('pweek-mode', P.mode === 'week');
+  document.querySelectorAll('#pModeSeg button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.pmode === P.mode ? 'true' : 'false'); });
+  if (P.mode === 'week') { $('#pPeriodLbl').textContent = '기준 주차'; }
 
   function renderPKpis() {
     var d = P.data, ix = periodIdx(), last = ix[ix.length - 1];
