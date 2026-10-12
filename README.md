@@ -14,6 +14,8 @@ docs/                       ← GitHub Pages 게시 폴더
   data/index.enc.json       주차 목록 + 주간 KPI 이력 (암호화)
   data/snapshots/YYYY-Www.enc.json   주차별 스냅샷 (암호화)
   data/points.enc.json      포인트 집계 (암호화, points/point_agent.py가 생성)
+  data/pv/index.enc.json    팜빌: 주차 목록 + 주간 KPI 이력 (암호화, 같은 meta.json 키)
+  data/pv/snapshots/YYYY-Www.enc.json   팜빌 주차별 스냅샷 (암호화)
 points/                     포인트 로컬 에이전트 (포인트 Raw CSV가 있는 PC에서 실행)
   point_agent.py            신규 CSV만 적재 → SQLite 누적(중복 제거) → 집계 → 암호화 → 게시
   포인트_갱신서버_실행.bat   더블클릭 실행 (대시보드 [갱신] 버튼과 연동)
@@ -21,13 +23,13 @@ points/                     포인트 로컬 에이전트 (포인트 Raw CSV가 
   config.example.json       설정 예시 (config.json으로 복사)
 scripts/
   aggregate.js              집계 로직 (Node/브라우저 공용)
-  build.mjs                 집계치 수신(Apps Script) → 암호화 저장
+  build.mjs                 집계치 수신(Apps Script) → 암호화 저장 (--svc dv 닥터빌 / --svc pv 팜빌)
   crypto.mjs                암호화 모듈 (AES-256-GCM, PBKDF2-SHA256 60만 회)
   rekey.mjs                 비밀번호 변경 시 전체 재암호화
 apps-script/
   Code.gs                   시트에 붙이는 집계 웹앱 (비밀번호 확인 → 집계치 반환·주차별 저장)
   aggregate.gs              scripts/aggregate.js와 동일한 집계 로직
-.github/workflows/weekly-snapshot.yml   (선택) 수동 실행용 — 자동 예약 없음
+.github/workflows/weekly-snapshot.yml   수동 실행용(자동 예약 없음) — 닥터빌·팜빌 저장본 게시, 실행 시 대상 선택(all/doctorville/pharmville)
 ```
 
 ## 대시보드 구성
@@ -110,6 +112,23 @@ apps-script/
 - 로컬 테스트: `DASHBOARD_PASSWORD=... node scripts/build.mjs --csv 내보낸파일.csv` (CSV는 커밋하지 마세요)
 - 시트 필드명이 바뀌면 `scripts/aggregate.js`의 `DIMS` 매핑을 수정합니다.
 - 시트 적재 후 갱신해야 해당 주 신규가 정확히 집계됩니다. 기존 회원의 최종 로그인·수신 동의도 함께 갱신해 적재하면 활성 지표가 정확해집니다.
+
+## 팜빌 회원 탭
+
+상단 **[팜빌 회원]** 탭. 같은 스프레드시트(회원분석)의 `팜빌` 탭을 닥터빌과 같은 방식(주간·월간, 작년 대비, 추이, 항목별 특성)으로 집계합니다.
+
+- 게시 방식은 닥터빌과 동일합니다.
+  1. 담당자가 `팜빌` 탭에 회원 데이터 적재 → 대시보드 [팜빌 회원] 탭에서 **[갱신]** → Apps Script가 `팜빌` 시트를 집계해 숨김 탭 `_dashboard_history_pv`에 주차별 저장 (요청에 `svc: 'pv'`)
+  2. GitHub **Actions → 주간 회원 스냅샷 → Run workflow** (대상 `all` 또는 `pharmville`) → 시트에 저장된 최신 주차 집계를 받아 `docs/data/pv/`에 암호화 저장·커밋 → GitHub Pages에 게시
+  3. 대시보드는 시트 연동이 되면 시트 집계를, 안 되면 저장소 저장본(`docs/data/pv/*.enc.json`)을 표시합니다.
+- 처음 열 때 시트에 저장된 팜빌 집계가 없으면 1회 자동 집계합니다.
+- Actions의 Apps Script 경로는 Secret `APPS_SCRIPT_URL`(웹 앱 주소)과 `DASHBOARD_PASSWORD`(대시보드 비밀번호 = 시트 [비밀번호 설정] 값)를 사용합니다. 서비스 계정 경로를 쓰면 `팜빌` 탭을 직접 읽어 집계합니다(범위 변경 시 변수 `SHEET_RANGE_PV`).
+- 비밀번호 변경 시 `scripts/rekey.mjs`가 닥터빌·팜빌·포인트 저장본을 모두 재암호화합니다.
+- 항목: 직업, 근무 형태, 가입 경로, 최종 로그인 경과, SMS·이메일 수신(O/X → 수신/미수신). KPI의 '통합회원 전환율' 대신 '약국개설자 비중' 표시, 진료과×연령 히트맵은 숨김
+- 집계에 사용하지 않는 필드: 회원 번호(중복 제거에만 사용 — 같은 번호는 아래쪽 행 우선), 이름, 아이디, 초대 코드, 가입경로 상세, 근무처, 면허 취득일
+- 날짜는 `2026-10-12`, `2026-1-5`, `2026. 1. 5` 형식 모두 인식 (가입일은 날짜만 있어 그날 0시 기준)
+- 시트 메뉴 **[대시보드] → [팜빌 지금 집계하기 (테스트)]**, [연동 진단]에 팜빌 점검 항목 추가
+- 팜빌 탭 이름이 바뀌면 `Code.gs`의 `PV_SHEET_NAME`, 필드명이 바뀌면 `scripts/aggregate.js`의 `DIMS_PV`를 수정합니다.
 
 ## 활동성 탭
 
