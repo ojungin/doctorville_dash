@@ -35,12 +35,28 @@
     { key: 'recency', label: '최종 로그인 경과', field: '최종 로그인', ordered: true }
   ];
 
+  // 팜빌(약사 회원) — 같은 스프레드시트의 '팜빌' 탭
+  // 집계에 사용하지 않는 필드: 회원 번호(중복 제거에만 사용), 이름, 아이디, 초대 코드, 가입경로 상세, 근무처, 면허 취득일
+  var DIMS_PV = [
+    { key: 'job', label: '직업', field: '직업' },
+    { key: 'work', label: '근무 형태', field: '근무 형태' },
+    { key: 'route', label: '가입 경로', field: '가입 경로' },
+    { key: 'recency', label: '최종 로그인 경과', field: '최종 로그인 시간', ordered: true },
+    { key: 'sms', label: 'SMS 수신', field: '마케팅 수신동의 (SMS)' },
+    { key: 'email', label: '이메일 수신', field: '마케팅 수신동의 (이메일)' }
+  ];
+  // 서비스별 설정: dims = 항목, join = 가입일 필드, id = 중복 제거 기준 필드(같은 값이면 아래쪽 행 우선)
+  var PROFILES = {
+    dv: { dims: DIMS, join: '가입일시', id: null },
+    pv: { dims: DIMS_PV, join: '가입일', id: '회원 번호' }
+  };
+
   var AGE_ORDER = ['20대', '30대', '40대', '50대', '60대', '70대 이상', '확인필요'];
   var RECENCY_ORDER = ['7일 이내', '8~30일', '31~90일', '91~180일', '181일~1년', '1년 초과', UNKNOWN];
 
   // ---- 시간 유틸 (모두 KST 기준) ----------------------------------------
   function parseKst(s) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec((s || '').trim());
+    var m = /^(\d{4})\s*[-.\/]\s*(\d{1,2})\s*[-.\/]\s*(\d{1,2})\.?(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(String(s == null ? '' : s).trim());
     if (!m) return null;
     return Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) - KST;
   }
@@ -87,6 +103,8 @@
         return v || UNKNOWN;
       case 'sms':
       case 'email':
+        if (/^(O|Y|동의)$/i.test(v)) return '수신';      // 팜빌: O / X
+        if (/^(X|N|미동의)$/i.test(v)) return '미수신';
         return v || '미설정';
       case 'recency': {
         var t = parseKst(v);
@@ -146,11 +164,13 @@
   function aggregate(rows, opt) {
     opt = opt || {};
     var now = opt.now || Date.now();
+    var PF = PROFILES[opt.profile] || PROFILES.dv, DIMS = PF.dims, JOIN = PF.join;
+    var hasDim = function (k) { return DIMS.some(function (d) { return d.key === k; }); };
     var WEEKS = opt.weeks || 52;
     var header = rows[0].map(function (h) { return String(h).trim(); });
     var idx = {};
     header.forEach(function (h, i) { idx[h] = i; });
-    var need = DIMS.map(function (d) { return d.field; }).concat(['가입일시']);
+    var need = DIMS.map(function (d) { return d.field; }).concat([JOIN], PF.id ? [PF.id] : []);
     var missing = need.filter(function (f) { return !(f in idx); });
     if (missing.length) throw new Error('시트에 필요한 필드가 없습니다: ' + missing.join(', '));
 
@@ -183,10 +203,17 @@
     var cutoffMD = (nowK.getUTCMonth() + 1) * 100 + nowK.getUTCDate(); // 동기간 비교 기준 (MMDD)
     var monCur = [0,0,0,0,0,0,0,0,0,0,0,0], monLast = [0,0,0,0,0,0,0,0,0,0,0,0], ytdLast = 0, lastMtd = 0;
 
+    // 같은 회원이 여러 번 적재된 경우 마지막(아래쪽) 행만 사용
+    var lastRow = null;
+    if (PF.id) {
+      lastRow = {};
+      for (var q0 = 1; q0 < rows.length; q0++) { var id0 = rows[q0] && String(rows[q0][idx[PF.id]] == null ? '' : rows[q0][idx[PF.id]]).trim(); if (id0) lastRow[id0] = q0; }
+    }
     for (var r = 1; r < rows.length; r++) {
       var row = rows[r];
       if (!row || !row.length || row.every(function (c) { return !String(c || '').trim(); })) continue;
-      var j = parseKst(row[idx['가입일시']]);
+      if (lastRow) { var id1 = String(row[idx[PF.id]] == null ? '' : row[idx[PF.id]]).trim(); if (id1 && lastRow[id1] !== r) continue; }
+      var j = parseKst(row[idx[JOIN]]);
       if (asOf && j != null && j >= (opt.cutoff || curWeek)) continue;   // 과거 재계산: 기준 시점 이후 가입자는 제외
       total++;
       var vals = {};
@@ -222,8 +249,10 @@
       if (vals.sms === '수신') smsYes++;
       if (vals.email === '수신') emailYes++;
 
-      if (!deptAge[vals.dept]) deptAge[vals.dept] = {};
-      inc(deptAge[vals.dept], vals.age);
+      if (vals.dept != null) {
+        if (!deptAge[vals.dept]) deptAge[vals.dept] = {};
+        inc(deptAge[vals.dept], vals.age);
+      }
 
       if (j != null && j <= yoyNow) {
         var jd = kstDate(j), jy = jd.getUTCFullYear(), jm = jd.getUTCMonth();
@@ -291,7 +320,7 @@
     });
 
     // 진료과 × 연령대 (상위 12개 진료과, 행 기준 %)
-    var topDepts = outDims.dept.rows.filter(function (x) { return x.name !== SMALL && x.name !== UNKNOWN; }).slice(0, 12).map(function (x) { return x.name; });
+    var topDepts = !outDims.dept ? [] : outDims.dept.rows.filter(function (x) { return x.name !== SMALL && x.name !== UNKNOWN; }).slice(0, 12).map(function (x) { return x.name; });
     var heat = topDepts.map(function (dep) {
       var m = deptAge[dep] || {}, t = 0;
       AGE_ORDER.forEach(function (a) { t += m[a] || 0; });
@@ -300,6 +329,7 @@
 
     return {
       schema: 1,
+      svc: opt.profile === 'pv' ? 'pv' : 'dv',
       historical: asOf ? (opt.kind || 'week') : undefined,
       generatedAt: new Date(now).toISOString(),
       generatedAtKst: ymd(now) + ' ' + kstDate(now).toISOString().slice(11, 16),
@@ -320,7 +350,7 @@
         active30: active30,
         active7Rate: pct(active7, total),
         active30Rate: pct(active30, total),
-        integratedRate: pct(integrated, total),
+        integratedRate: hasDim('integrated') ? pct(integrated, total) : null,
         smsOptInRate: pct(smsYes, total),
         emailOptInRate: pct(emailYes, total)
       },
@@ -328,7 +358,7 @@
       weekly: series,
       monthRef: { month: mseries[mseries.length - 1].month, start: ymd(monthStart(refY, refMm)), end: ymd(monthStart(refY, refMm + 1) - DAY) },
       monthlySeries: mseries,
-      deptAge: { ages: AGE_ORDER, rows: heat },
+      deptAge: outDims.dept ? { ages: AGE_ORDER, rows: heat } : null,
       monthly: {
         thisYear: Y, lastYear: Y - 1, asOf: ymd(yoyNow), currentMonth: nowK.getUTCMonth() + 1,
         cur: monCur.map(function (n, i) { return i <= nowK.getUTCMonth() ? n : null; }),
