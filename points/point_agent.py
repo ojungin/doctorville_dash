@@ -4,6 +4,8 @@
 닥터빌 포인트 대시보드 — 로컬 에이전트
 
   포인트 Raw CSV(개인정보 포함)는 이 PC 밖으로 나가지 않습니다.
+  v1.6.0: 팜빌 포인트 지원 — 포인트Raw/팜빌 폴더의 CSV를 별도 DB(data/pv_points.sqlite)에 누적하고
+          docs/data/pv_points.enc.json 으로 게시. [갱신] 한 번에 닥터빌·팜빌 신규 파일을 함께 확인·적재합니다.
   이 스크립트가 PC 안에서 CSV를 읽어 SQLite에 누적하고, 집계치만 대시보드 비밀번호로
   암호화해 docs/data/points.enc.json 으로 게시합니다.
 
@@ -47,7 +49,7 @@ SSL_CTX = ssl.create_default_context()
 if hasattr(ssl, "VERIFY_X509_STRICT"):
     SSL_CTX.verify_flags &= ~ssl.VERIFY_X509_STRICT
 
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 HERE = os.path.dirname(os.path.abspath(__file__))
 KST = dt.timezone(dt.timedelta(hours=9))
 
@@ -77,7 +79,37 @@ DEFAULTS = {
     "list_limit": 300,              # 이상치 목록 최대 표시 건수
     "export_max_months": 6,         # Excel 추출 최대 기간(개월)
     "weekly_weeks": 156,            # 주간 분석으로 내보낼 최근 주 수 (잔여는 전체 기간 누적으로 계산)
+    # 팜빌 포인트 (포인트Raw\팜빌 폴더) — 닥터빌과 같은 [갱신]에서 함께 처리
+    "pv": {
+        "enabled": True,
+        "raw_dir": "",                                       # 비우면 raw_dir\팜빌
+        "db_path": os.path.join(HERE, "data", "pv_points.sqlite"),
+        "out_path": os.path.join(HERE, "publish", "pv_points.enc.json"),
+        "github_path": "docs/data/pv_points.enc.json",
+    },
 }
+SVC_NAME = {"dv": "닥터빌", "pv": "팜빌"}
+
+
+def svc_cfg(cfg, svc):
+    """서비스별 설정(복사본). dv = 기본 설정 그대로, pv = 팜빌 폴더·DB·게시 경로로 바꾼 설정"""
+    c = json.loads(json.dumps(cfg))
+    c["svc"] = svc
+    if svc == "pv":
+        pv = cfg.get("pv") or {}
+        c["raw_dir"] = os.path.abspath(os.path.expanduser(pv.get("raw_dir") or os.path.join(cfg["raw_dir"], "팜빌")))
+        c["db_path"] = os.path.abspath(os.path.expanduser(pv.get("db_path") or os.path.join(HERE, "data", "pv_points.sqlite")))
+        c["out_path"] = os.path.abspath(os.path.expanduser(pv.get("out_path") or os.path.join(HERE, "publish", "pv_points.enc.json")))
+        c["github"]["path"] = pv.get("github_path") or "docs/data/pv_points.enc.json"
+        for k in ("big_earn_threshold", "repeat_buy_min", "earn_user_thresholds"):
+            if k in pv:
+                c[k] = pv[k]
+    return c
+
+
+def pv_enabled(cfg):
+    pv = cfg.get("pv") or {}
+    return pv.get("enabled", True) is not False and os.path.isdir(svc_cfg(cfg, "pv")["raw_dir"])
 
 
 def load_config():
@@ -96,6 +128,7 @@ def load_config():
     for k in ("raw_dir", "db_path", "out_path", "repo_dir"):
         if cfg.get(k):
             cfg[k] = os.path.abspath(os.path.expanduser(cfg[k]))
+    cfg["svc"] = "dv"
     tok = os.environ.get("DV_GITHUB_TOKEN")
     if tok:
         cfg["github"]["token"] = tok
@@ -145,18 +178,41 @@ USE_RULES = [
 BUY_CATS = {"비즈마켓", "기프티콘", "하늘맛", "제로샵", "호텔패스", "아카데미 콘텐츠", "기타 사용"}
 CANCEL_RE = re.compile(r"취소|환불")
 
+# 팜빌: 내용 = CSV의 title (설문 참여, 관리자 일괄 지급, 회원 가입, 빌마켓 구매, 제로샵 결제, 포인트 소멸 …)
+PV_EARN_RULES = [
+    (r"테스트|조정|회수", "테스트·조정"),
+    (r"설문|퀴즈", "설문 참여"),
+    (r"관리자|일괄|지급", "관리자 지급"),
+    (r"더샵|약국몰|인증", "더샵 회원 인증"),
+    (r"초대|추천", "친구 초대"),
+    (r"가입", "회원 가입"),
+    (r"이벤트", "이벤트 참여"),
+]
+PV_USE_RULES = [
+    (r"소멸", "포인트 소멸"),
+    (r"테스트|회수", "테스트·조정"),
+    (r"빌마켓", "빌마켓"),
+    (r"제로샵", "제로샵"),
+]
+PV_BUY_CATS = {"빌마켓", "제로샵", "기타 사용"}
 
-def classify(content, positive):
+
+def buy_cats(svc):
+    return PV_BUY_CATS if svc == "pv" else BUY_CATS
+
+
+def classify(content, positive, svc="dv"):
     """→ (kind, category). kind: earn | cancel | use | expire"""
     n = norm_content(content)
+    earn_rules, use_rules = (PV_EARN_RULES, PV_USE_RULES) if svc == "pv" else (EARN_RULES, USE_RULES)
     if positive:
         if CANCEL_RE.search(n):
             return "cancel", "결제 취소·환불"
-        for rx, c in EARN_RULES:
+        for rx, c in earn_rules:
             if re.search(rx, n):
                 return "earn", c
         return "earn", "기타 적립"
-    for rx, c in USE_RULES:
+    for rx, c in use_rules:
         if re.search(rx, n):
             return ("expire" if c == "포인트 소멸" else "use"), c
     return "use", "기타 사용"
@@ -255,12 +311,54 @@ USE_WORDS = re.compile(r"사용|차감|소멸|회수|전환|결제")
 MIGRATION_RE = re.compile(r"포인트\s*이관")
 
 
+PV_COLS = ("receiver_member_id", "created_date", "point_amount", "title")
+
+
+def is_pv_header(header):
+    h = [str(x).strip().lstrip("\ufeff") for x in header]
+    return all(c in h for c in PV_COLS)
+
+
+def iter_pv_rows(rd, header):
+    """팜빌 포인트 내역(DB 추출 형식): 받는 회원(receiver_member_id) 기준, 금액 = point_amount(부호 있음),
+    내용 = title. 처리 상태(process_status)가 SUCCESS가 아닌 행은 제외."""
+    h = [str(x).strip().lstrip("\ufeff") for x in header]
+    iu, it, ia, ic = (h.index(c) for c in PV_COLS)
+    ist = h.index("process_status") if "process_status" in h else None
+    bad = skip = 0
+    for row in rd:
+        if not row:
+            continue
+        try:
+            if ist is not None and row[ist] and row[ist].strip().upper() != "SUCCESS":
+                skip += 1
+                continue
+            usn = clean(row[iu])
+            ts = parse_ts(row[it])
+            amt = parse_num(row[ia])
+            content = clean(row[ic]) or "(내용 없음)"
+        except IndexError:
+            bad += 1
+            continue
+        if not usn or not ts or not amt:
+            bad += 1
+            continue
+        yield usn, ts, round(amt, 2), 0.0, content
+    if skip:
+        log("  · 처리 실패(SUCCESS 아님) 행 %d건 제외" % skip)
+    if bad:
+        log("  · 인식 불가/0포인트 행 %d건 제외" % bad)
+
+
 def iter_rows(path):
     """(usn, ts, amt, chg, content) 를 돌려줍니다. amt: 적립 포인트 증감(+/-), chg: 충전 포인트 증감(+/-)"""
     enc = detect_encoding(path)
     with open(path, encoding=enc, errors="replace", newline="") as f:
         rd = csv.reader(f)
         header = next(rd)
+        if is_pv_header(header):
+            yield from iter_pv_rows(rd, header)
+            return
         col = map_columns(header)
         need = ["usn", "ts"]
         miss = [k for k in need if k not in col] + ([] if ("amt" in col or "use" in col) else ["amt"])
@@ -435,7 +533,7 @@ def pending_files(db, raw_dir):
 
 
 FAILED = []
-PROGRESS = {"running": False, "file": "", "rows": 0, "fileIndex": 0, "fileCount": 0, "stage": ""}
+PROGRESS = {"running": False, "file": "", "rows": 0, "fileIndex": 0, "fileCount": 0, "stage": "", "svc": ""}
 
 
 def load_file(db, name, path, size, mtime):
@@ -534,12 +632,14 @@ def aggregate(db, cfg):
     db.execute("DROP TABLE IF EXISTS temp.cat")
     db.execute("CREATE TEMP TABLE cat(cid INTEGER, pos INTEGER, kind TEXT, cat TEXT, buy INTEGER, PRIMARY KEY(cid,pos))")
     rows = []
+    svc = cfg.get("svc", "dv")
+    BUY = buy_cats(svc)
     for cid, text in db.execute("SELECT cid, text FROM contents"):
         for pos in (1, 0):
-            kind, c = classify(text, bool(pos))
+            kind, c = classify(text, bool(pos), svc)
             if MIGRATION_RE.search(text or ""):      # 시스템 이관(적립·충전 포인트 이관) → 통계 제외
                 kind, c = "skip", "시스템 이관"
-            rows.append((cid, pos, kind, c, 1 if (kind == "use" and c in BUY_CATS) else 0))
+            rows.append((cid, pos, kind, c, 1 if (kind == "use" and c in BUY) else 0))
     db.executemany("INSERT INTO temp.cat VALUES (?,?,?,?,?)", rows)
     J = "FROM tx JOIN temp.cat c ON c.cid = tx.cid AND c.pos = (tx.amt > 0) AND tx.amt != 0"
     # 회원·월·내용 단위 요약 (원장 1회 스캔) — 이후 집계는 요약표에서 계산
@@ -743,8 +843,18 @@ def aggregate(db, cfg):
 
     rnd = lambda arr: [round(v) for v in arr]
     weekly = weekly_block(db, cfg, J, rng)
+    if svc == "pv":
+        rules = {"balance": "잔여 = 적립+사용취소-사용-소멸 누적 (팜빌 포인트 내역 시작 시점 잔액 0). 충전 포인트 없음",
+                 "excluded": "처리 상태가 SUCCESS가 아닌 행 제외",
+                 "use": "사용 = 빌마켓·제로샵 등 구매 금액(구매 취소는 별도 표시), 소멸 별도",
+                 "member": "회원 = 포인트를 받은 회원(receiver_member_id)"}
+    else:
+        rules = {"balance": "잔여 = 적립 포인트 잔여 + 충전 포인트 잔여. 데이터 시작 시점 잔액 0 가정, 적립+사용취소-사용-소멸 누적. 회원별 잔여·고액 잔여 기준도 합계 기준", "balanceCheck": "2025-04-19 시스템 이관 잔액(적립 819,283,589P)과 같은 시점 원장 누적 819,574,724P 비교: 회원 36,674명 중 36,517명 일치", "excluded": "시스템 이관(적립·충전 포인트 이관) 행 제외",
+                 "use": "사용 = 구매·전환 금액(결제 취소·환불은 별도 표시), 소멸 별도"}
+    has_chg = any(bal_c)
     out = {
         "v": 1,
+        "svc": svc,
         "generatedAtKst": dt.datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
         "range": {"from": rng[0][:10], "to": rng[1][:10], "tx": rng[2], "members": rng[3]},
         "months": months,
@@ -753,7 +863,7 @@ def aggregate(db, cfg):
         "cancel": {"amt": rnd(kinds["cancel"]["amt"]), "cnt": kinds["cancel"]["cnt"]},
         "expire": {"amt": rnd(kinds["expire"]["amt"]), "cnt": kinds["expire"]["cnt"]},
         "balance": bal,                      # 적립 포인트 잔여 (월말)
-        "balanceChg": bal_c,                 # 충전 포인트 잔여 (월말)
+        "balanceChg": bal_c if (has_chg or svc != "pv") else None,   # 충전 포인트 잔여 (월말, 팜빌은 없음)
         "balanceTotal": [bal[i] + bal_c[i] for i in range(N)],
         "holders": holders,
         "methods": {k: {c: {"amt": rnd(m["amt"]), "cnt": m["cnt"], "users": m.get("users")} for c, m in v.items()}
@@ -765,15 +875,14 @@ def aggregate(db, cfg):
             "bigEarn": {"threshold": big, "monthly": big_m, "monthlyAmt": rnd(big_amt_m), "byCat": big_by_cat,
                         "total": sum(big_m), "list": big_list},
             "repeatBuy": {"min": rb, "monthly": rep_m, "monthlyAmt": rnd(rep_amt_m), "total": rep_total[0],
-                          "members": rep_total[1], "cats": sorted(BUY_CATS), "list": rep_list},
+                          "members": rep_total[1], "cats": sorted(BUY), "list": rep_list},
         },
         "weekly": weekly,
         "files": files,
-        "rules": {"balance": "잔여 = 적립 포인트 잔여 + 충전 포인트 잔여. 데이터 시작 시점 잔액 0 가정, 적립+사용취소-사용-소멸 누적. 회원별 잔여·고액 잔여 기준도 합계 기준", "balanceCheck": "2025-04-19 시스템 이관 잔액(적립 819,283,589P)과 같은 시점 원장 누적 819,574,724P 비교: 회원 36,674명 중 36,517명 일치", "excluded": "시스템 이관(적립·충전 포인트 이관) 행 제외",
-                  "use": "사용 = 구매·전환 금액(결제 취소·환불은 별도 표시), 소멸 별도"},
+        "rules": rules,
     }
-    log("집계 완료 (%.0f초) · 기간 %s ~ %s · 거래 %s건 · 회원 %s명" % (
-        time.time() - t0, out["range"]["from"], out["range"]["to"], format(rng[2], ","), format(rng[3], ",")))
+    log("[%s] 집계 완료 (%.0f초) · 기간 %s ~ %s · 거래 %s건 · 회원 %s명" % (
+        SVC_NAME.get(svc, svc), time.time() - t0, out["range"]["from"], out["range"]["to"], format(rng[2], ","), format(rng[3], ",")))
     return out
 
 
@@ -936,14 +1045,15 @@ def publish(cfg, box):
     with open(cfg["out_path"], "w", encoding="utf-8") as f:
         f.write(text)
     if cfg.get("repo_dir"):
-        p = os.path.join(cfg["repo_dir"], "docs", "data", "points.enc.json")
+        rel = (cfg.get("github") or {}).get("path") or "docs/data/points.enc.json"
+        p = os.path.join(cfg["repo_dir"], *rel.split("/"))
         with open(p, "w", encoding="utf-8") as f:
             f.write(text)
         if cfg.get("git_push"):
             try:
                 g = lambda *a: subprocess.run(["git", "-C", cfg["repo_dir"]] + list(a), check=True,
                                               capture_output=True, text=True)
-                g("add", "docs/data/points.enc.json")
+                g("add", rel)
                 if subprocess.run(["git", "-C", cfg["repo_dir"], "diff", "--cached", "--quiet"]).returncode:
                     g("commit", "-m", "포인트 집계 갱신")
                 g("push")
@@ -964,7 +1074,7 @@ def publish(cfg, box):
             except urllib.error.HTTPError as e:
                 if e.code != 404:
                     raise
-            body = {"message": "포인트 집계 갱신", "branch": gh["branch"],
+            body = {"message": ("팜빌 " if cfg.get("svc") == "pv" else "") + "포인트 집계 갱신", "branch": gh["branch"],
                     "content": base64.b64encode(text.encode()).decode()}
             if sha:
                 body["sha"] = sha
@@ -1163,8 +1273,8 @@ def export_xlsx(cfg, password, frm, to):
             if k is None:
                 t = texts.get(cid, "")
                 mig = bool(MIGRATION_RE.search(t))
-                kp = classify(t, True)[0]
-                kn = classify(t, False)[0]
+                kp = classify(t, True, cfg.get("svc", "dv"))[0]
+                kn = classify(t, False, cfg.get("svc", "dv"))[0]
                 k = kinds[cid] = (mig, kp, kn, item_name(t))
             return k
         # 회원별 월: [적립, 취소적립, 적립포인트 사용, 충전포인트 사용, 소멸, 충전포인트 충전·환원]
@@ -1200,7 +1310,7 @@ def export_xlsx(cfg, password, frm, to):
         now = dt.datetime.now(KST).strftime("%Y-%m-%d %H:%M")
         # 1) 안내
         info = XlsxSheet("안내", widths=[22, 100], freeze=0, autofilter=False)
-        info.add(["닥터빌 포인트 Excel 추출"], 4)
+        info.add(["%s 포인트 Excel 추출" % SVC_NAME.get(cfg.get("svc", "dv"), "닥터빌")], 4)
         info.add([])
         for k, v in [
             ("추출 기간", "%s ~ %s (%d개월)" % (months[0], months[-1], len(months))),
@@ -1298,7 +1408,7 @@ def export_xlsx(cfg, password, frm, to):
                     ud.add([m, k[0], k[1], R(e[0]), R(e[1]), R(e[0] + e[1]), e[2], len(e[3])])
         data = build_xlsx([info, um, ut, ew, uw, ed, ud])
         log("  · Excel 생성 완료: 회원 %s명 · %s행 · %.0f초" % (format(len(users), ","), format(len(per), ","), time.time() - t0))
-        return data, "닥터빌_포인트_%s_%s.xlsx" % (months[0].replace("-", ""), months[-1].replace("-", ""))
+        return data, "%s_포인트_%s_%s.xlsx" % (SVC_NAME.get(cfg.get("svc", "dv"), "닥터빌"), months[0].replace("-", ""), months[-1].replace("-", ""))
     finally:
         EXPORT_LOCK.release()
 
@@ -1309,26 +1419,46 @@ def export_xlsx(cfg, password, frm, to):
 _lock = threading.Lock()
 
 
+def refresh_one(cfg, key, svc):
+    """한 서비스(dv 닥터빌 / pv 팜빌): 신규 파일 적재 → 집계 → 암호화 → 게시"""
+    c = svc_cfg(cfg, svc)
+    FAILED.clear()
+    PROGRESS.update(svc=svc, stage="start", file="", rows=0, fileIndex=0, fileCount=0)
+    log("===== %s 포인트 =====" % SVC_NAME[svc])
+    db = open_db(c["db_path"])
+    if svc == "dv":
+        db = migrate_if_needed(c, db)
+    try:
+        loaded = ingest(db, c["raw_dir"])
+        data = aggregate(db, c)
+    finally:
+        db.close()
+    data["lastLoaded"] = loaded
+    PROGRESS.update(stage="publish")
+    pub = publish(c, encrypt_json(key, data))
+    log(pub["message"])
+    return {"ok": True, "data": data, "loaded": loaded, "failed": list(FAILED), "publish": pub}
+
+
 def refresh(cfg, password):
+    """[갱신] = 닥터빌 → 팜빌 순서로 신규 파일을 확인·적재하고 각각 집계·게시.
+    응답 최상위는 닥터빌(기존 대시보드 호환), 팜빌 결과는 'pv' 아래."""
     key = derive_key(get_meta(cfg), password)       # 비밀번호 먼저 확인
     if not _lock.acquire(blocking=False):
         raise RuntimeError("이미 갱신이 진행 중입니다.")
-    PROGRESS.update(running=True, stage="start", file="", rows=0, fileIndex=0, fileCount=0)
+    PROGRESS.update(running=True, stage="start", file="", rows=0, fileIndex=0, fileCount=0, svc="dv")
     try:
-        FAILED.clear()
-        db = migrate_if_needed(cfg, open_db(cfg["db_path"]))
-        try:
-            loaded = ingest(db, cfg["raw_dir"])
-            data = aggregate(db, cfg)
-        finally:
-            db.close()
-        data["lastLoaded"] = loaded
-        PROGRESS.update(stage="publish")
-        pub = publish(cfg, encrypt_json(key, data))
-        log(pub["message"])
-        return {"ok": True, "data": data, "loaded": loaded, "failed": list(FAILED), "publish": pub}
+        res = refresh_one(cfg, key, "dv")
+        if pv_enabled(cfg):
+            try:
+                res["pv"] = refresh_one(cfg, key, "pv")
+            except Exception as e:
+                traceback.print_exc()
+                log("! 팜빌 포인트 갱신 실패: %s" % e)
+                res["pv"] = {"ok": False, "error": "failed", "message": str(e)[:300]}
+        return res
     finally:
-        PROGRESS.update(running=False, stage="")
+        PROGRESS.update(running=False, stage="", svc="")
         _lock.release()
 
 
@@ -1386,7 +1516,17 @@ class Handler(BaseHTTPRequestHandler):
                 db.close()
             except Exception:
                 sch = None
-            return self._send(200, {"ok": True, "agent": "dv-point", "version": VERSION, "pending": n,
+            npv = None
+            if pv_enabled(self.cfg):
+                try:
+                    pc = svc_cfg(self.cfg, "pv")
+                    db = open_db(pc["db_path"])
+                    npv = len(pending_files(db, pc["raw_dir"]))
+                    db.close()
+                except Exception:
+                    npv = None
+            return self._send(200, {"ok": True, "agent": "dv-point", "version": VERSION, "pending": n, "pendingPv": npv,
+                                    "pv": pv_enabled(self.cfg),
                                     "running": PROGRESS["running"], "schema": sch, "needsRebuild": sch is not None and sch < SCHEMA_VERSION,
                                     "exportMaxMonths": int(self.cfg.get("export_max_months") or 6)})
         if self.path.startswith("/progress"):
@@ -1403,7 +1543,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(400, {"ok": False, "error": "bad_request"})
         if self.path.startswith("/export"):
             try:
-                data, fname = export_xlsx(self.cfg, body.get("password") or "", body.get("from"), body.get("to"))
+                c = svc_cfg(self.cfg, "pv" if body.get("svc") == "pv" else "dv")
+                data, fname = export_xlsx(c, body.get("password") or "", body.get("from"), body.get("to"))
             except PermissionError as e:
                 return self._send(401, {"ok": False, "error": "unauthorized", "message": str(e)})
             except (ValueError, RuntimeError) as e:
@@ -1437,7 +1578,8 @@ def serve(cfg):
     print(" 닥터빌 포인트 갱신 서버 v%s — http://127.0.0.1:%s" % (VERSION, cfg["port"]))
     print(" Raw 폴더 : %s" % cfg["raw_dir"])
     print(" 누적 DB  : %s" % cfg["db_path"])
-    print(" 대시보드 [포인트] 탭에서 [갱신]을 누르면 신규 CSV만 적재·집계합니다.")
+    print(" 팜빌 Raw : %s%s" % (svc_cfg(cfg, "pv")["raw_dir"], "" if pv_enabled(cfg) else "  (폴더 없음 — 팜빌 건너뜀)"))
+    print(" 대시보드 [포인트 관리]·[팜빌 포인트] 탭에서 [갱신]을 누르면 닥터빌·팜빌 신규 CSV만 적재·집계합니다.")
     print(" 이 창을 닫으면 갱신 서버가 종료됩니다. (Ctrl+C)")
     print("=" * 64, flush=True)
     try:
@@ -1454,6 +1596,7 @@ def main():
     ap.add_argument("--raw-dir")
     ap.add_argument("--db")
     ap.add_argument("--out")
+    ap.add_argument("--svc", choices=["dv", "pv"], default="dv", help="inspect/status/export/aggregate-json 대상 (dv 닥터빌, pv 팜빌)")
     a = ap.parse_args()
     cfg = load_config()
     if a.raw_dir:
@@ -1461,14 +1604,18 @@ def main():
     if a.db:
         cfg["db_path"] = a.db
     cfg["raw_dir"], cfg["db_path"] = os.path.abspath(cfg["raw_dir"]), os.path.abspath(cfg["db_path"])
+    base_cfg = cfg
+    if a.cmd not in ("serve", "refresh"):
+        cfg = svc_cfg(cfg, a.svc)
     if a.cmd == "serve":
         serve(cfg)
     elif a.cmd == "refresh":
         pw = os.environ.get("DASHBOARD_PASSWORD") or getpass.getpass("대시보드 비밀번호: ")
-        res = refresh(cfg, pw)
-        for f in res["failed"]:
-            print("건너뛴 파일: %s — %s" % (f["name"], f["error"]))
-        print(res["publish"]["message"])
+        res = refresh(base_cfg, pw)
+        for r in [res] + ([res["pv"]] if res.get("pv") else []):
+            for f in r.get("failed", []):
+                print("건너뛴 파일: %s — %s" % (f["name"], f["error"]))
+            print(r.get("publish", {}).get("message") or r.get("message"))
     elif a.cmd == "inspect":
         for name, path, size, _ in list_csv(cfg["raw_dir"]):
             enc = detect_encoding(path)
