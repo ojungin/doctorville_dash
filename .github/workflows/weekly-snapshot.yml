@@ -1,8 +1,15 @@
 name: 주간 회원 스냅샷
 
 # 자동 예약 실행은 사용하지 않음 (대시보드 [갱신] 버튼 방식으로 전환). 필요 시 Actions 탭에서 수동 실행만 가능
+# 닥터빌·팜빌 저장본(docs/data, docs/data/pv)을 함께 갱신. 대상은 실행 시 선택
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      target:
+        description: '갱신 대상'
+        type: choice
+        options: [all, doctorville, pharmville]
+        default: all
 
 permissions:
   contents: write
@@ -21,17 +28,32 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 구글시트 집계
+      - name: 닥터빌 회원 집계
+        if: ${{ inputs.target != 'pharmville' }}
         env:
           APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
           APPS_SCRIPT_TOKEN: ${{ secrets.APPS_SCRIPT_TOKEN }}
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
           SHEET_RANGE: ${{ vars.SHEET_RANGE || '시트1' }}
+          SHEET_RANGE_PV: ${{ vars.SHEET_RANGE_PV || '팜빌' }}
           DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
-        run: node scripts/build.mjs
+        run: node scripts/build.mjs --svc dv
+
+      - name: 팜빌 회원 집계
+        if: ${{ !cancelled() && inputs.target != 'doctorville' }}   # 닥터빌이 실패해도 팜빌은 진행
+        env:
+          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
+          APPS_SCRIPT_TOKEN: ${{ secrets.APPS_SCRIPT_TOKEN }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          SHEET_RANGE: ${{ vars.SHEET_RANGE || '시트1' }}
+          SHEET_RANGE_PV: ${{ vars.SHEET_RANGE_PV || '팜빌' }}
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+        run: node scripts/build.mjs --svc pv
 
       - name: 결과 커밋
+        if: ${{ !cancelled() }}   # 한쪽만 성공해도 그 결과는 커밋
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -39,6 +61,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "변경 없음"
           else
-            git commit -m "data: 주간 회원 스냅샷 $(date -u +%Y-%m-%d)"
+            git commit -m "data: 주간 회원 스냅샷 (${{ inputs.target }}) $(date -u +%Y-%m-%d)"
             git push
           fi
