@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>닥터빌 회원 대시보드</title>
+<title>닥터빌 · 팜빌 운영 대시보드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 :root {
   color-scheme: light;
@@ -265,6 +266,33 @@ a.hcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .soon { text-align: center; padding: 56px 24px; }
 .soon h2 { margin: 0 0 6px; font-size: 18px; }
 .soon p { margin: 0; color: var(--ink-2); }
+/* 계정·권한 */
+#sideNav [hidden] { display: none !important; }
+.modal-bg { z-index: 60; }
+#adsMain, #accMain { display: none; }
+body.view-ads #adsMain, body.view-accounts #accMain { display: block; }
+#userBadge { color: var(--header-ink); font-weight: 600; }
+body.role-partner #homeMemGrp, body.role-partner #homeMembers { display: none; }
+.acc-me { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.acc-me .hl { font-size: 12px; color: var(--ink-2); }
+.acc-act { display: flex; gap: 8px; flex-wrap: wrap; }
+.acc-sum { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
+.acctbl { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 760px; }
+.acctbl th, .acctbl td { padding: 9px 8px; text-align: left; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+.acctbl thead th { font-size: 12px; font-weight: 500; color: var(--muted); }
+.acctbl td.acts { text-align: right; }
+.acctbl td.acts .btn + .btn { margin-left: 6px; }
+.btn.sm { font-size: 12px; padding: 4px 10px; }
+.btn.danger { color: var(--down); }
+.role { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-2); }
+.role-super { background: var(--header); color: #fff; border-color: var(--header); }
+.role-admin { background: var(--accent-soft); color: var(--ink); }
+.me { font-size: 11px; color: var(--accent); font-weight: 700; }
+.anote.warn { color: var(--down); }
+.modal label.fl { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); }
+.modal select { font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--axis); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.modal input[readonly] { background: var(--surface-2); color: var(--ink-2); }
+.modal .steps { font-size: 12px; }
 /* 세미나 편성 */
 #semMain { display: none; }
 body.view-seminar #semMain { display: block; }
@@ -359,19 +387,123 @@ body.locked #gate { display: flex; }
 @media (max-width: 1080px) { .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 480px) { .wrap { padding: 0 16px; } .kpi .value { font-size: 24px; } }
+
+/* ===== 닥터빌 웹사이트 디자인 적용 (닥터빌·팜빌 디자인 아카이브 2026-10-02 기준) =====
+   서체 Pretendard · 텍스트 #1E1E1E/#333/#666 · 테두리 1px #E1E1E1 · 카드 radius 10 · 포인트 블루 #2F80FF(서브 메뉴 버튼) · 라벨·칩 규칙 */
+:root {
+  --font: "Pretendard Variable", "Pretendard", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "돋움", sans-serif;
+  --page: #F5F6F8; --surface: #FFFFFF; --surface-2: #F8F9FA; --surface-3: #EAEEF2;
+  --header: #FFFFFF; --header-ink: #1E1E1E; --header-sub: #666666;
+  --ink: #1E1E1E; --ink-2: #555B66; --muted: #8E94A0; --grid: #EEF0F3; --axis: #D5D9DF; --border: #E1E1E1;
+  --accent: #2F80FF; --accent-soft: #EAF2FF; --marker: #1A5FD1; --point: #0EAEF2;
+  --up: #03A45E; --down: #E5484D; --alert: #FC5F5F;
+  --s1: #2F80FF; --s2: #FF8A3D; --s3: #00BB8F; --s4: #866AE2; --s5: #F5B82E; --s6: #0EAEF2;
+  --seq-0: #F3F7FF; --seq-1: #DCE9FF; --seq-2: #B8D2FF; --seq-3: #86B3FF; --seq-4: #5294FF; --seq-5: #2F80FF; --seq-6: #1A5FD1;
+  --shadow: none; --seq-hi-ink: #FFFFFF;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0F1218; --surface: #171B24; --surface-2: #1D222C; --surface-3: #232A36;
+    --header: #171B24; --header-ink: #E6E9F0; --header-sub: #9AA3B3;
+    --ink: #E6E9F0; --ink-2: #B4BCC9; --muted: #8B93A3; --grid: #262C37; --axis: #3A4250; --border: #2A303C;
+    --accent: #5B9BFF; --accent-soft: #1C2A44; --marker: #B8D2FF; --point: #3FC2F5;
+    --up: #34C77B; --down: #FF6B6F;
+    --s1: #5B9BFF; --s2: #FF9D5C; --s3: #2AD1A6; --s4: #A08BF0; --s5: #F7C64F; --s6: #3FC2F5;
+    --seq-0: #1A2232; --seq-1: #1C3358; --seq-2: #204277; --seq-3: #2A57A0; --seq-4: #2F6CD0; --seq-5: #5B9BFF; --seq-6: #A9C9FF; --seq-hi-ink: #0F1218;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0F1218; --surface: #171B24; --surface-2: #1D222C; --surface-3: #232A36;
+  --header: #171B24; --header-ink: #E6E9F0; --header-sub: #9AA3B3;
+  --ink: #E6E9F0; --ink-2: #B4BCC9; --muted: #8B93A3; --grid: #262C37; --axis: #3A4250; --border: #2A303C;
+  --accent: #5B9BFF; --accent-soft: #1C2A44; --marker: #B8D2FF; --point: #3FC2F5;
+  --up: #34C77B; --down: #FF6B6F;
+  --s1: #5B9BFF; --s2: #FF9D5C; --s3: #2AD1A6; --s4: #A08BF0; --s5: #F7C64F; --s6: #3FC2F5;
+  --seq-0: #1A2232; --seq-1: #1C3358; --seq-2: #204277; --seq-3: #2A57A0; --seq-4: #2F6CD0; --seq-5: #5B9BFF; --seq-6: #A9C9FF; --seq-hi-ink: #0F1218;
+}
+body { font-family: var(--font); color: var(--ink); letter-spacing: -0.01em; }
+button, input, select { font-family: inherit; }
+/* 헤더: 닥터빌 서브페이지 헤더 (흰 바탕 + 페이지명 20/700 + 하단 구분선) */
+header.top { border-bottom: 1px solid var(--border); }
+.top .wrap { padding-top: 18px; padding-bottom: 16px; align-items: center; }
+.top h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.top .sub { color: var(--header-sub); font-size: 13px; }
+.top select { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+.top .btn { background: var(--surface); color: var(--ink-2); border: 1px solid var(--border); border-radius: 40px; font-size: 13px; padding: 5px 14px; }
+.top .btn:hover { border-color: var(--axis); color: var(--ink); }
+.top .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.top .src { color: var(--muted); }
+#userBadge { color: var(--ink); }
+.nav-btn { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; border-radius: 6px !important; }
+/* 좌측 메뉴 */
+.side { background: var(--surface); }
+.side-brand { background: var(--surface); color: var(--ink); border-bottom: 1px solid var(--border); padding: 20px 20px 16px; display: flex; flex-direction: column; gap: 2px; }
+.side-brand::before { content: ""; width: 26px; height: 26px; border-radius: 50%; margin-bottom: 8px; background: radial-gradient(circle at 70% 30%, #00BB8F 0 26%, transparent 27%), linear-gradient(135deg, #2F80FF, #0EAEF2); }
+.side-brand small { color: var(--muted); }
+.nav-item, .nav-head { color: #333; font-size: 15px; }
+:root[data-theme="dark"] .nav-item, :root[data-theme="dark"] .nav-head { color: var(--ink-2); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .nav-item, :root:not([data-theme="light"]) .nav-head { color: var(--ink-2); } }
+.nav-head { font-weight: 700; }
+.nav-item[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.nav-sub .nav-item { font-size: 14px; }
+.nav-svc { font-size: 11px; font-weight: 600; color: var(--muted); }
+.nav-soon { border-color: var(--border); color: var(--muted); font-size: 10px; }
+/* 카드·모듈: 1px #E1E1E1 · radius 10 · 그림자 없음 */
+.card { border: 1px solid var(--border); border-radius: 10px; box-shadow: none; }
+.sec-head h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+.sec-head p { color: var(--muted); }
+.kpi .label { font-size: 13px; color: #666; font-weight: 500; }
+:root[data-theme="dark"] .kpi .label { color: var(--ink-2); }
+.kpi .value { font-weight: 700; color: var(--ink); }
+.kpi .meta { color: var(--muted); }
+/* 칩·세그먼트: 닥터빌 뉴스 분류 칩(1px #E6E6E6 · radius 18 · 13px #777), 선택 시 블루 */
+.seg { gap: 6px; background: none; border: 0; padding: 0; }
+.seg button { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: #777; font-size: 13px; padding: 4px 12px; }
+.seg button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+select { border-radius: 6px; border-color: var(--border); }
+.btn.accent, .modal button.ok, .gate-card button { background: var(--accent); border-color: var(--accent); }
+.gate-card { border-radius: 10px; }
+.gate-card .gh { border-bottom: 1px solid var(--border); }
+.gate-card .gh h1 { color: var(--ink); }
+.gate-card .gh p { color: var(--muted); }
+.gate-card button { border-radius: 3px; height: 50px; font-weight: 600; }
+.role-super { background: var(--accent); border-color: var(--accent); color: #fff; }
+.svc { background: var(--accent-soft); color: var(--accent); border-radius: 2px; font-size: 11px; font-weight: 600; }
+.svc-pv { background: rgba(0, 187, 143, .12); color: #00A77D; border: 0; }
+a.hcard:hover { border-color: var(--accent); }
+.hs .hv { color: var(--ink); }
+.empty { background: var(--surface-2); color: var(--muted); }
+footer { color: var(--muted); }
+/* 매출 */
+#salesMain { display: none; }
+body.view-sales #salesMain { display: block; }
+body.view-sales #memberMain, body.view-sales .member-only, body.view-sales #pdfBtn { display: none !important; }
+.io-chip { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 24px; padding: 2px 8px; background: var(--surface-2); }
+.io-in { color: var(--accent); background: var(--accent-soft); }
+.io-out { color: #00A77D; background: rgba(0, 187, 143, .12); }
+.custtbl th.rowh { min-width: 150px; }
+.custtbl small.cats { display: block; font-size: 11px; font-weight: 400; color: var(--muted); }
+.custtbl td.io { text-align: center; }
+th.sort { cursor: pointer; user-select: none; }
+th.sort.on { color: var(--accent); }
+.plan-tag { display: block; font-size: 10px; color: var(--muted); font-weight: 400; }
+.sl-search { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--ink); width: 200px; }
+.sl-search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 </style>
 </head>
 <body class="locked">
 <div id="gate">
   <div class="gate-card">
-    <div class="gh"><h1>닥터빌 회원 대시보드</h1><p>닥터빌사업부 내부용 · 비밀번호를 입력하세요</p></div>
-    <form id="gateForm" autocomplete="off">
+    <div class="gh"><h1>닥터빌 · 팜빌 운영 대시보드</h1><p>닥터빌사업부 · 발급받은 계정으로 로그인하세요</p></div>
+    <form id="gateForm">
+      <label for="uid">아이디</label>
+      <input id="uid" type="text" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required autofocus>
       <label for="pw">비밀번호</label>
-      <input id="pw" type="password" autocomplete="current-password" required autofocus>
+      <input id="pw" type="password" autocomplete="current-password" required>
       <label class="remember"><input id="remember" type="checkbox"> 이 탭을 닫을 때까지 로그인 유지</label>
       <div class="gate-msg" id="gateMsg" role="alert"></div>
-      <button type="submit" id="gateBtn">접속</button>
-      <p class="gate-note">데이터는 암호화되어 있으며 올바른 비밀번호로만 열립니다.</p>
+      <button type="submit" id="gateBtn">로그인</button>
+      <p class="gate-note">계정은 최고 관리자에게 요청해 주세요. 데이터는 암호화되어 있으며 계정 권한에 맞는 데이터만 열립니다.</p>
     </form>
   </div>
 </div>
@@ -382,8 +514,10 @@ body.locked #gate { display: flex; }
     <button type="button" class="nav-head" aria-expanded="true" aria-controls="navSales"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg><span>매출</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
     <div class="nav-sub" id="navSales">
       <div class="nav-svc">닥터빌</div>
+      <a class="nav-item" href="#sales" data-view="sales">매출</a>
       <a class="nav-item" href="#points" data-view="points">포인트</a>
       <a class="nav-item" href="#seminar" data-view="seminar">세미나</a>
+      <a class="nav-item" href="#ads" data-view="ads">광고<span class="nav-soon">준비 중</span></a>
       <div class="nav-svc">팜빌</div>
       <a class="nav-item" href="#ppoints" data-view="ppoints">포인트</a>
     </div>
@@ -398,6 +532,7 @@ body.locked #gate { display: flex; }
     </div>
     <a class="nav-item" href="#report" data-view="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 12h6"/><path d="M9 16h6"/></svg><span>분석 리포트</span><span class="nav-soon">준비 중</span></a>
     <a class="nav-item" href="#llm" data-view="llm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg><span>LLM</span><span class="nav-soon">준비 중</span></a>
+    <a class="nav-item" href="#accounts" data-view="accounts"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.6-3.6 3.2-5.5 6.5-5.5 1.2 0 2.3.2 3.2.7"/><path d="M18 14v6M15 17h6"/></svg><span>계정 관리</span></a>
   </nav>
   <div class="side-foot">닥터빌사업부 내부용 · 대외비</div>
 </aside>
@@ -424,6 +559,7 @@ body.locked #gate { display: flex; }
       <button class="btn primary" id="refreshBtn" type="button" title="구글시트의 최신 값을 불러와 다시 집계합니다">갱신</button>
       <button class="btn" id="pdfBtn" type="button" title="현재 화면을 PDF 파일로 내려받습니다">PDF</button>
       <button class="btn" id="themeBtn" type="button" aria-label="화면 테마 전환">테마</button>
+      <span class="src" id="userBadge"></span>
       <button class="btn" id="logoutBtn" type="button">로그아웃</button>
     </div>
   </div>
@@ -435,7 +571,7 @@ body.locked #gate { display: flex; }
       <div class="sec-head"><div><h2>한눈에 보기</h2><p>메뉴별 최신 핵심 지표입니다. 카드를 누르면 상세 화면으로 이동합니다.</p></div></div>
       <h3 class="home-grp">매출</h3>
       <div class="home-grid" id="homeSales"></div>
-      <h3 class="home-grp">회원 지표</h3>
+      <h3 class="home-grp" id="homeMemGrp">회원 지표</h3>
       <div class="home-grid" id="homeMembers"></div>
     </section>
     <footer>홈 화면은 각 메뉴의 암호화된 집계 저장본(또는 구글시트 집계)에서 요약 수치만 읽어 표시합니다. 외부 공유 전 사전 승인이 필요합니다.</footer>
@@ -448,6 +584,66 @@ body.locked #gate { display: flex; }
 
 <main id="llmMain">
   <div class="wrap"><section><div class="card soon"><h2>LLM</h2><p>준비 중인 메뉴입니다.</p></div></section></div>
+</main>
+
+<main id="salesMain">
+  <div class="wrap" id="salesApp">
+    <section>
+      <div class="sec-head">
+        <div><h2>닥터빌 매출</h2><p id="slSrc">닥터빌 매출관리 시트를 스크래핑한 저장본</p></div>
+        <div class="pfilter">
+          <div class="seg" id="slSeg" role="group" aria-label="내부·외부 구분">
+            <button type="button" data-seg="all" aria-pressed="true">전체</button>
+            <button type="button" data-seg="내부">내부</button>
+            <button type="button" data-seg="외부">외부</button>
+          </div>
+          <label for="slCat">사업내용</label>
+          <select id="slCat" aria-label="사업내용"><option value="all">전체</option><option value="광고">광고</option><option value="세미나">세미나</option><option value="컨퍼런스">컨퍼런스</option><option value="기타">기타</option></select>
+          <label for="slYear">기준 연도</label>
+          <select id="slYear" aria-label="매출 기준 연도"></select>
+        </div>
+      </div>
+      <div id="slEmpty" class="empty" hidden></div>
+      <div class="sldata"><div class="kpis" id="slKpis"></div></div>
+    </section>
+    <section class="sldata">
+      <div class="sec-head"><div><h2>월별 매출 — 작년 대비</h2><p id="slYoySub"></p></div></div>
+      <div class="card"><div id="slYoy"></div></div>
+    </section>
+    <section class="sldata">
+      <div class="sec-head"><div><h2>월별 추이</h2><p>점선: 시트에 입력된 예정 매출 · 진하게 표시된 열이 이번 달</p></div></div>
+      <div class="card"><ul class="legend" id="slLg"></ul><div class="chart" id="slCh"></div></div>
+    </section>
+    <section class="sldata">
+      <div class="sec-head"><div><h2>내부 · 외부 매출</h2><p id="slIoSub"></p></div></div>
+      <div class="card"><div id="slIo"></div></div>
+    </section>
+    <section class="sldata">
+      <div class="sec-head"><div><h2>사업내용별 매출</h2><p id="slCatSub"></p></div></div>
+      <div class="card"><div id="slCatTbl"></div></div>
+    </section>
+    <section class="sldata">
+      <div class="sec-head"><div><h2>고객사별 매출</h2><p id="slCustSub"></p></div>
+        <div class="pfilter"><input id="slQ" class="sl-search" type="search" placeholder="고객사 검색" aria-label="고객사 검색"></div></div>
+      <div class="card"><div id="slCustTbl"></div></div>
+    </section>
+    <footer>고객사별 매출은 사전 승인을 받아 게시합니다. 담당자 이름·계약 조건 메모는 저장하지 않으며, 협력사 계정은 이 데이터를 열 수 없습니다. 외부 공유 전 사전 승인이 필요합니다.</footer>
+  </div>
+</main>
+
+<main id="adsMain">
+  <div class="wrap"><section><div class="card soon"><h2>광고</h2><p>준비 중인 메뉴입니다.</p></div></section></div>
+</main>
+
+<main id="accMain">
+  <div class="wrap" id="accApp">
+    <section>
+      <div class="sec-head"><div><h2>계정 관리</h2><p>권한: 최고 관리자(계정 등록·관리) · 관리자(계정 확인) · 닥터빌 담당자(계정 메뉴 외 전체) · 협력사 담당자(매출 &gt; 세미나·광고만)</p></div></div>
+      <div id="accMe"></div>
+      <div class="card"><div id="accList"></div></div>
+      <p class="anote">계정 정보는 저장소 docs/data/accounts.json에 비밀번호로 암호화되어 저장됩니다. 아이디는 해시로만 남고, 계정 목록은 관리자 권한으로만 열립니다.</p>
+    </section>
+  </div>
 </main>
 
 <main id="semMain">
@@ -819,6 +1015,33 @@ body.locked #gate { display: flex; }
     <div class="row"><button type="button" id="xCancel">닫기</button><button type="submit" class="ok" id="xOk">Excel 추출</button></div>
   </form>
 </div>
+<div class="modal-bg" id="accModal">
+  <form class="modal wide" id="accForm" autocomplete="off">
+    <h3 id="accTitle">계정 등록</h3>
+    <p id="accDesc"></p>
+    <label class="fl f-id">아이디 (이메일)<input id="accFId" type="text" inputmode="email" autocapitalize="off" spellcheck="false"></label>
+    <div class="xr f-info"><label>이름<input id="accFName" type="text"></label><label>소속<input id="accFOrg" type="text" placeholder="예: 콘텐츠운영팀, ○○제약"></label></div>
+    <label class="fl f-info">권한<select id="accFRole"><option value="super">최고 관리자 — 계정 등록·관리, 모든 기능</option><option value="admin">관리자 — 계정 확인, 모든 기능</option><option value="dv">닥터빌 담당자 — 계정 메뉴 외 모든 기능</option><option value="partner">협력사 담당자 — 매출 &gt; 세미나·광고만</option></select></label>
+    <div class="xr"><label>비밀번호<input id="accFPw" type="password" autocomplete="new-password"></label><label>비밀번호 확인<input id="accFPw2" type="password" autocomplete="new-password"></label></div>
+    <p>8자 이상, 영문과 숫자를 함께 넣어 주세요.</p>
+    <div class="err" id="accErr"></div>
+    <div class="row"><button type="button" id="accCancel">취소</button><button type="submit" class="ok" id="accOk">저장</button></div>
+  </form>
+</div>
+<div class="modal-bg" id="ghModal">
+  <form class="modal wide" id="ghForm" autocomplete="off">
+    <h3>GitHub 연동 설정</h3>
+    <p>계정 변경을 저장소(docs/data/accounts.json)에 바로 저장하려면 GitHub 토큰이 필요합니다. 토큰은 내 계정 정보 안에 내 비밀번호로 암호화되어 저장됩니다.</p>
+    <ul class="steps">
+      <li>GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token</li>
+      <li>Repository access: Only select repositories → ojungin/doctorville_dash</li>
+      <li>Permissions: Contents → Read and write · 만료일은 짧게(예: 90일)</li>
+    </ul>
+    <input id="ghTok" type="password" placeholder="github_pat_…" autocomplete="off">
+    <div class="err" id="ghErr"></div>
+    <div class="row"><button type="button" id="ghCancel">취소</button><button type="submit" class="ok" id="ghOk">저장</button></div>
+  </form>
+</div>
 <div class="modal-bg" id="pwModal">
   <form class="modal" id="pwForm">
     <h3>비밀번호 확인</h3>
@@ -901,42 +1124,279 @@ body.locked #gate { display: flex; }
     });
   }
   function useKey(key) { return decryptBox(key, META.check).then(function () { KEY = key; return key; }); }
-  function unlock() { document.body.classList.remove('locked'); $('#pw').value = ''; start(); }
-  function lock(msg) {
-    KEY = null; try { sessionStorage.removeItem(SS); } catch (e) {}
-    document.body.classList.add('locked'); $('#gateMsg').textContent = msg || ''; $('#pw').focus();
+  // ---- 계정 (ID/PW · 권한) -------------------------------------------------
+  // docs/data/accounts.json (공개 저장소, 내용은 암호화)
+  //   {v, iter, idSalt, partKey:{iv,ct}(시스템 키로 감싼 협력사용 키), users:{sha256(idSalt:아이디): {salt,iv,ct}}, dir:{iv,ct}(계정 목록 · 관리자 키), rev, updatedAt}
+  //   users 값 = 사용자 비밀번호(PBKDF2)로 암호화한 묶음 {id, name, role, k:{main?, part, acct?}, sys?, gh?}
+  //   main: 기존 저장본 전체 키 · part: 협력사 공개용(세미나 요약) 키 · acct: 계정 목록 키 · sys: 구글시트·포인트 서버 연동 비밀번호 · gh: GitHub 토큰(최고 관리자)
+  // 권한: super 최고 관리자(계정 등록·관리) / admin 관리자(계정 확인) / dv 닥터빌 담당자 / partner 협력사 담당자(세미나·광고만)
+  var ROLES = { super: '최고 관리자', admin: '관리자', dv: '닥터빌 담당자', partner: '협력사 담당자' };
+  var ROLE_ORDER = ['super', 'admin', 'dv', 'partner'];
+  var ACC = null, BUNDLE = null, USER = null, ROLE = null, PKEY = null, AKEY = null, WRAP = null, SSU = 'mv-user';
+  var GH_REPO = 'ojungin/doctorville_dash', GH_PATH = 'docs/data/accounts.json';
+  var PARTNER_VIEWS = { home: 1, seminar: 1, ads: 1 };
+  function canView(v) {
+    if (!ROLE) return true;
+    if (v === 'accounts') return ROLE === 'super' || ROLE === 'admin';
+    if (ROLE === 'partner') return !!PARTNER_VIEWS[v];
+    return true;
   }
-
+  function hexOf(buf) { return Array.from(new Uint8Array(buf)).map(function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
+  function normId(id) { return String(id || '').trim().toLowerCase(); }
+  function idHash(id, acc) { return subtle.digest('SHA-256', new TextEncoder().encode((acc || ACC).idSalt + ':' + normId(id))).then(hexOf); }
+  function pwKey(pw, salt, iter) {
+    return subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']).then(function (b) {
+      return subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: unb64(salt), iterations: iter || ACC.iter }, b, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    });
+  }
+  function encJson(key, obj) {
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    return subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(JSON.stringify(obj))).then(function (ct) { return { iv: b64(iv), ct: b64(ct) }; });
+  }
+  function rawKey(raw) { return subtle.importKey('raw', unb64(raw), { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']); }
+  function randB64(n) { return b64(window.crypto.getRandomValues(new Uint8Array(n))); }
+  function loadAccounts() { return fetchJson('data/accounts.json?t=' + Date.now()).then(function (a) { ACC = a; return a; }); }
+  function applyBundle(b) {
+    BUNDLE = b; USER = { id: b.id, name: b.name, role: b.role }; ROLE = ROLES[b.role] ? b.role : 'partner';
+    PW = b.sys || null; KEY = null; PKEY = null; AKEY = null;
+    return Promise.all([
+      b.k.part ? rawKey(b.k.part).then(function (k) { PKEY = k; }) : null,
+      b.k.acct ? rawKey(b.k.acct).then(function (k) { AKEY = k; }) : null,
+      b.k.main ? subtle.importKey('raw', unb64(b.k.main), { name: 'AES-GCM' }, false, ['decrypt']).then(useKey) : null
+    ]);
+  }
+  function unlock() {
+    document.body.classList.remove('locked'); $('#pw').value = '';
+    applyRoleChrome();
+    if (!canView(VIEW)) setView('home'); else if (STATIC_VIEWS[VIEW]) setView(VIEW, true);
+    start();
+  }
+  function lock(msg) {
+    KEY = null; PKEY = null; AKEY = null; BUNDLE = null; ROLE = null;
+    try { sessionStorage.removeItem(SSU); sessionStorage.removeItem(SS); sessionStorage.removeItem(SSP); } catch (e) {}
+    document.body.classList.add('locked'); $('#gateMsg').textContent = msg || ''; $('#uid').focus();
+  }
   $('#gateForm').addEventListener('submit', function (ev) {
     ev.preventDefault();
-    var btn = $('#gateBtn'), pw = $('#pw').value;
+    var btn = $('#gateBtn'), id = $('#uid').value, pw = $('#pw').value, entry;
     if (!META) { $('#gateMsg').textContent = '데이터 정보를 불러오지 못했습니다. 새로고침 해주세요.'; return; }
     btn.disabled = true; btn.textContent = '확인 중…'; $('#gateMsg').textContent = '';
-    deriveKey(pw).then(useKey).then(function (key) {
-      PW = pw;
-      if ($('#remember').checked) subtle.exportKey('raw', key).then(function (raw) { try { sessionStorage.setItem(SS, b64(raw)); } catch (e) {} return savePw(key, pw); });
-      unlock();
-    }).catch(function () {
-      $('#gateMsg').textContent = '비밀번호가 올바르지 않습니다.';
-      $('#pw').select();
-    }).then(function () { btn.disabled = false; btn.textContent = '접속'; });
+    loadAccounts().catch(function () { var e = new Error('acc'); e.code = 'acc'; throw e; })
+      .then(function () { return idHash(id); })
+      .then(function (h) { entry = ACC.users[h]; if (!entry) throw new Error('nouser'); return pwKey(pw, entry.salt); })
+      .then(function (wk) { WRAP = wk; return subtle.decrypt({ name: 'AES-GCM', iv: unb64(entry.iv) }, wk, unb64(entry.ct)); })
+      .then(function (pt) { return applyBundle(JSON.parse(new TextDecoder().decode(pt))); })
+      .then(function () {
+        if ($('#remember').checked) { try { sessionStorage.setItem(SSU, JSON.stringify(BUNDLE)); } catch (e) {} }
+        unlock();
+      }).catch(function (e) {
+        WRAP = null;
+        $('#gateMsg').textContent = e && e.code === 'acc' ? '계정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' : '아이디 또는 비밀번호가 올바르지 않습니다.';
+        $('#pw').select();
+      }).then(function () { btn.disabled = false; btn.textContent = '로그인'; });
   });
-  $('#logoutBtn').addEventListener('click', function () { try { sessionStorage.removeItem(SS); sessionStorage.removeItem(SSP); } catch (e) {} location.reload(); });
-  // "로그인 유지" 시 갱신용 비밀번호를 세션 키로 암호화해 탭 세션에만 보관
-  function savePw(key, pw) {
-    var iv = window.crypto.getRandomValues(new Uint8Array(12));
-    return subtle.exportKey('raw', key).then(function (raw) { return subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt']); })
-      .then(function (ek) { return subtle.encrypt({ name: 'AES-GCM', iv: iv }, ek, new TextEncoder().encode(pw)); })
-      .then(function (ct) { try { sessionStorage.setItem(SSP, JSON.stringify({ iv: b64(iv), ct: b64(ct) })); } catch (e) {} })
-      .catch(function () {});
+  $('#logoutBtn').addEventListener('click', function () { try { sessionStorage.removeItem(SSU); sessionStorage.removeItem(SS); sessionStorage.removeItem(SSP); } catch (e) {} location.reload(); });
+  function restoreSession() {
+    var b = null; try { b = JSON.parse(sessionStorage.getItem(SSU) || 'null'); } catch (e) {}
+    if (!b || !b.k) return Promise.resolve();
+    return applyBundle(b).then(unlock).catch(function () { lock(); });
   }
-  function restorePw(key) {
-    var box = null; try { box = JSON.parse(sessionStorage.getItem(SSP) || 'null'); } catch (e) {}
-    if (!box) return Promise.resolve();
-    return subtle.decrypt({ name: 'AES-GCM', iv: unb64(box.iv) }, key, unb64(box.ct))
-      .then(function (pt) { PW = new TextDecoder().decode(pt); }).catch(function () {});
+  // 메뉴: 권한에 없는 항목 숨김 (데이터는 권한별 키로 따로 암호화되어 있어 숨김과 별개로 열리지 않음)
+  function applyRoleChrome() {
+    document.querySelectorAll('#sideNav .nav-item').forEach(function (a) { a.hidden = !canView(a.dataset.view); });
+    document.querySelectorAll('#sideNav .nav-sub').forEach(function (sub) {
+      var any = false, label = null, labelAny = false;
+      Array.prototype.forEach.call(sub.children, function (c) {
+        if (c.classList.contains('nav-svc')) { if (label) label.hidden = !labelAny; label = c; labelAny = false; }
+        else if (!c.hidden) { any = true; labelAny = true; }
+      });
+      if (label) label.hidden = !labelAny;
+      sub.hidden = !any; if (sub.previousElementSibling) sub.previousElementSibling.hidden = !any;
+    });
+    $('#userBadge').textContent = USER ? USER.name + ' · ' + ROLES[ROLE] : '';
+    $('#userBadge').title = USER ? USER.id : '';
+    document.body.classList.toggle('role-partner', ROLE === 'partner');
   }
 
+  // ---- 계정 관리 화면 ------------------------------------------------------
+  var ACCV = { dir: null, err: '', loading: false };
+  function decDir(acc) { return subtle.decrypt({ name: 'AES-GCM', iv: unb64(acc.dir.iv) }, AKEY, unb64(acc.dir.ct)).then(function (pt) { return JSON.parse(new TextDecoder().decode(pt)); }); }
+  function loadDir() {
+    if (!AKEY) return Promise.resolve();
+    ACCV.loading = true; renderAccounts();
+    return loadAccounts().then(decDir).then(function (d) { ACCV.dir = d; ACCV.err = ''; })
+      .catch(function (e) { ACCV.err = '계정 목록을 불러오지 못했습니다: ' + (e.message || e); })
+      .then(function () { ACCV.loading = false; renderAccounts(); });
+  }
+  function fmtDate(s) { return s ? new Date(s).toLocaleDateString('ko-KR') : '–'; }
+  function renderAccounts() {
+    if (VIEW !== 'accounts') return;
+    $('#subtitle').textContent = '로그인 계정 ' + (ROLE === 'super' ? '등록·관리' : '확인');
+    var sup = ROLE === 'super';
+    $('#accMe').innerHTML = USER ? '<div class="card acc-me"><div><div class="hl">내 계정</div><b>' + esc(USER.name) + '</b> · ' + esc(USER.id) + ' <span class="role role-' + ROLE + '">' + ROLES[ROLE] + '</span></div>' +
+      (sup ? '<div class="acc-act"><button type="button" class="btn" id="accMyPw">내 비밀번호 변경</button><button type="button" class="btn" id="accGh">GitHub 연동 ' + (BUNDLE && BUNDLE.gh ? '변경' : '설정') + '</button><button type="button" class="btn accent" id="accAdd">계정 등록</button></div>' : '') + '</div>' +
+      (sup && !(BUNDLE && BUNDLE.gh) ? '<p class="anote warn">계정 등록·수정·삭제를 저장하려면 먼저 [GitHub 연동 설정]에서 이 저장소에 쓰기 권한이 있는 토큰을 등록해 주세요.</p>' : '') : '';
+    var d = ACCV.dir;
+    if (!d) { $('#accList').innerHTML = '<div class="empty">' + esc(ACCV.err || (ACCV.loading ? '불러오는 중…' : '계정 목록이 없습니다.')) + '</div>'; }
+    else {
+      var rows = d.slice().sort(function (a, b) { return ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role) || String(a.name).localeCompare(String(b.name), 'ko'); });
+      var cnt = {}; rows.forEach(function (r) { cnt[r.role] = (cnt[r.role] || 0) + 1; });
+      $('#accList').innerHTML = '<p class="acc-sum">' + ROLE_ORDER.map(function (r) { return ROLES[r] + ' <b>' + (cnt[r] || 0) + '</b>명'; }).join(' · ') + '</p>' +
+        '<div class="yoy-wrap"><table class="acctbl"><thead><tr><th>아이디</th><th>이름</th><th>소속</th><th>권한</th><th>등록일</th><th>최근 변경</th>' + (sup ? '<th></th>' : '') + '</tr></thead><tbody>' +
+        rows.map(function (r) {
+          var me = USER && normId(r.id) === normId(USER.id);
+          return '<tr><td>' + esc(r.id) + (me ? ' <span class="me">나</span>' : '') + '</td><td>' + esc(r.name || '') + '</td><td>' + esc(r.org || '') + '</td><td><span class="role role-' + r.role + '">' + (ROLES[r.role] || r.role) + '</span></td><td>' + fmtDate(r.createdAt) + '</td><td>' + fmtDate(r.updatedAt) + '</td>' +
+            (sup ? '<td class="acts">' + (me ? '' : '<button type="button" class="btn sm" data-act="edit" data-id="' + esc(r.id) + '">수정</button><button type="button" class="btn sm" data-act="pw" data-id="' + esc(r.id) + '">비밀번호 재설정</button><button type="button" class="btn sm danger" data-act="del" data-id="' + esc(r.id) + '">삭제</button>') + '</td>' : '') + '</tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    if (sup) {
+      var b1 = $('#accAdd'); if (b1) b1.onclick = function () { accForm('add'); };
+      var b2 = $('#accMyPw'); if (b2) b2.onclick = function () { accForm('mypw'); };
+      var b3 = $('#accGh'); if (b3) b3.onclick = ghForm;
+    }
+  }
+  $('#accList').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button[data-act]'); if (!b || ROLE !== 'super') return;
+    var r = (ACCV.dir || []).find(function (x) { return x.id === b.dataset.id; }); if (!r) return;
+    if (b.dataset.act === 'del') {
+      if (!confirmBox(r.name + '(' + r.id + ') 계정을 삭제할까요? 삭제 후에는 이 계정으로 로그인할 수 없습니다.')) return;
+      saveAccounts(function (acc, dir) {
+        return idHash(r.id, acc).then(function (h) { delete acc.users[h]; return dir.filter(function (x) { return normId(x.id) !== normId(r.id); }); });
+      }, '계정 삭제: ' + r.role).then(function (ok) { if (ok) toast(r.name + ' 계정을 삭제했습니다.'); });
+    } else accForm(b.dataset.act, r);
+  });
+  function confirmBox(msg) { return window.confirm(msg); }
+  // 권한별로 넘겨줄 키 (협력사: 세미나 요약 키만)
+  function bundleFor(id, name, role) {
+    var k = { part: BUNDLE.k.part };
+    if (role !== 'partner') k.main = BUNDLE.k.main;
+    if (role === 'super' || role === 'admin') k.acct = BUNDLE.k.acct;
+    var b = { id: normId(id), name: name, role: role, k: k };
+    if (role !== 'partner' && BUNDLE.sys) b.sys = BUNDLE.sys;
+    return b;
+  }
+  function wrapEntry(bundle, pw, iter) {
+    var salt = randB64(16);
+    return pwKey(pw, salt, iter).then(function (wk) { return encJson(wk, bundle).then(function (box) { return { salt: salt, iv: box.iv, ct: box.ct, wk: wk }; }); });
+  }
+  function pwRule(pw, pw2) {
+    if (pw.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
+    if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) return '비밀번호에 영문과 숫자를 함께 넣어 주세요.';
+    if (pw !== pw2) return '비밀번호 확인이 일치하지 않습니다.';
+    return '';
+  }
+  // 계정 등록·수정·비밀번호 재설정 폼
+  function accForm(mode, r) {
+    var m = $('#accModal'), add = mode === 'add', edit = mode === 'edit', pwOnly = mode === 'pw' || mode === 'mypw';
+    $('#accTitle').textContent = add ? '계정 등록' : edit ? '계정 수정' : mode === 'mypw' ? '내 비밀번호 변경' : '비밀번호 재설정';
+    $('#accDesc').textContent = add ? '등록 후 아이디와 초기 비밀번호를 당사자에게 따로 전달해 주세요.' : edit ? '권한이나 이름을 바꾸면 계정 정보를 다시 암호화하므로 새 비밀번호를 정해 전달해야 합니다.' : mode === 'mypw' ? '변경 후 다음 로그인부터 새 비밀번호를 사용합니다.' : r.name + '(' + r.id + ')의 새 비밀번호를 정해 당사자에게 전달해 주세요.';
+    $('#accFId').value = r ? r.id : (mode === 'mypw' ? USER.id : ''); $('#accFId').readOnly = !add;
+    $('#accFName').value = r ? r.name || '' : ''; $('#accFOrg').value = r ? r.org || '' : '';
+    $('#accFRole').value = r ? r.role : 'dv';
+    $('#accFPw').value = ''; $('#accFPw2').value = ''; $('#accErr').textContent = '';
+    m.querySelectorAll('.f-info').forEach(function (x) { x.hidden = pwOnly; });
+    m.querySelector('.f-id').hidden = mode === 'mypw';
+    m.classList.add('show'); (add ? $('#accFId') : pwOnly ? $('#accFPw') : $('#accFName')).focus();
+    $('#accCancel').onclick = function () { m.classList.remove('show'); };
+    $('#accForm').onsubmit = function (ev) {
+      ev.preventDefault();
+      var id = normId($('#accFId').value), name = $('#accFName').value.trim(), org = $('#accFOrg').value.trim(), role = $('#accFRole').value, pw = $('#accFPw').value, err = '';
+      if (add && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id)) err = '아이디는 이메일 형식으로 입력해 주세요.';
+      else if (add && (ACCV.dir || []).some(function (x) { return normId(x.id) === id; })) err = '이미 등록된 아이디입니다.';
+      else if (!pwOnly && !name) err = '이름을 입력해 주세요.';
+      else if (!ROLES[role]) err = '권한을 선택해 주세요.';
+      else err = pwRule(pw, $('#accFPw2').value);
+      $('#accErr').textContent = err; if (err) return;
+      var ok = $('#accOk'); ok.disabled = true; ok.textContent = '저장 중…';
+      var now = new Date().toISOString(), newWrap = null, msg;
+      var p;
+      if (mode === 'mypw') {
+        msg = '내 비밀번호 변경';
+        p = saveAccounts(function (acc, dir) {
+          return Promise.all([idHash(USER.id, acc), wrapEntry(BUNDLE, pw, acc.iter)]).then(function (x) {
+            newWrap = x[1].wk; delete x[1].wk; acc.users[x[0]] = x[1];
+            dir.forEach(function (d) { if (normId(d.id) === normId(USER.id)) d.updatedAt = now; }); return dir;
+          });
+        }, msg).then(function (saved) { if (saved) { WRAP = newWrap; } return saved; });
+      } else {
+        var cur = r || {}, nb = bundleFor(id, pwOnly ? cur.name : name, pwOnly ? cur.role : role);
+        msg = add ? '계정 등록: ' + nb.role : edit ? '계정 수정: ' + nb.role : '비밀번호 재설정';
+        p = saveAccounts(function (acc, dir) {
+          return Promise.all([idHash(id, acc), wrapEntry(nb, pw, acc.iter)]).then(function (x) {
+            delete x[1].wk;
+            if (add && acc.users[x[0]]) throw new Error('이미 등록된 아이디입니다.');
+            acc.users[x[0]] = x[1];
+            if (add) dir.push({ id: id, name: name, org: org, role: role, createdAt: now, createdBy: USER.id, updatedAt: now });
+            else dir.forEach(function (d) { if (normId(d.id) === id) { if (!pwOnly) { d.name = name; d.org = org; d.role = role; } d.updatedAt = now; d.updatedBy = USER.id; } });
+            return dir;
+          });
+        }, msg);
+      }
+      p.then(function (saved) {
+        if (!saved) return;
+        m.classList.remove('show');
+        toast((add ? '계정을 등록했습니다' : mode === 'mypw' ? '비밀번호를 변경했습니다' : edit ? '계정을 수정했습니다' : '비밀번호를 재설정했습니다') + '. GitHub Pages 반영까지 1~2분 걸립니다.', false, 8000);
+      }).catch(function (e) { $('#accErr').textContent = e.message || String(e); })
+        .then(function () { ok.disabled = false; ok.textContent = '저장'; });
+    };
+  }
+  // ---- GitHub 저장 (최고 관리자 토큰) ---------------------------------------
+  function ghFetch(path, opt, tok) {
+    opt = opt || {}; opt.headers = Object.assign({ Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + (tok || BUNDLE.gh) }, opt.headers || {});
+    return fetch('https://api.github.com/repos/' + GH_REPO + path, opt).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.message || ('GitHub ' + r.status)); e.status = r.status; throw e; } return j; });
+    });
+  }
+  function ghErr(e) {
+    if (e.status === 401) return 'GitHub 토큰이 만료되었거나 올바르지 않습니다. [GitHub 연동 변경]에서 다시 등록해 주세요.';
+    if (e.status === 403 || e.status === 404) return 'GitHub 토큰에 이 저장소 쓰기 권한(Contents: Read and write)이 없습니다.';
+    if (e.status === 409) return '다른 변경과 겹쳤습니다. 잠시 후 다시 시도해 주세요.';
+    return 'GitHub 저장 실패: ' + (e.message || e);
+  }
+  // 최신 accounts.json(sha 포함)을 받아 변경 → 계정 목록 재암호화 → 커밋
+  function saveAccounts(mutate, message, tokOverride) {
+    if (ROLE !== 'super') return Promise.reject(new Error('최고 관리자만 변경할 수 있습니다.'));
+    if (!tokOverride && !(BUNDLE && BUNDLE.gh)) return Promise.reject(new Error('먼저 [GitHub 연동 설정]에서 토큰을 등록해 주세요.'));
+    var sha, acc;
+    return ghFetch('/contents/' + GH_PATH + '?ref=main', null, tokOverride).then(function (j) {
+      sha = j.sha; acc = JSON.parse(decodeURIComponent(escape(atob(String(j.content).replace(/\s/g, '')))));
+      return decDir(acc);
+    }).then(function (dir) { return mutate(acc, dir); }).then(function (dir) {
+      return encJson(AKEY, dir).then(function (box) {
+        acc.dir = box; acc.rev = (acc.rev || 0) + 1; acc.updatedAt = new Date().toISOString();
+        var body = JSON.stringify(acc, null, 1);
+        return ghFetch('/contents/' + GH_PATH, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: '계정 관리 · ' + message, content: btoa(unescape(encodeURIComponent(body))), sha: sha, branch: 'main' }) }, tokOverride)
+          .then(function () { ACC = acc; ACCV.dir = dir; renderAccounts(); return true; });
+      });
+    }).catch(function (e) { if (e.status) throw new Error(ghErr(e)); throw e; });
+  }
+  function ghForm() {
+    var m = $('#ghModal'); $('#ghTok').value = ''; $('#ghErr').textContent = ''; m.classList.add('show'); $('#ghTok').focus();
+    $('#ghCancel').onclick = function () { m.classList.remove('show'); };
+    $('#ghForm').onsubmit = function (ev) {
+      ev.preventDefault();
+      var tok = $('#ghTok').value.trim(), ok = $('#ghOk');
+      if (!tok) { $('#ghErr').textContent = '토큰을 입력해 주세요.'; return; }
+      ok.disabled = true; ok.textContent = '확인 중…';
+      (WRAP ? Promise.resolve(WRAP) : askPw('토큰을 내 계정에 암호화해 저장하려면 내 로그인 비밀번호를 입력해 주세요.').then(function (pw) {
+        if (!pw) throw new Error('취소했습니다.');
+        return idHash(USER.id).then(function (h) { var e = ACC.users[h]; return pwKey(pw, e.salt).then(function (wk) { return subtle.decrypt({ name: 'AES-GCM', iv: unb64(e.iv) }, wk, unb64(e.ct)).then(function () { WRAP = wk; return wk; }); }); })
+          .catch(function (e) { if (e.message === '취소했습니다.') throw e; throw new Error('로그인 비밀번호가 올바르지 않습니다.'); });
+      })).then(function () {
+        return ghFetch('', null, tok).then(function (repo) { if (!repo.permissions || !repo.permissions.push) { var e = new Error('no push'); e.status = 403; throw e; } });
+      }).then(function () {
+        var nb = Object.assign({}, BUNDLE, { gh: tok });
+        return saveAccounts(function (acc, dir) {
+          return idHash(USER.id, acc).then(function (h) {
+            var e = acc.users[h];
+            return encJson(WRAP, nb).then(function (box) { acc.users[h] = { salt: e.salt, iv: box.iv, ct: box.ct }; return dir; });
+          });
+        }, 'GitHub 연동 토큰 갱신', tok).then(function () { BUNDLE = nb; try { if (sessionStorage.getItem(SSU)) sessionStorage.setItem(SSU, JSON.stringify(BUNDLE)); } catch (e) {} });
+      }).then(function () { m.classList.remove('show'); toast('GitHub 연동을 저장했습니다. 이제 계정 변경이 바로 저장소에 반영됩니다.'); renderAccounts(); })
+        .catch(function (e) { $('#ghErr').textContent = e.status ? ghErr(e) : (e.message || String(e)); })
+        .then(function () { ok.disabled = false; ok.textContent = '저장'; });
+    };
+  }
   // ---- 구글시트(Apps Script) 연동 ----
   function api(action, extra) {
     var body = { action: action, password: PW }, member = action !== 'activity', svcAt = SVC;
@@ -969,7 +1429,7 @@ body.locked #gate { display: flex; }
     return '구글시트 연동 실패: ' + msg + ' — 시트 메뉴 [대시보드 → 연동 진단]으로 원인을 확인할 수 있습니다.';
   }
   function askPw(msg) {
-    $('#pwModalMsg').textContent = msg || '구글시트에서 최신 데이터를 불러오려면 비밀번호를 한 번 더 입력해 주세요.';
+    $('#pwModalMsg').textContent = msg || '구글시트 연동 비밀번호(시스템 비밀번호)를 입력해 주세요.';
     return new Promise(function (resolve) {
       var m = $('#pwModal'); m.classList.add('show'); $('#pw2').value = ''; $('#pw2').focus();
       function done(v) { m.classList.remove('show'); $('#pwForm').onsubmit = null; $('#pwCancel').onclick = null; resolve(v); }
@@ -992,6 +1452,7 @@ body.locked #gate { display: flex; }
     if (VIEW === 'activity') return loadActivity(true, btn);
     if (VIEW === 'pactivity') return loadPvActivity(true, btn);
     if (VIEW === 'seminar') return loadSeminar(true, btn);
+    if (VIEW === 'sales') return loadSales(true, btn);
     if (!CONFIG.appsScriptUrl) { toast('구글시트 연동 주소(docs/data/config.json)가 아직 설정되지 않았습니다.', true); return; }
     (PW ? Promise.resolve(PW) : askPw()).then(function (pw) {
       if (!pw) return;
@@ -1010,9 +1471,8 @@ body.locked #gate { display: flex; }
   else Promise.all([fetchJson('data/meta.json'), fetchJson('data/config.json').catch(function () { return {}; })]).then(function (r) {
     var m = r[0]; CONFIG = r[1] || {};
     META = m;
-    var saved = null; try { saved = sessionStorage.getItem(SS); } catch (e) {}
-    if (!saved) return;
-    return subtle.importKey('raw', unb64(saved), { name: 'AES-GCM' }, false, ['decrypt']).then(useKey).then(restorePw).then(unlock).catch(function () { lock(); });
+    try { sessionStorage.removeItem(SS); sessionStorage.removeItem(SSP); } catch (e) {}   // 이전 공용 비밀번호 세션 정리
+    return restoreSession();
   }).catch(function () { $('#gateMsg').textContent = '데이터 정보를 불러오지 못했습니다.'; });
 
   // ISO 주차 계산 (KST 월요일 기준)
@@ -1139,6 +1599,13 @@ body.locked #gate { display: flex; }
   var started = false;
   function start() {
     if (started) return; started = true;
+    if (!KEY) {   // 협력사 담당자: 세미나 요약 키만 있음
+      if (VIEW === 'home') loadHome();
+      if (VIEW === 'seminar') loadSeminar(false);
+      return;
+    }
+    if (VIEW === 'accounts') loadDir();
+    if (VIEW === 'sales') loadSales(false);
     if (isPts()) loadPoints();
     if (VIEW === 'activity') loadActivity(false);
     if (VIEW === 'pactivity') loadPvActivity(false);
@@ -1222,7 +1689,7 @@ body.locked #gate { display: flex; }
   });
   buildRangeSeg();
   $('#modeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.mode === state.mode ? 'true' : 'false'); });
-  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); renderPWTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'pactivity' && PA.data) renderPvActivity(); if (VIEW === 'seminar' && SEM.data) renderSemChart(); if (isPts() && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
+  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); renderPWTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'pactivity' && PA.data) renderPvActivity(); if (VIEW === 'seminar' && SEM.data) renderSemChart(); if (VIEW === 'sales' && SL.data) renderSlChart(); if (isPts() && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
 
   function renderAll() {
     if (!state.snap) return;
@@ -1242,6 +1709,7 @@ body.locked #gate { display: flex; }
     if (VIEW === 'activity') setActHeader();
     if (VIEW === 'pactivity') setPActHeader();
     if (VIEW === 'seminar') setSemHeader();
+    if (VIEW === 'sales') setSalesHeader();
     if (VIEW === 'home') renderHome();
   }
 
@@ -2249,6 +2717,198 @@ body.locked #gate { display: flex; }
   document.querySelectorAll('#paDaySeg button').forEach(function (b) { b.addEventListener('click', function () { PA.days = b.dataset.days; renderPADaily(paSets()); }); });
   $('#paPeriod').addEventListener('change', function () { PA.period = this.value; renderPvActivity(); });
 
+  // ---- 닥터빌 매출 (매출 > 닥터빌 > 매출) --------------------------------------
+  // 데이터: docs/data/sales.enc.json — '2026년_매출관리_닥터빌 마케팅팀(내부용)' 시트의 2026년·2025 매출 탭을 스크래핑해
+  //        고객사 × 사업내용 × 월 금액으로 정리 후 시스템 키로 암호화한 저장본 (협력사 계정은 열 수 없음)
+  //        최신화는 Claude에 「닥터빌 매출 갱신」 요청
+  // 평문: {fetchedAt, source, basis, years:{'2026':{rows:[{c, io, cat, gu, m:[12], n?:[12]}], sheetTotal, note}, '2025':{…}}}
+  var SL = { data: null, loading: false, err: '', year: null, seg: 'all', cat: 'all', all: false, q: '', sort: { k: 't', d: -1 } };
+  var SL_CATS = ['광고', '세미나', '컨퍼런스', '기타'];
+  function slNow() { return new Date(Date.parse(SL.data.fetchedAt) + KST_MS).toISOString().slice(0, 7); }
+  function slYears() { return Object.keys(SL.data.years).sort(); }
+  // 실적 기준 월: 올해는 이번 달 전까지(지난달), 지난 해는 12월 / 이번 달부터는 예정
+  function slDone(y) { var n = slNow(); return y < n.slice(0, 4) ? 12 : y === n.slice(0, 4) ? +n.slice(5, 7) - 1 : 0; }
+  function slRows(y, seg, cat) {
+    var Y = SL.data.years[y]; if (!Y) return [];
+    return Y.rows.filter(function (r) { return (seg === 'all' || r.io === seg) && (!cat || cat === 'all' || r.cat === cat); });
+  }
+  function slSum(rows) { var m = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; rows.forEach(function (r) { r.m.forEach(function (v, i) { m[i] += v || 0; }); }); return m; }
+  function slTot(m, to) { var t = 0; m.forEach(function (v, i) { if (i < (to == null ? 12 : to)) t += v; }); return t; }
+  function won(v) {   // KPI용: 12.3억 / 4,180만
+    var a = Math.abs(v), s = v < 0 ? '-' : '';
+    if (a >= 1e8) return s + (a / 1e8).toFixed(a >= 1e10 ? 0 : 1) + '억';
+    if (a >= 1e4) return s + fmt(Math.round(a / 1e4)) + '만';
+    return s + fmt(Math.round(a));
+  }
+  function mil(v) { return v == null ? '–' : (v === 0 ? '<span class="z">0</span>' : (Math.abs(v) < 1e6 && v !== 0 ? (v / 1e6).toFixed(2) : fmt(Math.round(v / 1e5) / 10))); }   // 표: 백만원
+  function setSalesHeader() {
+    if (VIEW !== 'sales') return;
+    var d = SL.data;
+    $('#subtitle').textContent = d ? '닥터빌 매출 · ' + d.basis + ' · 시트 스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : (SL.loading ? '매출 데이터를 불러오는 중…' : '매출 데이터를 불러오지 못했습니다');
+    $('#srcLabel').textContent = d ? '데이터: 저장본(시트 스크래핑)' : '';
+  }
+  function loadSales(fresh, btn) {
+    if (!KEY) return Promise.resolve();
+    SL.loading = true; SL.err = ''; setSalesHeader();
+    if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
+    $('#salesApp').classList.add('loading');
+    return fetchJson('data/sales.enc.json?t=' + Date.now()).then(function (box) { return decryptBox(KEY, box); }).then(function (d) {
+      if (!d || !d.years) throw new Error('형식이 올바르지 않습니다.');
+      var same = SL.data && SL.data.fetchedAt === d.fetchedAt; SL.data = d;
+      if (fresh) toast(same ? '저장본이 최신입니다 (스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) + '). 시트의 새 매출을 반영하려면 Claude에 「닥터빌 매출 갱신」을 요청해 주세요.' : '매출 저장본을 다시 불러왔습니다.', false, 8000);
+    }).catch(function (e) {
+      SL.err = /404/.test(e.message || '') ? '매출 저장본(docs/data/sales.enc.json)이 아직 없습니다. Claude에 「닥터빌 매출 갱신」을 요청해 주세요.' : '매출 저장본을 불러오지 못했습니다: ' + (e.message || e);
+      if (VIEW === 'sales') toast(SL.err, true, 12000);
+    }).then(function () {
+      SL.loading = false; $('#salesApp').classList.remove('loading');
+      if (btn) { btn.disabled = false; btn.textContent = '갱신'; }
+      renderSales();
+    });
+  }
+  function renderSales() {
+    if (VIEW !== 'sales') { if (VIEW === 'home') renderHome(); return; }
+    var d = SL.data;
+    $('#slEmpty').hidden = !!d; document.querySelectorAll('#salesApp .sldata').forEach(function (s) { s.hidden = !d; });
+    if (!d) { $('#slEmpty').textContent = SL.err || (SL.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); setSalesHeader(); return; }
+    var ys = slYears();
+    if (!SL.year || ys.indexOf(SL.year) < 0) SL.year = ys.indexOf(slNow().slice(0, 4)) >= 0 ? slNow().slice(0, 4) : ys[ys.length - 1];
+    $('#slYear').innerHTML = ys.slice().reverse().map(function (y) { return '<option value="' + y + '">' + y + '년</option>'; }).join(''); $('#slYear').value = SL.year;
+    document.querySelectorAll('#slSeg button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.seg === SL.seg ? 'true' : 'false'); });
+    $('#slCat').value = SL.cat;
+    $('#slSrc').textContent = '출처 ' + SL.data.source + ' · ' + SL.data.basis + (SL.data.note ? ' · ' + SL.data.note : '');
+    setSalesHeader();
+    renderSlKpis(); renderSlYoy(); renderSlChart(); renderSlIo(); renderSlCat(); renderSlCust();
+  }
+  function slSegName() { return SL.seg === 'all' ? '전체' : SL.seg; }
+  function renderSlKpis() {
+    var y = SL.year, py = String(+y - 1), dn = slDone(y), hasP = !!SL.data.years[py];
+    var cur = slSum(slRows(y, SL.seg, SL.cat)), prv = hasP ? slSum(slRows(py, SL.seg, SL.cat)) : null;
+    var all = slSum(slRows(y, 'all', SL.cat)), ext = slSum(slRows(y, '외부', SL.cat));
+    var pct = function (a, b) { return b ? deltaHtml((a - b) / b * 100, '%', 1) : ''; };
+    var ytd = slTot(cur, dn), ytdP = prv ? slTot(prv, dn) : null, yr = slTot(cur), yrP = prv ? slTot(prv) : null;
+    var plan = yr - ytd, extY = slTot(ext, dn || 12), allY = slTot(all, dn || 12);
+    var lbl = slSegName() + (SL.cat !== 'all' ? ' · ' + SL.cat : '');
+    var items = [
+      { l: (dn ? dn + '월 매출' : '매출') + ' (' + lbl + ')', v: dn ? won(cur[dn - 1]) : '–', u: '원', m: prv && dn ? pct(cur[dn - 1], prv[dn - 1]) + ' 전년 동월(' + won(prv[dn - 1]) + '원) 대비' : (hasP ? '' : '전년 데이터 없음') },
+      { l: '누적 매출 (1~' + (dn || '-') + '월 실적)', v: dn ? won(ytd) : '–', u: '원', m: ytdP != null && dn ? pct(ytd, ytdP) + ' 전년 동기(' + won(ytdP) + '원) 대비' : (hasP ? '' : '전년 데이터 없음') },
+      { l: y + '년 연간' + (plan ? ' (실적+예정)' : ''), v: won(yr), u: '원', m: (plan ? '예정 ' + won(plan) + '원 포함' : '') + (yrP != null ? (plan ? ' · ' : '') + py + '년 ' + won(yrP) + '원' + (plan ? '' : ' · ' + pct(yr, yrP)) : '') },
+      { l: '외부 매출 비중 (' + (dn ? '1~' + dn + '월' : '연간') + ')', v: allY ? (extY / allY * 100).toFixed(1) : '–', u: '%', m: '내부 ' + won(allY - extY) + '원 · 외부 ' + won(extY) + '원' }
+    ];
+    $('#slKpis').innerHTML = items.map(function (it) {
+      return '<div class="card kpi"><div class="label">' + it.l + '</div><div class="value">' + it.v + '<small>' + it.u + '</small></div><div class="meta">' + it.m + '</div></div>';
+    }).join('');
+  }
+  function slShade(max) {
+    var seq = ['--seq-0', '--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5', '--seq-6'];
+    return function (v) { if (v == null) return ''; var b = Math.max(0, Math.min(6, Math.floor(v / (max || 1) * 6.999))); return 'background:var(' + seq[b] + ');color:' + (b >= 4 ? 'var(--seq-hi-ink)' : 'var(--ink)'); };
+  }
+  function slDelta(a, b, rate) {
+    if (a == null || b == null) return '<td class="na">–</td>';
+    if (rate) { if (!b) return '<td class="na">–</td>'; var p = (a - b) / b * 100, c1 = p > 0 ? 'up' : p < 0 ? 'down' : 'flat'; return '<td><span class="delta ' + c1 + '">' + (p > 0 ? '▲ ' : p < 0 ? '▼ ' : '') + Math.abs(p).toFixed(1) + '%</span></td>'; }
+    var x = a - b, c2 = x > 0 ? 'up' : x < 0 ? 'down' : 'flat';
+    return '<td><span class="delta ' + c2 + '">' + (x > 0 ? '+' : '') + mil(x).replace(/<[^>]+>/g, '') + '</span></td>';
+  }
+  function renderSlYoy() {
+    var y = SL.year, py = String(+y - 1), dn = slDone(y), hasP = !!SL.data.years[py];
+    var cur = slSum(slRows(y, SL.seg, SL.cat)), prv = hasP ? slSum(slRows(py, SL.seg, SL.cat)) : null;
+    var nowY = y === slNow().slice(0, 4), max = Math.max.apply(null, cur.concat(prv || []).concat([1])), sh = slShade(max);
+    var head = '<tr><th></th>' + cur.map(function (_, i) { return '<th' + (nowY && i === dn ? ' class="cur"' : '') + '>' + (i + 1) + '월' + (nowY && i >= dn ? '<small class="plan-tag">예정</small>' : '') + '</th>'; }).join('') + '<th>연간 합계</th><th>누적<br>(1~' + (dn || 12) + '월)</th></tr>';
+    var row = function (lbl, arr, plan) {
+      return '<tr><th class="rowh">' + lbl + '</th>' + arr.map(function (v, i) { return '<td class="' + (plan && i >= dn ? 'plan' : '') + '" style="' + sh(v) + '" title="' + lbl + ' ' + (i + 1) + '월: ' + fmt(v) + '원">' + mil(v) + '</td>'; }).join('') +
+        '<td class="sum">' + mil(slTot(arr)) + '</td><td class="sum">' + mil(slTot(arr, dn || 12)) + '</td></tr>';
+    };
+    var body = (prv ? row(py + '년', prv, false) : '') + row(y + '년', cur, nowY);
+    if (prv) body += '<tr class="diff"><th class="rowh">증감</th>' + cur.map(function (v, i) { return slDelta(v, prv[i]); }).join('') + slDelta(slTot(cur), slTot(prv)) + slDelta(slTot(cur, dn || 12), slTot(prv, dn || 12)) + '</tr>' +
+      '<tr class="diff"><th class="rowh">증감률</th>' + cur.map(function (v, i) { return slDelta(v, prv[i], true); }).join('') + slDelta(slTot(cur), slTot(prv), true) + slDelta(slTot(cur, dn || 12), slTot(prv, dn || 12), true) + '</tr>';
+    $('#slYoy').innerHTML = '<div class="yoy-wrap"><table class="yoy"><colgroup><col class="c0">' + cur.map(function () { return '<col>'; }).join('') + '<col class="cs"><col class="cy"></colgroup><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
+      '<div class="yoy-note">단위: 백만원 · ' + esc(SL.data.basis) + (nowY ? ' · ' + (dn + 1) + '월부터는 시트에 입력된 예정 매출(점선 칸)' : '') + ' · 칸 색이 진할수록 매출이 큽니다(두 해 같은 기준).</div>';
+    $('#slYoySub').textContent = slSegName() + (SL.cat !== 'all' ? ' · ' + SL.cat : '') + ' 매출 · ' + (prv ? py + '년과 ' : '') + y + '년 월별 비교';
+  }
+  function renderSlChart() {
+    if (!SL.data || VIEW !== 'sales') return;
+    var y = SL.year, py = String(+y - 1), dn = slDone(y), nowY = y === slNow().slice(0, 4);
+    var cur = slSum(slRows(y, SL.seg, SL.cat)), prv = SL.data.years[py] ? slSum(slRows(py, SL.seg, SL.cat)) : null, ser = [];
+    if (prv) ser.push({ name: py + '년', color: css('--s2'), vals: prv });
+    ser.push({ name: y + '년 실적', color: css('--s1'), vals: cur.map(function (v, i) { return nowY && i >= dn ? null : v; }) });
+    if (nowY && dn < 12) ser.push({ name: y + '년 예정', color: css('--s1'), dash: '5 4', vals: cur.map(function (v, i) { return i >= dn - 1 && dn > 0 ? v : (i >= dn ? v : null); }) });
+    aLegend('#slLg', ser);
+    aLineChart($('#slCh'), cur.map(function (_, i) { return (i + 1) + '월'; }), ser, { zero: true, hi: nowY ? dn : -1, ml: 52, fmtY: function (v) { return won(v); }, title: function (i) { return (i + 1) + '월'; }, fmtV: function (v) { return won(v) + '원'; }, label: '월별 매출 추이' });
+  }
+  function renderSlIo() {
+    var y = SL.year, dn = slDone(y), nowY = y === slNow().slice(0, 4);
+    var inn = slSum(slRows(y, '내부', SL.cat)), ext = slSum(slRows(y, '외부', SL.cat)), tot = inn.map(function (v, i) { return v + ext[i]; });
+    var max = Math.max.apply(null, tot.concat([1])), sh = slShade(max);
+    var row = function (lbl, arr, cls) { return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><th class="rowh">' + lbl + '</th>' + arr.map(function (v, i) { return '<td class="' + (nowY && i >= dn ? 'plan' : '') + '"' + (cls ? '' : ' style="' + sh(v) + '"') + '>' + mil(v) + '</td>'; }).join('') + '<td class="sum">' + mil(slTot(arr)) + '</td><td>' + (slTot(tot) ? (slTot(arr) / slTot(tot) * 100).toFixed(1) + '%' : '–') + '</td></tr>'; };
+    var share = '<tr class="diff"><th class="rowh">외부 비중</th>' + tot.map(function (v, i) { return '<td>' + (v ? (ext[i] / v * 100).toFixed(1) + '%' : '–') + '</td>'; }).join('') + '<td>' + (slTot(tot) ? (slTot(ext) / slTot(tot) * 100).toFixed(1) + '%' : '–') + '</td><td></td></tr>';
+    $('#slIo').innerHTML = '<div class="yoy-wrap"><table class="yoy"><colgroup><col class="c0">' + tot.map(function () { return '<col>'; }).join('') + '<col class="cs"><col class="cy"></colgroup><thead><tr><th></th>' + tot.map(function (_, i) { return '<th' + (nowY && i === dn ? ' class="cur"' : '') + '>' + (i + 1) + '월</th>'; }).join('') + '<th>연간 합계</th><th>비중</th></tr></thead><tbody>' +
+      row('내부', inn) + row('외부', ext) + row('합계', tot, 'tot') + share + '</tbody></table></div>' +
+      '<div class="yoy-note">단위: 백만원 · 내부 = 대웅 계열 등 시트에서 내부로 분류한 고객사' + (SL.data.years[y] && SL.data.years[y].ioNote ? ' (' + esc(SL.data.years[y].ioNote) + ')' : '') + '</div>';
+    $('#slIoSub').textContent = y + '년 월별 · ' + (SL.cat !== 'all' ? SL.cat : '전체 사업');
+  }
+  function renderSlCat() {
+    var y = SL.year, py = String(+y - 1), dn = slDone(y), nowY = y === slNow().slice(0, 4), hasP = !!SL.data.years[py];
+    var cats = SL_CATS.filter(function (c) { return slRows(y, SL.seg, c).length || (hasP && slRows(py, SL.seg, c).length); });
+    var data = cats.map(function (c) { var a = slSum(slRows(y, SL.seg, c)); return { k: c, a: a, t: slTot(a), p: hasP ? slTot(slSum(slRows(py, SL.seg, c))) : null }; });
+    var tot = data.reduce(function (s, r) { return s + r.t; }, 0), max = 1; data.forEach(function (r) { r.a.forEach(function (v) { if (v > max) max = v; }); });
+    var bg = function (v) { if (!v) return ''; return 'background:color-mix(in srgb, var(--accent) ' + Math.round(6 + Math.min(1, v / max) * 40) + '%, transparent)'; };
+    var head = '<tr><th class="rowh">사업내용</th>' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { return '<th' + (nowY && m === dn + 1 ? ' class="cur"' : '') + '>' + m + '월</th>'; }).join('') + '<th>' + y + '년 합계</th><th>비중</th>' + (hasP ? '<th>' + py + '년</th><th>증감률</th>' : '') + '</tr>';
+    var body = data.map(function (r) {
+      return '<tr><th class="rowh">' + esc(r.k) + '</th>' + r.a.map(function (v, i) { return '<td class="' + (nowY && i >= dn ? 'plan' : '') + '" style="' + bg(v) + '">' + mil(v) + '</td>'; }).join('') +
+        '<td class="sum">' + mil(r.t) + '</td><td>' + (tot ? (r.t / tot * 100).toFixed(1) + '%' : '–') + '</td>' + (hasP ? '<td>' + mil(r.p) + '</td>' + slDelta(r.t, r.p, true) : '') + '</tr>';
+    }).join('');
+    var ct = slSum(slRows(y, SL.seg, 'all'));
+    body += '<tr class="tot"><th class="rowh">합계</th>' + ct.map(function (v) { return '<td>' + mil(v) + '</td>'; }).join('') + '<td class="sum">' + mil(tot) + '</td><td>100%</td>' + (hasP ? '<td>' + mil(data.reduce(function (s, r) { return s + (r.p || 0); }, 0)) + '</td>' + slDelta(tot, data.reduce(function (s, r) { return s + (r.p || 0); }, 0), true) : '') + '</tr>';
+    $('#slCatTbl').innerHTML = '<div class="yoy-wrap"><table class="semtbl"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div><div class="yoy-note">단위: 백만원 · 기타 = 플랫폼(자문·모집)·설문/시장조사·포인트 등</div>';
+    $('#slCatSub').textContent = y + '년 · ' + slSegName() + ' · 연간 합계는 ' + (nowY ? '실적+예정' : '실적');
+  }
+  function renderSlCust() {
+    var y = SL.year, py = String(+y - 1), dn = slDone(y), nowY = y === slNow().slice(0, 4), hasP = !!SL.data.years[py];
+    var map = {};
+    slRows(y, SL.seg, SL.cat).forEach(function (r) {
+      var o = map[r.c] || (map[r.c] = { k: r.c, io: r.io, cats: {}, a: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], p: null });
+      o.cats[r.cat] = 1; r.m.forEach(function (v, i) { o.a[i] += v || 0; });
+    });
+    if (hasP) slRows(py, SL.seg, SL.cat).forEach(function (r) { var o = map[r.c] || (map[r.c] = { k: r.c, io: r.io, cats: {}, a: null, p: 0, onlyPrev: true }); o.p = (o.p || 0) + slTot(r.m); });
+    var q = SL.q.trim().toLowerCase();
+    var rows = Object.keys(map).map(function (k) { var o = map[k]; o.t = o.a ? slTot(o.a) : 0; o.ytd = o.a ? slTot(o.a, dn || 12) : 0; return o; })
+      .filter(function (o) { return (o.t || o.p) && (!q || o.k.toLowerCase().indexOf(q) >= 0); });
+    var K = SL.sort.k, D = SL.sort.d;
+    rows.sort(function (a, b) { var x = K === 'k' ? a.k.localeCompare(b.k, 'ko') : K === 'p' ? (a.p || 0) - (b.p || 0) : K === 'ytd' ? a.ytd - b.ytd : a.t - b.t; return x * D || b.t - a.t; });
+    var tot = rows.reduce(function (s, o) { return s + o.t; }, 0), LIM = 20, shown = SL.all ? rows : rows.slice(0, LIM);
+    var max = 1; rows.forEach(function (o) { (o.a || []).forEach(function (v) { if (v > max) max = v; }); });
+    var bg = function (v) { if (!v) return ''; return 'background:color-mix(in srgb, var(--accent) ' + Math.round(6 + Math.min(1, v / max) * 40) + '%, transparent)'; };
+    var sortTh = function (k, lbl) { return '<th class="sort' + (K === k ? ' on' : '') + '" data-k="' + k + '">' + lbl + (K === k ? (D < 0 ? ' ▾' : ' ▴') : '') + '</th>'; };
+    var head = '<tr>' + sortTh('k', '고객사').replace('<th class="sort', '<th class="rowh sort') + '<th>구분</th>' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { return '<th' + (nowY && m === dn + 1 ? ' class="cur"' : '') + '>' + m + '월</th>'; }).join('') +
+      sortTh('t', y + '년 합계') + '<th>비중</th>' + sortTh('ytd', '누적<br>(1~' + (dn || 12) + '월)') + (hasP ? sortTh('p', py + '년') + '<th>증감률</th>' : '') + '</tr>';
+    var body = shown.map(function (o) {
+      return '<tr><th class="rowh" title="' + esc(o.k) + ' · ' + Object.keys(o.cats).join('·') + '">' + esc(o.k) + '<small class="cats">' + esc(Object.keys(o.cats).join('·')) + '</small></th><td class="io"><span class="io-chip io-' + (o.io === '내부' ? 'in' : 'out') + '">' + esc(o.io) + '</span></td>' +
+        (o.a ? o.a.map(function (v, i) { return '<td class="' + (nowY && i >= dn ? 'plan' : '') + '" style="' + bg(v) + '">' + mil(v) + '</td>'; }).join('') : '<td colspan="12" class="na">' + y + '년 매출 없음</td>') +
+        '<td class="sum">' + mil(o.t) + '</td><td>' + (tot ? (o.t / tot * 100).toFixed(1) + '%' : '–') + '</td><td>' + mil(o.ytd) + '</td>' + (hasP ? '<td>' + (o.p == null ? '–' : mil(o.p)) + '</td>' + slDelta(o.t, o.p, true) : '') + '</tr>';
+    }).join('');
+    $('#slCustTbl').innerHTML = (rows.length ? '<div class="yoy-wrap"><table class="semtbl custtbl"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' : '<div class="empty">조건에 맞는 고객사가 없습니다.</div>') +
+      (rows.length > LIM ? '<button type="button" class="btn more" id="slMore">' + (SL.all ? '상위 ' + LIM + '개만 보기' : '전체 ' + rows.length + '개 보기') + '</button>' : '') +
+      '<div class="yoy-note">단위: 백만원 · ' + (hasP ? py + '년과 고객사명은 표기 차이를 맞춰 비교했습니다(예: (주)·코리아 등 제거). ' : '') + '담당자 등 개인 정보는 저장하지 않습니다.</div>';
+    $('#slCustSub').textContent = y + '년 · ' + slSegName() + (SL.cat !== 'all' ? ' · ' + SL.cat : '') + ' · 고객사 ' + rows.length + '곳';
+    var mb = $('#slMore'); if (mb) mb.onclick = function () { SL.all = !SL.all; renderSlCust(); };
+    $('#slCustTbl').querySelectorAll('th.sort').forEach(function (th) { th.onclick = function () { var k = th.dataset.k; SL.sort = { k: k, d: SL.sort.k === k ? -SL.sort.d : (k === 'k' ? 1 : -1) }; renderSlCust(); }; });
+  }
+  document.querySelectorAll('#slSeg button').forEach(function (b) { b.addEventListener('click', function () { SL.seg = b.dataset.seg; SL.all = false; renderSales(); }); });
+  $('#slYear').addEventListener('change', function () { SL.year = this.value; SL.all = false; renderSales(); });
+  $('#slCat').addEventListener('change', function () { SL.cat = this.value; SL.all = false; renderSales(); });
+  $('#slQ').addEventListener('input', function () { SL.q = this.value; renderSlCust(); });
+  function homeSales() {
+    var d = SL.data;
+    if (!d) return hCard('sales', 'dv', '매출', '', hMsg(HOME.busy.sl || SL.loading ? '불러오는 중…' : (HOME.slErr || SL.err || '매출 메뉴에서 불러올 수 있습니다.')));
+    var n = slNow(), y = n.slice(0, 4), py = String(+y - 1), dn = slDone(y);
+    if (!d.years[y]) { y = slYears().slice(-1)[0]; dn = slDone(y); py = String(+y - 1); }
+    var cur = slSum(slRows(y, 'all')), prv = d.years[py] ? slSum(slRows(py, 'all')) : null;
+    var ytd = slTot(cur, dn), ytdP = prv ? slTot(prv, dn) : null;
+    return hCard('sales', 'dv', '매출', y + '년 1~' + dn + '월 실적 · 스크래핑 ' + new Date(d.fetchedAt).toLocaleDateString('ko-KR'), '<div class="hbody">' +
+      hStat(dn + '월 매출', won(cur[dn - 1] || 0), '원', prv ? hPct(cur[dn - 1], prv[dn - 1], '전년 동월 대비') : '') +
+      hStat('누적 (1~' + dn + '월)', won(ytd), '원', ytdP != null ? hPct(ytd, ytdP, '전년 동기 대비') : '') +
+      hStat('연간 (실적+예정)', won(slTot(cur)), '원', prv ? py + '년 ' + won(slTot(prv)) + '원' : '') + '</div>');
+  }
+
   // ---- 세미나 편성 (매출 > 닥터빌 > 세미나) -----------------------------------
   // 데이터: docs/data/seminar.enc.json — '(닥터빌) 2026 편성표_NEW' RAW 탭을 스크래핑해 월별 건수로 집계 후 대시보드 비밀번호로 암호화한 저장본
   //        (Apps Script 미사용. 최신화는 Claude에 「세미나 편성 갱신」을 요청하면 시트를 다시 읽어 게시)
@@ -2256,6 +2916,8 @@ body.locked #gate { display: flex; }
   var SEM = { data: null, loading: false, err: '', year: null, dim: 'inout', all: false };
   try { var sd = localStorage.getItem('mv-sem-dim'); if (sd) SEM.dim = sd; } catch (e) {}
   var SEM_DIMS = ['inout', 'type', 'status', 'academic', 'cat', 'tx', 'region', 'survey', 'company'];
+  // 협력사 담당자는 회사별 건수를 뺀 요약본(seminar_pub.enc.json, 협력사용 키)을 읽음
+  function semFile() { return KEY ? 'data/seminar.enc.json' : 'data/seminar_pub.enc.json'; }
   function semNow() { var d = SEM.data; return new Date(Date.parse(d.fetchedAt) + KST_MS).toISOString().slice(0, 7); }
   function semYears() { var s = {}; SEM.data.months.forEach(function (m) { s[m.slice(0, 4)] = 1; }); return Object.keys(s).sort(); }
   function semVal(arr, y, m) { var i = SEM.data.months.indexOf(y + '-' + String(m).padStart(2, '0')); return i < 0 || !arr ? null : (arr[i] || 0); }
@@ -2271,11 +2933,11 @@ body.locked #gate { display: flex; }
     $('#srcLabel').textContent = d ? '데이터: 저장본(시트 스크래핑)' : '';
   }
   function loadSeminar(fresh, btn) {
-    if (!KEY) return Promise.resolve();
+    var sk = KEY || PKEY; if (!sk) return Promise.resolve();
     SEM.loading = true; SEM.err = ''; setSemHeader();
     if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
     $('#semApp').classList.add('loading');
-    return fetchJson('data/seminar.enc.json?t=' + Date.now()).then(function (box) { return decryptBox(KEY, box); }).then(function (d) {
+    return fetchJson(semFile() + '?t=' + Date.now()).then(function (box) { return decryptBox(sk, box); }).then(function (d) {
       if (!d || !d.months || !d.total) throw new Error('형식이 올바르지 않습니다.');
       var same = SEM.data && SEM.data.fetchedAt === d.fetchedAt;
       SEM.data = d;
@@ -2407,17 +3069,17 @@ body.locked #gate { display: flex; }
 
   // ---- 좌측 메뉴 · 화면 전환 ------------------------------------------------
   // 홈 / 매출(닥터빌·팜빌 포인트) / 회원 지표(닥터빌·팜빌 회원 정보·활동성) / 분석 리포트·LLM(준비 중)
-  var VIEWS = ['home', 'members', 'pharm', 'points', 'ppoints', 'seminar', 'activity', 'pactivity', 'report', 'llm'];
-  var STATIC_VIEWS = { home: 1, report: 1, llm: 1 };
-  var VIEW_TITLE = { home: '닥터빌 · 팜빌 운영 대시보드', report: '분석 리포트', llm: 'LLM',
-    points: '닥터빌 포인트 대시보드', seminar: '닥터빌 세미나 대시보드', ppoints: '팜빌 포인트 대시보드', activity: '닥터빌 활동성 대시보드', pactivity: '팜빌 활동성 대시보드' };
+  var VIEWS = ['home', 'members', 'pharm', 'sales', 'points', 'ppoints', 'seminar', 'ads', 'activity', 'pactivity', 'report', 'llm', 'accounts'];
+  var STATIC_VIEWS = { home: 1, report: 1, llm: 1, ads: 1, accounts: 1 };
+  var VIEW_TITLE = { home: '닥터빌 · 팜빌 운영 대시보드', report: '분석 리포트', llm: 'LLM', ads: '닥터빌 광고', accounts: '계정 관리',
+    points: '닥터빌 포인트 대시보드', seminar: '닥터빌 세미나 대시보드', sales: '닥터빌 매출 대시보드', ppoints: '팜빌 포인트 대시보드', activity: '닥터빌 활동성 대시보드', pactivity: '팜빌 활동성 대시보드' };
   function setNav(open) {
     document.body.classList.toggle('nav-open', open);
     $('#navBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
     $('#navBtn').setAttribute('aria-label', open ? '메뉴 닫기' : '메뉴 열기');
   }
   function setView(v, fromHash) {
-    VIEW = VIEWS.indexOf(v) >= 0 ? v : 'home';
+    VIEW = VIEWS.indexOf(v) >= 0 && canView(v) ? v : 'home';
     var stat = !!STATIC_VIEWS[VIEW];
     if (isPts()) setPSvc(VIEW === 'ppoints' ? 'pv' : 'dv');
     var nsvc = VIEW === 'pharm' ? 'pv' : VIEW === 'members' ? 'dv' : SVC;
@@ -2431,7 +3093,8 @@ body.locked #gate { display: flex; }
     document.body.classList.toggle('view-pactivity', VIEW === 'pactivity');
     document.body.classList.toggle('view-static', stat);
     document.body.classList.toggle('view-seminar', VIEW === 'seminar');
-    ['home', 'report', 'llm'].forEach(function (k) { document.body.classList.toggle('view-' + k, VIEW === k); });
+    document.body.classList.toggle('view-sales', VIEW === 'sales');
+    ['home', 'report', 'llm', 'ads', 'accounts'].forEach(function (k) { document.body.classList.toggle('view-' + k, VIEW === k); });
     document.querySelectorAll('#sideNav .nav-item').forEach(function (b) {
       if (b.dataset.view === VIEW) {
         b.setAttribute('aria-current', 'page');
@@ -2439,16 +3102,18 @@ body.locked #gate { display: flex; }
       } else b.removeAttribute('aria-current');
     });
     setNav(false);
-    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 요청)' : VIEW === 'seminar' ? '저장소의 세미나 편성 저장본을 다시 불러옵니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
+    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '저장소의 매출 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 「닥터빌 매출 갱신」 요청)' : VIEW === 'seminar' ? '저장소의 세미나 편성 저장본을 다시 불러옵니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
     if (!fromHash) { try { history.replaceState(null, '', VIEW === 'home' ? location.pathname + location.search : '#' + VIEW); } catch (e) {} }
     if (stat) {
       if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
+      else if (VIEW === 'accounts') { renderAccounts(); if (started && !ACCV.dir && !ACCV.loading) loadDir(); }
       else $('#subtitle').textContent = '준비 중인 메뉴입니다';
       return;
     }
     if (isPts()) { if (!P.loaded) loadPoints(); else { setPointHeader(); renderPoints(); } }
     else if (VIEW === 'activity') { if (!A.data && !A.loading && started) loadActivity(false); else renderActivity(); }
     else if (VIEW === 'pactivity') { if (!PA.data && !PA.loading && started) loadPvActivity(false); else renderPvActivity(); }
+    else if (VIEW === 'sales') { if (!SL.data && !SL.loading && started) loadSales(false); else renderSales(); }
     else if (VIEW === 'seminar') { if (!SEM.data && !SEM.loading && started) loadSeminar(false); else renderSeminar(); }
     else { setSource(!!state.remote); if (state.snap) renderAll(); else { $('#subtitle').textContent = '데이터를 불러오는 중…'; if (started) startMembers(); } }
   }
@@ -2468,9 +3133,10 @@ body.locked #gate { display: flex; }
 
   // ---- 홈: 메뉴별 핵심 지표 요약 ----------------------------------------
   // 이미 불러온 탭 데이터가 있으면 그대로 쓰고, 없으면 저장본(또는 시트 집계)을 읽기만 함 (다른 탭 상태는 바꾸지 않음)
-  var HOME = { pts: {}, pvSnap: null, pvPrev: null, pvSrc: '', pvErr: '', aErr: '', aTried: false, paErr: '', semErr: '', busy: {} };
+  var HOME = { pts: {}, pvSnap: null, pvPrev: null, pvSrc: '', pvErr: '', aErr: '', aTried: false, paErr: '', semErr: '', slErr: '', busy: {} };
   function loadHome() {
-    if (!KEY) return;
+    if (!KEY && !PKEY) return;
+    if (KEY) {
     ['dv', 'pv'].forEach(function (svc) {
       if (HOME.pts[svc] != null || HOME.busy['p' + svc] || (PSTATES[svc] && PSTATES[svc].data)) return;
       HOME.busy['p' + svc] = 1;
@@ -2512,9 +3178,17 @@ body.locked #gate { display: flex; }
         .catch(function () { HOME.paErr = '팜빌 활동성 저장본을 불러오지 못했습니다.'; })
         .then(function () { HOME.busy.pa = 0; renderHome(); });
     }
+      if (!SL.data && !SL.loading && !HOME.busy.sl && !HOME.slErr) {
+        HOME.busy.sl = 1;
+        fetchJson('data/sales.enc.json?t=' + Date.now()).then(function (b) { return decryptBox(KEY, b); })
+          .then(function (d) { if (!d || !d.years) throw new Error('형식 오류'); if (!SL.data) SL.data = d; })
+          .catch(function (e) { HOME.slErr = /404/.test(e.message || '') ? '매출 저장본이 아직 없습니다.' : '매출 저장본을 불러오지 못했습니다.'; })
+          .then(function () { HOME.busy.sl = 0; renderHome(); });
+      }
+    }
     if (!SEM.data && !SEM.loading && !HOME.busy.sem && !HOME.semErr) {
       HOME.busy.sem = 1;
-      fetchJson('data/seminar.enc.json?t=' + Date.now()).then(function (b) { return decryptBox(KEY, b); })
+      fetchJson(semFile() + '?t=' + Date.now()).then(function (b) { return decryptBox(KEY || PKEY, b); })
         .then(function (d) { if (!d || !d.months || !d.total) throw new Error('형식 오류'); if (!SEM.data) SEM.data = d; })
         .catch(function (e) { HOME.semErr = /404/.test(e.message || '') ? '세미나 편성 저장본이 아직 없습니다.' : '세미나 편성 저장본을 불러오지 못했습니다.'; })
         .then(function () { HOME.busy.sem = 0; renderHome(); });
@@ -2582,8 +3256,9 @@ body.locked #gate { display: flex; }
   function renderHome() {
     if (VIEW !== 'home') return;
     $('#subtitle').textContent = '메뉴별 핵심 지표 요약';
-    if (!KEY) { $('#homeSales').innerHTML = ''; $('#homeMembers').innerHTML = ''; return; }
-    $('#homeSales').innerHTML = homePoints('dv') + homeSeminar() + homePoints('pv');
+    if (!KEY && !PKEY) { $('#homeSales').innerHTML = ''; $('#homeMembers').innerHTML = ''; return; }
+    if (!KEY) { $('#homeSales').innerHTML = homeSeminar(); $('#homeMembers').innerHTML = ''; return; }
+    $('#homeSales').innerHTML = homeSales() + homeSeminar() + homePoints('dv') + homePoints('pv');
     $('#homeMembers').innerHTML = homeMemberCard('dv', 'members') + homeActDv() + homeMemberCard('pv', 'pharm') + homeActPv();
   }
 
