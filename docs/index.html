@@ -213,6 +213,16 @@ body.view-points #memberMain, body:not(.view-points) #pointMain { display: none;
 body.view-points .member-only { display: none !important; }
 body.view-activity #memberMain, body.view-activity #pointMain, body:not(.view-activity) #actMain { display: none; }
 body.view-activity .member-only { display: none !important; }
+body.view-pactivity #memberMain, body.view-pactivity #pointMain, body.view-pactivity #actMain, body:not(.view-pactivity) #pactMain { display: none; }
+body.view-pactivity .member-only { display: none !important; }
+@media (min-width: 861px) { #paKpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+#paMenus td.l, #paMenus th.l, #paInflow td.l, #paInflow th.l { padding-left: 10px; }
+#paMenus tr.tot td { background: var(--grid); color: var(--ink); font-weight: 600; }
+.chshare { display: grid; gap: 8px; margin-top: 6px; }
+.chshare .row { display: grid; grid-template-columns: 110px 1fr 110px; gap: 10px; align-items: center; font-size: 12.5px; }
+.chshare .bar { height: 10px; background: var(--grid); border-radius: 3px; overflow: hidden; }
+.chshare .bar i { display: block; height: 100%; border-radius: 3px; }
+.chshare .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
 /* 활동성 */
 .ptable th.sortable { cursor: pointer; user-select: none; }
 .ptable th.sortable:hover { color: var(--ink); }
@@ -304,6 +314,7 @@ body.locked #gate { display: flex; }
         <button type="button" role="tab" id="tabPoints" data-view="points" aria-selected="false">포인트 관리</button>
         <button type="button" role="tab" id="tabPvPoints" data-view="ppoints" aria-selected="false">팜빌 포인트</button>
         <button type="button" role="tab" id="tabActivity" data-view="activity" aria-selected="false">활동성</button>
+        <button type="button" role="tab" id="tabPvActivity" data-view="pactivity" aria-selected="false">팜빌 활동성</button>
       </div>
     </div>
     <div class="controls">
@@ -380,6 +391,74 @@ body.locked #gate { display: flex; }
       이 페이지는 집계 수치만 게시합니다. 회원 USN·이메일·면허번호·병원명 등 개인 식별 정보는 포함하지 않으며,
       <span id="minCell">3</span>명 미만 항목은 "기타(소수)"로 합쳐 표시합니다. 데이터는 매주 월요일 09:00(KST) 자동 갱신됩니다.
     </footer>
+  </div>
+</main>
+
+<main id="pactMain">
+  <div class="wrap" id="pactApp">
+    <section>
+      <div class="sec-head">
+        <div>
+          <h2>팜빌 활동성</h2>
+          <p>팜빌 주간/월간 데이터 자동 시트(GA 집계: 내부 트래픽 제외 · 로그인 사용자) 기준 · 개인 식별 정보 없음</p>
+        </div>
+        <div class="pfilter">
+          <div class="seg" id="paModeSeg" role="group" aria-label="팜빌 활동성 분석 단위">
+            <button type="button" data-pamode="week" aria-pressed="true">주간</button>
+            <button type="button" data-pamode="month">월간</button>
+          </div>
+          <label for="paPeriod" id="paPeriodLbl">기준 주차</label>
+          <select id="paPeriod" aria-label="팜빌 활동성 기준 기간"></select>
+          <div class="seg" id="paDevSeg" role="group" aria-label="기기">
+            <button type="button" data-dev="전체" aria-pressed="true">전체</button>
+            <button type="button" data-dev="PC">PC</button>
+            <button type="button" data-dev="MO">모바일</button>
+            <button type="button" data-dev="태블릿">태블릿</button>
+          </div>
+        </div>
+      </div>
+      <div id="paEmpty" class="empty" hidden></div>
+      <div class="padata">
+        <div class="kpis" id="paKpis"></div>
+        <p class="anote" id="paKpiNote"></p>
+      </div>
+    </section>
+    <section class="padata">
+      <div class="sec-head"><div><h2>활동성 추이</h2><p id="paTrendDesc"></p></div>
+        <div class="seg" id="paRangeSeg" role="group" aria-label="추이 기간"></div></div>
+      <div class="grid2">
+        <div class="card"><h3>활성 사용자 (DAU · WAU · MAU)</h3><p class="desc">점선: YTD 활성 사용자(연초 누적)</p><ul class="legend" id="palUsers"></ul><div class="chart" id="pachUsers"></div></div>
+        <div class="card"><h3>방문수 · 신규 · 재방문수</h3><p class="desc" id="paVisitDesc"></p><ul class="legend" id="palVisits"></ul><div class="chart" id="pachVisits"></div></div>
+        <div class="card"><h3>조회수</h3><p class="desc">진한 막대: 선택한 기간</p><div class="chart" id="pachViews"></div></div>
+        <div class="card"><h3>고착도 · 재방문 비율</h3><p class="desc">DAU/MAU · WAU/MAU · 재방문비율 (%)</p><ul class="legend" id="palStick"></ul><div class="chart" id="pachStick"></div></div>
+        <div class="card"><h3 id="paDevTitle">기기별 활성 사용자</h3><p class="desc" id="paDevDesc"></p><ul class="legend" id="palDev"></ul><div class="chart" id="pachDev"></div></div>
+        <div class="card"><h3>회원수 · 목표 달성률 (월간지표)</h3><p class="desc">막대: 회원수 · 선: 목표 대비 (%) — 기기 구분 없음</p><ul class="legend" id="palGoal"></ul><div class="chart" id="pachGoal"></div></div>
+      </div>
+    </section>
+    <section class="padata">
+      <div class="sec-head"><div><h2>일별 활성 사용자</h2><p id="paDailyDesc"></p></div>
+        <div class="seg" id="paDaySeg" role="group" aria-label="일별 범위">
+          <button type="button" data-days="sel" aria-pressed="true">선택 기간 주변</button>
+          <button type="button" data-days="90">최근 90일</button>
+          <button type="button" data-days="all">전체</button>
+        </div></div>
+      <div class="card"><ul class="legend" id="palDaily"></ul><div class="chart" id="pachDaily"></div><p class="anote" id="paDailyNote"></p></div>
+    </section>
+    <section class="padata">
+      <div class="sec-head"><div><h2>메뉴별 지표</h2><p id="paMenuSub"></p></div>
+        <div class="seg" id="paSrcSeg" role="group" aria-label="출처"></div></div>
+      <div class="card"><div id="paMenus" class="ascroll"></div><p class="anote">열 제목을 누르면 정렬됩니다. 비중·이탈률·재방문자 비율·전기 대비는 시트 값 그대로입니다. 맨 위 회색 행은 출처 전체 합계입니다.</p></div>
+      <div class="card" style="margin-top:12px"><h3>주요 메뉴 조회수 추이</h3><p class="desc" id="paMenuTrendDesc"></p><ul class="legend" id="palMenus"></ul><div class="chart" id="pachMenus"></div></div>
+    </section>
+    <section class="padata">
+      <div class="sec-head"><div><h2>유입경로</h2><p id="paInSub"></p></div>
+        <div class="seg" id="paInSrcSeg" role="group" aria-label="유입 출처"></div></div>
+      <div class="grid2">
+        <div class="card"><h3>채널별 방문수 (세션) 추이</h3><p class="desc" id="paChDesc"></p><ul class="legend" id="palCh"></ul><div class="chart" id="pachCh"></div></div>
+        <div class="card"><h3>채널 비중 — 선택 기간</h3><p class="desc" id="paChShareDesc"></p><div id="paChShare"></div></div>
+      </div>
+      <div class="card" style="margin-top:12px"><div id="paInflow" class="ascroll"></div><p class="anote">순위·세션 비중은 시트 값 그대로입니다. 열 제목을 누르면 정렬됩니다.</p></div>
+    </section>
   </div>
 </main>
 
@@ -761,6 +840,7 @@ body.locked #gate { display: flex; }
     var btn = this;
     if (isPts()) return pointRefresh(btn);
     if (VIEW === 'activity') return loadActivity(true, btn);
+    if (VIEW === 'pactivity') return loadPvActivity(true, btn);
     if (!CONFIG.appsScriptUrl) { toast('구글시트 연동 주소(docs/data/config.json)가 아직 설정되지 않았습니다.', true); return; }
     (PW ? Promise.resolve(PW) : askPw()).then(function (pw) {
       if (!pw) return;
@@ -910,6 +990,7 @@ body.locked #gate { display: flex; }
     if (started) return; started = true;
     if (isPts()) loadPoints();
     if (VIEW === 'activity') loadActivity(false);
+    if (VIEW === 'pactivity') loadPvActivity(false);
     $('#weekSel').addEventListener('change', function () { if (state.mode === 'month') loadMonth(this.value); else load(this.value); });
     startMembers();
   }
@@ -988,7 +1069,7 @@ body.locked #gate { display: flex; }
   });
   buildRangeSeg();
   $('#modeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.mode === state.mode ? 'true' : 'false'); });
-  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); renderPWTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (isPts() && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
+  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); renderPWTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'pactivity' && PA.data) renderPvActivity(); if (isPts() && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
 
   function renderAll() {
     if (!state.snap) return;
@@ -1006,6 +1087,7 @@ body.locked #gate { display: flex; }
     renderKpis(); renderMonthly(); renderTrends(); renderDims(); renderHeat();
     if (isPts()) setPointHeader();
     if (VIEW === 'activity') setActHeader();
+    if (VIEW === 'pactivity') setPActHeader();
   }
 
   // ---- PDF 내려받기 (브라우저 안에서 생성, 서버 전송 없음) ----------------
@@ -1085,8 +1167,8 @@ body.locked #gate { display: flex; }
       });
   }
   $('#pdfBtn').addEventListener('click', function () {
-    var isP = isPts(), isA = VIEW === 'activity';
-    if (isA ? !A.data : isP ? !P.data : !state.snap) return;
+    var isP = isPts(), isA = VIEW === 'activity', isPA = VIEW === 'pactivity';
+    if (isPA ? !PA.data : isA ? !A.data : isP ? !P.data : !state.snap) return;
     var btn = this, root = document.documentElement, prevTheme = root.getAttribute('data-theme');
     var prevRange = state.range, s = state.snap, restore = null;
     var now = new Date(), pad = function (n) { return n < 10 ? '0' + n : n; };
@@ -1100,7 +1182,7 @@ body.locked #gate { display: flex; }
       state.range = MD().ranges[MD().ranges.length - 1]; P.prevRange = P.range; P.range = 0; renderAll(); renderPoints(); renderActivity();   // 추이는 최대 기간(52주/24개월), 포인트는 전체 기간으로 출력
       return new Promise(function (r) { setTimeout(r, 250); });
     }).then(function () { return svgsToImages($('#pdfRoot')); })
-      .then(function (fn) { restore = fn; return buildPdf($('#pdfRoot'), isA ? '닥터빌_활동성_' + A.period + '.pdf' : isP ? pName() + '_포인트대시보드_' + P.data.range.to + '.pdf' : (SVC === 'pv' ? '팜빌' : '닥터빌') + '_회원대시보드_' + s.week + '.pdf'); })
+      .then(function (fn) { restore = fn; return buildPdf($('#pdfRoot'), isPA ? '팜빌_활동성_' + PA.period + '.pdf' : isA ? '닥터빌_활동성_' + A.period + '.pdf' : isP ? pName() + '_포인트대시보드_' + P.data.range.to + '.pdf' : (SVC === 'pv' ? '팜빌' : '닥터빌') + '_회원대시보드_' + s.week + '.pdf'); })
       .then(function () { toast('PDF를 내려받았습니다. 대외비 자료이니 외부 공유 전 승인을 받아 주세요.'); })
       .catch(function (e) { toast((e && e.message) || 'PDF 생성에 실패했습니다.', true); })
       .then(function () {
@@ -1716,8 +1798,303 @@ body.locked #gate { display: flex; }
   document.querySelectorAll('#aDevSeg button').forEach(function (b) { b.addEventListener('click', function () { A.dev = b.dataset.dev; renderActivity(); }); });
   $('#aPeriod').addEventListener('change', function () { A.period = this.value; renderActivity(); });
 
+  // =====================================================================
+  // 팜빌 활동성 (팜빌 주간/월간 데이터 자동 시트 → Apps Script 'activityPv')
+  //   주간지표·월간지표·메뉴별_주간/월간·유입경로_주간/월간·일별활성사용자 전체 사용
+  // =====================================================================
+  var PA = { data: null, loading: false, mode: 'week', period: null, dev: '전체', src: null, inSrc: null, range: 0, days: 'sel',
+    msort: { k: '조회수', d: -1 }, isort: { k: '방문수(세션)', d: -1 }, err: '' };
+  try { var pam = localStorage.getItem('mv-pact-mode'); if (pam === 'week' || pam === 'month') PA.mode = pam; } catch (e) {}
+  function paRows(t) {   // {cols, rows} → [{열이름: 값}]
+    if (!t || !t.cols) return [];
+    return t.rows.map(function (r) { var o = {}; t.cols.forEach(function (c, i) { o[c] = paDate(r[i]); }); return o; });
+  }
+  // 시트 표시 형식이 날짜형(2025. 1. 1 / 2025. 1)이어도 2025-01-01 / 2025-01 로 맞춤
+  function paDate(v) {
+    if (typeof v !== 'string') return v;
+    var m = /^(\d{4})\s*[.\-\/]\s*(\d{1,2})(?:\s*[.\-\/]\s*(\d{1,2}))?\.?$/.exec(v.trim());
+    if (!m) return v;
+    return m[1] + '-' + ('0' + m[2]).slice(-2) + (m[3] ? '-' + ('0' + m[3]).slice(-2) : '');
+  }
+  function paN(v) { if (v == null || v === '') return null; if (typeof v === 'number') return v; var t = String(v).replace(/[,%+\s]/g, ''); return t !== '' && !isNaN(t) ? +t : null; }
+  function paSets() {
+    var d = PA.data, wk = PA.mode === 'week';
+    if (!PA.cache || PA.cache.d !== d) PA.cache = { d: d, weekly: paRows(d.weekly), monthly: paRows(d.monthly), menuWeekly: paRows(d.menuWeekly), menuMonthly: paRows(d.menuMonthly),
+      inflowWeekly: paRows(d.inflowWeekly), inflowMonthly: paRows(d.inflowMonthly), daily: paRows(d.daily) };
+    var c = PA.cache;
+    return { tot: wk ? c.weekly : c.monthly, menu: wk ? c.menuWeekly : c.menuMonthly, inflow: wk ? c.inflowWeekly : c.inflowMonthly, daily: c.daily, monthly: c.monthly,
+      pk: wk ? '주차' : '월', rangeK: wk ? '기간' : null };
+  }
+  function paPeriods(S) { var s = {}, o = []; S.tot.forEach(function (r) { var p = r[S.pk]; if (p && !s[p]) { s[p] = 1; o.push(String(p)); } }); return o.sort(); }
+  function paRange(S, p) { if (PA.mode !== 'week') return null; for (var i = 0; i < S.tot.length; i++) if (S.tot[i][S.pk] === p) return S.tot[i]['기간']; return null; }
+  function paStatus(S, p) { for (var i = S.tot.length - 1; i >= 0; i--) if (S.tot[i][S.pk] === p) return S.tot[i]['상태']; return ''; }
+  function paLabel(S, p) {
+    if (PA.mode === 'month') return p.slice(0, 4) + '년 ' + (+p.slice(5, 7)) + '월' + (paStatus(S, p) === '진행중' ? ' · 진행 중' : '');
+    var rg = paRange(S, p); return p + (rg ? ' (' + rg + ')' : '') + (paStatus(S, p) === '진행중' ? ' · 진행 중' : '');
+  }
+  function paAxis(p) { return PA.mode === 'month' ? p.slice(2, 4) + '.' + p.slice(5, 7) : 'W' + p.slice(-2); }
+  function paRow(S, p, dev) { for (var i = S.tot.length - 1; i >= 0; i--) { var r = S.tot[i]; if (r[S.pk] === p && r['구분'] === dev) return r; } return null; }
+  function paSources(rows) { var s = {}, o = []; rows.forEach(function (r) { var x = r['출처']; if (x && !s[x]) { s[x] = 1; o.push(x); } }); return o; }
+
+  function setPActHeader() {
+    if (VIEW !== 'pactivity') return;
+    var d = PA.data;
+    $('#subtitle').textContent = d ? '팜빌 활동성 · ' + (PA.period ? paLabel(paSets(), PA.period) : '') + ' · 불러온 시각 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false })
+      : (PA.loading ? '팜빌 활동성 데이터를 불러오는 중…' : '팜빌 활동성 데이터를 불러오지 못했습니다');
+    $('#srcLabel').textContent = d ? '데이터: 팜빌 활동성 시트' : '';
+  }
+  function loadPvActivity(fresh, btn) {
+    if (!CONFIG.appsScriptUrl) { PA.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; renderPvActivity(); return Promise.resolve(); }
+    return (PW ? Promise.resolve(PW) : askPw('팜빌 활동성 시트를 불러오려면 비밀번호를 입력해 주세요.')).then(function (pw) {
+      if (!pw) return;
+      PW = pw; PA.loading = true; PA.err = ''; setPActHeader();
+      if (btn) { btn.disabled = true; btn.textContent = '갱신 중…'; }
+      $('#pactApp').classList.add('loading');
+      return api('activityPv', fresh ? { fresh: true } : {}).then(function (res) {
+        if (!res.activity || !res.activity.menuWeekly) throw new Error('시트의 Apps Script(Code.gs)가 아직 팜빌 활동성을 지원하지 않는 버전입니다. 새 Code.gs로 교체한 뒤 [배포 → 배포 관리 → 편집 → 새 버전]으로 배포해 주세요.');
+        PA.data = res.activity; PA.cache = null; PA.period = null;
+        if (fresh) toast('팜빌 활동성 데이터를 새로 불러왔습니다.');
+      }).catch(function (e) {
+        if (e.code === 'unauthorized') PW = null;
+        PA.err = e.code ? apiErrorText(e) : (/openById|권한|permission|Exception/i.test(e.message || '') ? '팜빌 활동성 시트를 열 권한이 없습니다. 회원분석 시트 메뉴 [대시보드 → 팜빌 활동성 시트 연결 확인]을 한 번 실행해 권한을 승인해 주세요. (' + e.message + ')'
+          : (e.message === 'error' || /Unknown|action/i.test(e.message || '') ? '시트의 Apps Script(Code.gs)가 아직 팜빌 활동성을 지원하지 않는 버전입니다. 새 Code.gs로 교체·새 버전 배포 후 다시 시도해 주세요.' : e.message));
+        toast(PA.err, true, 12000);
+      }).then(function () {
+        PA.loading = false; $('#pactApp').classList.remove('loading');
+        if (btn) { btn.disabled = false; btn.textContent = '갱신'; }
+        renderPvActivity();
+      });
+    });
+  }
+  function renderPvActivity() {
+    if (VIEW !== 'pactivity') return;
+    $('#paEmpty').hidden = !!PA.data; document.querySelectorAll('#pactApp .padata').forEach(function (s) { s.hidden = !PA.data; });
+    if (!PA.data) { $('#paEmpty').textContent = PA.err || (PA.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); setPActHeader(); return; }
+    var S = paSets(), ps = paPeriods(S);
+    if (!ps.length) { $('#paEmpty').hidden = false; $('#paEmpty').textContent = '시트에 데이터가 없습니다.'; return; }
+    if (!PA.period || ps.indexOf(PA.period) < 0) {   // 기본: 마지막 완료 기간
+      PA.period = ps[ps.length - 1];
+      for (var i = ps.length - 1; i >= 0; i--) if (paStatus(S, ps[i]) !== '진행중') { PA.period = ps[i]; break; }
+    }
+    var sel = $('#paPeriod'); sel.innerHTML = ps.slice().reverse().map(function (p) { return '<option value="' + esc(p) + '">' + esc(paLabel(S, p)) + '</option>'; }).join(''); sel.value = PA.period;
+    $('#paPeriodLbl').textContent = PA.mode === 'month' ? '기준 월' : '기준 주차';
+    document.querySelectorAll('#paModeSeg button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.pamode === PA.mode ? 'true' : 'false'); });
+    document.querySelectorAll('#paDevSeg button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.dev === PA.dev ? 'true' : 'false'); });
+    var rs = PA.mode === 'week' ? [[13, '13주'], [26, '26주'], [0, '전체']] : [[12, '12개월'], [0, '전체']];
+    if (!rs.some(function (r) { return r[0] === PA.range; })) PA.range = 0;
+    $('#paRangeSeg').innerHTML = rs.map(function (r) { return '<button type="button" data-r="' + r[0] + '" aria-pressed="' + (r[0] === PA.range) + '">' + r[1] + '</button>'; }).join('');
+    $('#paRangeSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { PA.range = +b.dataset.r; renderPvActivity(); }); });
+    setPActHeader();
+    renderPAKpis(S, ps); renderPATrends(S, ps); renderPADaily(S); renderPAMenus(S, ps); renderPAInflow(S, ps);
+  }
+  function renderPAKpis(S, ps) {
+    var wk = PA.mode === 'week', i = ps.indexOf(PA.period), cur = paRow(S, PA.period, PA.dev), prv = i > 0 ? paRow(S, ps[i - 1], PA.dev) : null;
+    var pl = wk ? '전주' : '전월', c = cur || {};
+    var chg = function (k) { var a = paN(c[k]), b = prv ? paN(prv[k]) : null; return (a != null && b) ? deltaHtml((a - b) / b * 100, '%', 1) + ' ' + pl + ' 대비' : ''; };
+    var chgP = function (k) { var a = paN(c[k]), b = prv ? paN(prv[k]) : null; return (a != null && b != null) ? deltaHtml(a - b, '%p', 1) + ' ' + pl + ' 대비' : ''; };
+    var mrow = null;   // 회원수·목표는 월간지표 '전체' 행 (주간이면 그 주가 속한 달)
+    var mKey = wk ? null : PA.period;
+    if (wk) { var rg = paRange(S, PA.period); var ws = weekMonday(PA.period); if (ws != null) { var d6 = new Date(ws + 6 * DAY_MS + KST_MS); mKey = d6.toISOString().slice(0, 7); } }
+    S.monthly.forEach(function (r) { if (r['월'] === mKey && r['구분'] === '전체') mrow = r; });
+    var goal = function (k) { return mrow && paN(mrow[k]) != null ? ' · 목표 대비 ' + num(paN(mrow[k]), 1) + '%' : ''; };
+    var items = [
+      { l: wk ? 'WAU' : 'MAU', v: num(paN(c[wk ? 'WAU' : 'MAU'])), u: '명', m: chg(wk ? 'WAU' : 'MAU') + (wk ? '' : goal('MAU 목표대비')) },
+      { l: 'DAU (일 평균)', v: num(paN(c['DAU'])), u: '명', m: chg('DAU') + (wk ? '' : goal('DAU 목표대비')) },
+      { l: wk ? 'MAU (최근 30일)' : 'WAU (월 평균)', v: num(paN(c[wk ? 'MAU' : 'WAU'])), u: '명', m: chg(wk ? 'MAU' : 'WAU') },
+      { l: '방문수', v: num(paN(c['방문수'])), u: '회', m: chg('방문수') },
+      { l: '신규', v: num(paN(c['신규'])), u: '명', m: chg('신규') },
+      { l: '재방문수 · 재방문비율', v: num(paN(c['재방문수'])), u: '명', m: (paN(c['재방문비율']) != null ? '비율 ' + num(paN(c['재방문비율']), 1) + '% · ' : '') + chgP('재방문비율') },
+      { l: '조회수', v: num(paN(c['조회수'])), u: '회', m: chg('조회수') },
+      { l: 'DAU/MAU (고착도)', v: num(paN(c['DAU/MAU']), 1), u: '%', m: chgP('DAU/MAU') + (paN(c['WAU/MAU']) != null ? ' · WAU/MAU ' + num(paN(c['WAU/MAU']), 1) + '%' : '') },
+      { l: 'YTD 활성 사용자', v: num(paN(c['YTD 활성사용자'])), u: '명', m: 'YTD 신규 ' + num(paN(c['YTD 신규'])) + ' · 방문 ' + num(paN(c['YTD 방문수'])) },
+      { l: '회원수', v: mrow ? num(paN(mrow['회원수'])) : '–', u: '명', m: mrow ? (mKey + ' 월간지표' + goal('회원수 목표대비')) : '월간지표에 값 없음' },
+      { l: '방문당 조회수', v: (paN(c['조회수']) && paN(c['방문수'])) ? num(paN(c['조회수']) / paN(c['방문수']), 1) : '–', u: '회', m: '조회수 ÷ 방문수' },
+      { l: '시트 상태', v: esc(c['상태'] || '–'), u: '', m: (wk ? '주 단위(월~일)' : '월 단위') + ' · 기기 ' + PA.dev }
+    ];
+    $('#paKpis').innerHTML = items.map(function (it) {
+      return '<div class="card kpi"><div class="label">' + it.l + '</div><div class="value">' + it.v + '<small>' + it.u + '</small></div><div class="meta">' + (it.m || (cur ? '' : '이 기간 데이터 없음')) + '</div></div>';
+    }).join('');
+    $('#paKpiNote').textContent = '기기: ' + PA.dev + ' · 증감은 ' + pl + ' 같은 기기 기준 · 회원수·목표 달성률은 월간지표(전체) 값';
+  }
+  function paCut(ps) { var n = PA.range ? Math.min(ps.length, PA.range) : ps.length; var end = ps.indexOf(PA.period); if (end < 0) end = ps.length - 1; var st = Math.max(0, end - n + 1); var e2 = Math.min(ps.length, st + n); return ps.slice(st, e2); }
+  function renderPATrends(S, ps) {
+    var wk = PA.mode === 'week', cp = paCut(ps), labels = cp.map(paAxis), hi = cp.indexOf(PA.period);
+    var get = function (dev, k) { return cp.map(function (p) { var r = paRow(S, p, dev); return r ? paN(r[k]) : null; }); };
+    var ttl = function (i) { return paLabel(S, cp[i]); };
+    var ser = [{ name: 'DAU', color: css('--s1'), vals: get(PA.dev, 'DAU') }, { name: 'WAU', color: css('--s2'), vals: get(PA.dev, 'WAU') }, { name: 'MAU', color: css('--s3'), vals: get(PA.dev, 'MAU') },
+      { name: 'YTD 활성 사용자', color: css('--s4'), dash: '5 4', vals: get(PA.dev, 'YTD 활성사용자') }];
+    aLegend('#palUsers', ser);
+    aLineChart($('#pachUsers'), labels, ser, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '팜빌 활성 사용자 추이' });
+    var serV = [{ name: '방문수', color: css('--s1'), vals: get(PA.dev, '방문수') }, { name: '재방문수', color: css('--s3'), vals: get(PA.dev, '재방문수') }, { name: '신규', color: css('--s2'), vals: get(PA.dev, '신규') }];
+    aLegend('#palVisits', serV);
+    aLineChart($('#pachVisits'), labels, serV, { zero: true, hi: hi, ml: 52, title: ttl, fmtV: function (v) { return fmt(Math.round(v)); }, label: '방문수 추이' });
+    $('#paVisitDesc').textContent = '기기: ' + PA.dev + ' · ' + (wk ? '주별' : '월별');
+    (function () {   // 조회수 막대
+      var host = $('#pachViews'), vals = get(PA.dev, '조회수');
+      var f = frame(host, { max: niceMax(Math.max.apply(null, vals.map(function (v) { return v || 0; })) || 1), ml: 52, label: '팜빌 조회수 추이' });
+      var n = vals.length, bw = f.iw / Math.max(1, n), gap = Math.min(2, bw * 0.25), xOf = function (i) { return f.m.l + bw * i + bw / 2; };
+      var bars = vals.map(function (v, i) { return el('path', { d: barPath(f.m.l + bw * i + gap / 2, f.y(0), bw - gap, f.y(v || 0)), fill: css('--s1'), opacity: i === hi ? 1 : 0.55 }, f.svg); });
+      xLabels(f, labels, xOf);
+      hoverCols(f, n, xOf, bw, function (i) { var vs = get(PA.dev, '방문수')[i]; return tipRows(ttl(i), [{ k: '조회수', v: num(vals[i]) + '회', color: css('--s1') }, { k: '방문당 조회수', v: vs ? num(vals[i] / vs, 1) + '회' : '–' }]); },
+        function (h) { bars.forEach(function (b, i) { b.setAttribute('opacity', h < 0 ? (i === hi ? 1 : 0.55) : (h === i ? 1 : 0.4)); }); });
+    })();
+    var serS = [{ name: 'DAU/MAU', color: css('--s1'), vals: get(PA.dev, 'DAU/MAU') }, { name: 'WAU/MAU', color: css('--s2'), vals: get(PA.dev, 'WAU/MAU') }, { name: 'DAU/WAU', color: css('--s3'), vals: get(PA.dev, 'DAU/WAU') },
+      { name: '재방문비율', color: css('--s4'), dash: '5 4', vals: get(PA.dev, '재방문비율') }];
+    aLegend('#palStick', serS);
+    aLineChart($('#pachStick'), labels, serS, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return (+v).toFixed(1) + '%'; }, fmtY: function (v) { return Math.round(v) + '%'; }, label: '고착도 추이' });
+    var k = wk ? 'WAU' : 'MAU', devs = [{ d: 'PC', c: css('--s1') }, { d: 'MO', c: css('--s2') }, { d: '태블릿', c: css('--s3') }, { d: '전체', c: css('--muted'), dash: '4 4' }];
+    var serD = devs.map(function (x) { return { name: x.d === 'MO' ? '모바일(MO)' : x.d, color: x.c, dash: x.dash, vals: get(x.d, k) }; });
+    aLegend('#palDev', serD);
+    $('#paDevTitle').textContent = '기기별 ' + k;
+    $('#paDevDesc').textContent = '기기별 ' + k + ' (같은 사용자가 여러 기기를 쓰면 기기별 합계가 전체보다 클 수 있습니다)';
+    aLineChart($('#pachDev'), labels, serD, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '기기별 활성 사용자' });
+    (function () {   // 회원수·목표 달성률 (월간지표 전체)
+      var ms = []; S.monthly.forEach(function (r) { if (r['구분'] === '전체' && ms.indexOf(r['월']) < 0) ms.push(r['월']); }); ms.sort();
+      var mr = function (m) { for (var j = S.monthly.length - 1; j >= 0; j--) if (S.monthly[j]['월'] === m && S.monthly[j]['구분'] === '전체') return S.monthly[j]; return {}; };
+      if (PA.mode === 'month' && PA.range) { var e = ms.indexOf(PA.period); if (e >= 0) ms = ms.slice(Math.max(0, e - PA.range + 1), e + 1); }
+      var mem = ms.map(function (m) { return paN(mr(m)['회원수']); }), hiM = PA.mode === 'month' ? ms.indexOf(PA.period) : -1;
+      var goals = [['회원수 목표대비', css('--s2')], ['MAU 목표대비', css('--s3')], ['DAU 목표대비', css('--s4')]];
+      $('#palGoal').innerHTML = '<li><i style="background:' + css('--s1') + '"></i>회원수</li>' + goals.map(function (g) { return '<li><i class="line" style="background:' + g[1] + '"></i>' + g[0] + '</li>'; }).join('');
+      var host = $('#pachGoal');
+      if (!ms.length) { host.innerHTML = '<p class="empty">월간지표가 없습니다.</p>'; return; }
+      var f = frame(host, { max: niceMax(Math.max.apply(null, mem.map(function (v) { return v || 0; })) || 1), ml: 52, label: '회원수·목표 달성률' });
+      var n = ms.length, bw = f.iw / n, gap = Math.min(3, bw * 0.3), xOf = function (i) { return f.m.l + bw * i + bw / 2; };
+      mem.forEach(function (v, i) { el('path', { d: barPath(f.m.l + bw * i + gap / 2, f.y(0), bw - gap, f.y(v || 0)), fill: css('--s1'), opacity: i === hiM ? 0.9 : 0.4 }, f.svg); });
+      var gmax = 0; goals.forEach(function (g) { ms.forEach(function (m) { var v = paN(mr(m)[g[0]]); if (v != null && v > gmax) gmax = v; }); });
+      var gTop = Math.max(100, Math.ceil(gmax / 20) * 20), yG = function (v) { return f.m.t + f.ih - v / gTop * f.ih; };
+      goals.forEach(function (g) {
+        var d = '', pen = false; ms.forEach(function (m, i) { var v = paN(mr(m)[g[0]]); if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + xOf(i) + ',' + yG(v); pen = true; });
+        el('path', { d: d, fill: 'none', stroke: g[1], 'stroke-width': 2 }, f.svg);
+      });
+      el('line', { x1: f.m.l, x2: f.m.l + f.iw, y1: yG(100), y2: yG(100), stroke: css('--axis'), 'stroke-dasharray': '3 3' }, f.svg);
+      var tx = el('text', { x: f.m.l + f.iw, y: yG(100) - 4, 'text-anchor': 'end', 'font-size': 10, fill: css('--muted') }, f.svg); tx.textContent = '목표 100% (오른쪽 축 기준 ' + gTop + '%)';
+      xLabels(f, ms.map(function (m) { return m.slice(2, 4) + '.' + m.slice(5, 7); }), xOf);
+      hoverCols(f, n, xOf, bw, function (i) { var r = mr(ms[i]); return tipRows(ms[i] + (r['상태'] === '진행중' ? ' · 진행 중' : ''), [{ k: '회원수', v: num(paN(r['회원수'])) + '명', color: css('--s1') }].concat(goals.map(function (g) { return { k: g[0], v: paN(r[g[0]]) == null ? '–' : num(paN(r[g[0]]), 1) + '%', color: g[1] }; }))); });
+    })();
+    $('#paTrendDesc').textContent = (wk ? '주 단위(월~일) · ' : '월 단위 · ') + '선택한 기간은 음영으로 표시 · 기기 선택 기준 (기기별 차트 제외) · ' + (PA.range ? '선택 기간까지 최근 ' + PA.range + (wk ? '주' : '개월') : '전체 기간');
+  }
+  function renderPADaily(S) {
+    var rows = S.daily.filter(function (r) { return /^\d{4}-\d{2}-\d{2}$/.test(String(r['날짜'])); });
+    rows.sort(function (a, b) { return a['날짜'] < b['날짜'] ? -1 : 1; });
+    document.querySelectorAll('#paDaySeg button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.days === PA.days ? 'true' : 'false'); });
+    var lo = null, hi2 = null, selLo = null, selHi = null;
+    if (PA.mode === 'week') { var ws = weekMonday(PA.period); if (ws != null) { selLo = new Date(ws + KST_MS).toISOString().slice(0, 10); selHi = new Date(ws + 6 * DAY_MS + KST_MS).toISOString().slice(0, 10); } }
+    else { selLo = PA.period + '-01'; selHi = PA.period + '-31'; }
+    if (PA.days === 'sel' && selLo) {
+      var d0 = new Date(selLo + 'T00:00:00Z'); d0.setUTCDate(d0.getUTCDate() - (PA.mode === 'week' ? 49 : 62)); lo = d0.toISOString().slice(0, 10); hi2 = selHi;
+    } else if (PA.days === '90' && rows.length) { var d1 = new Date(rows[rows.length - 1]['날짜'] + 'T00:00:00Z'); d1.setUTCDate(d1.getUTCDate() - 89); lo = d1.toISOString().slice(0, 10); }
+    var R = rows.filter(function (r) { return (!lo || r['날짜'] >= lo) && (!hi2 || r['날짜'] <= hi2); });
+    var cols = [['전체', css('--s1')], ['PC', css('--s2')], ['MO', css('--s3')], ['태블릿', css('--s4')]];
+    var ser = cols.map(function (c) { return { name: c[0] === 'MO' ? '모바일(MO)' : c[0], color: c[1], vals: R.map(function (r) { return paN(r[c[0]]); }) }; });
+    aLegend('#palDaily', ser);
+    var labels = R.map(function (r) { return r['날짜'].slice(5).replace('-', '/'); });
+    aLineChart($('#pachDaily'), labels, ser, { zero: true, hi: -1, title: function (i) { var r = R[i]; return r['날짜'] + ' (' + (r['요일'] || '') + ')' + (r['메모'] ? ' · ' + r['메모'] : ''); }, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '일별 활성 사용자' });
+    var sum = function (k) { var t = 0, c = 0; R.forEach(function (r) { var v = paN(r[k]); if (v != null) { t += v; c++; } }); return c ? t / c : null; };
+    var memos = R.filter(function (r) { return r['메모']; }).map(function (r) { return r['날짜'].slice(5) + ' ' + r['메모']; });
+    $('#paDailyDesc').textContent = (PA.days === 'sel' ? '선택한 ' + (PA.mode === 'week' ? '주 포함 최근 8주' : '달 포함 최근 3개월') : PA.days === '90' ? '최근 90일' : '전체 기간') + ' · ' + (R.length ? R[0]['날짜'] + ' ~ ' + R[R.length - 1]['날짜'] : '데이터 없음');
+    $('#paDailyNote').textContent = '표시 구간 일평균 — 전체 ' + num(sum('전체'), 1) + '명 · PC ' + num(sum('PC'), 1) + ' · 모바일 ' + num(sum('MO'), 1) + ' · 태블릿 ' + num(sum('태블릿'), 1) + (memos.length ? ' · 메모: ' + memos.slice(-5).join(' / ') : '');
+  }
+  function paSeg(id, list, cur, onPick) {
+    $(id).innerHTML = list.map(function (s) { return '<button type="button" data-s="' + esc(s) + '" aria-pressed="' + (s === cur) + '">' + esc(s) + '</button>'; }).join('');
+    $(id).querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { onPick(b.dataset.s); }); });
+  }
+  function paSortTable(host, cols, rows, sort, onSort, extraTop) {
+    var k = sort.k, d = sort.d;
+    rows.sort(function (a, b) { var x = a[k], y = b[k]; var xn = paN(x), yn = paN(y); if (xn != null && yn != null) { x = xn; y = yn; } if (x == null || x === '') return 1; if (y == null || y === '') return -1; return (x < y ? -1 : x > y ? 1 : 0) * d; });
+    var th = '<tr><th class="l">#</th>' + cols.map(function (c) { return '<th class="' + (c.l ? 'l ' : '') + 'sortable" data-k="' + esc(c.k) + '">' + c.t + (k === c.k ? (d < 0 ? ' ▼' : ' ▲') : '') + '</th>'; }).join('') + '</tr>';
+    var row = function (r, n, cls) { return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td class="rk">' + n + '</td>' + cols.map(function (c) { return '<td class="' + (c.l ? 'l' : '') + '">' + c.f(r) + '</td>'; }).join('') + '</tr>'; };
+    host.innerHTML = '<div class="scroll"><table class="ptable"><thead>' + th + '</thead><tbody>' + (extraTop ? row(extraTop, '', 'tot') : '') + rows.map(function (r, n) { return row(r, n + 1); }).join('') + '</tbody></table></div>';
+    host.querySelectorAll('th.sortable').forEach(function (h) { h.addEventListener('click', function () { onSort(h.dataset.k); }); });
+  }
+  function paPct(v) { var n = paN(v); return n == null ? '–' : n.toFixed(1) + '%'; }
+  function paChg(v) { var n = paN(v); return n == null ? '–' : deltaHtml(n, '%', 1); }
+  function renderPAMenus(S, ps) {
+    var srcs = paSources(S.menu); if (!srcs.length) { $('#paMenus').innerHTML = '<p class="empty">메뉴별 데이터가 없습니다.</p>'; return; }
+    if (!PA.src || srcs.indexOf(PA.src) < 0) PA.src = srcs[0];
+    paSeg('#paSrcSeg', srcs, PA.src, function (s) { PA.src = s; renderPAMenus(paSets(), paPeriods(paSets())); });
+    var cur = S.menu.filter(function (r) { return r['기간'] === PA.period && r['출처'] === PA.src; });
+    var totName = PA.src === '팜빌' ? '팜빌 전체' : null;
+    var total = cur.filter(function (r) { return r['메뉴'] === totName; })[0] || null;
+    var list = cur.filter(function (r) { return r !== total; });
+    if (srcs.length && cur.length && !total && list.length === 1) { total = null; }
+    $('#paMenuSub').textContent = paLabel(S, PA.period) + ' · 출처 ' + PA.src + ' · 메뉴 ' + list.length + '개' + (cur.length ? '' : ' · 이 기간의 메뉴별 데이터가 없습니다');
+    var maxV = Math.max.apply(null, list.map(function (r) { return paN(r['조회수']) || 0; }).concat([1]));
+    var cols = [
+      { k: '메뉴', t: '메뉴', l: 1, f: function (r) { return esc(r['메뉴']); } },
+      { k: '조회수', t: '조회수', f: function (r) { return num(paN(r['조회수'])) + (r === total ? '' : '<div class="mbar"><i style="width:' + ((paN(r['조회수']) || 0) / maxV * 100).toFixed(1) + '%"></i></div>'); } },
+      { k: '조회수비중(%)', t: '조회수 비중', f: function (r) { return paPct(r['조회수비중(%)']); } },
+      { k: '활성사용자', t: '활성 사용자', f: function (r) { return num(paN(r['활성사용자'])); } },
+      { k: '활성사용자비중(%)', t: '사용자 비중', f: function (r) { return paPct(r['활성사용자비중(%)']); } },
+      { k: '활성사용자 전기대비', t: '사용자 ' + (PA.mode === 'week' ? '전주' : '전월') + ' 대비', f: function (r) { return paChg(r['활성사용자 전기대비']); } },
+      { k: '신규사용자', t: '신규', f: function (r) { return num(paN(r['신규사용자'])); } },
+      { k: '재방문자', t: '재방문자', f: function (r) { return num(paN(r['재방문자'])); } },
+      { k: '재방문자비율(%)', t: '재방문 비율', f: function (r) { return paPct(r['재방문자비율(%)']); } },
+      { k: '활성사용자당조회수', t: '사용자당 조회수', f: function (r) { return num(paN(r['활성사용자당조회수']), 1); } },
+      { k: '평균참여시간(분, 근사)', t: '평균 참여시간', f: function (r) { return r['평균참여시간(표시)'] ? esc(r['평균참여시간(표시)']) : minSec(paN(r['평균참여시간(분, 근사)'])); } },
+      { k: '이탈률(%)', t: '이탈률', f: function (r) { return paPct(r['이탈률(%)']); } }
+    ];
+    if (!cur.length) { $('#paMenus').innerHTML = ''; } else
+      paSortTable($('#paMenus'), cols, list, PA.msort, function (k) { PA.msort = { k: k, d: PA.msort.k === k ? -PA.msort.d : (k === '메뉴' ? 1 : -1) }; renderPAMenus(paSets(), paPeriods(paSets())); }, total);
+    // 주요 메뉴 조회수 추이 (출처 내 전체 기간 조회수 상위 6개, 합계 행 제외)
+    var cp = paCut(ps), sums = {};
+    S.menu.forEach(function (r) { if (r['출처'] === PA.src && r['메뉴'] !== totName) sums[r['메뉴']] = (sums[r['메뉴']] || 0) + (paN(r['조회수']) || 0); });
+    var top = Object.keys(sums).sort(function (a, b) { return sums[b] - sums[a]; }).slice(0, 6), colors = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6'];
+    var idx = {}; S.menu.forEach(function (r) { if (r['출처'] === PA.src) idx[r['기간'] + '|' + r['메뉴']] = r; });
+    var ser = top.map(function (mn, k) { return { name: mn, color: css(colors[k]), vals: cp.map(function (p) { var r = idx[p + '|' + mn]; return r ? paN(r['조회수']) : null; }) }; });
+    aLegend('#palMenus', ser);
+    aLineChart($('#pachMenus'), cp.map(paAxis), ser, { zero: true, hi: cp.indexOf(PA.period), ml: 52, title: function (i) { return paLabel(S, cp[i]); }, fmtV: function (v) { return fmt(Math.round(v)) + '회'; }, label: '주요 메뉴 조회수 추이' });
+    $('#paMenuTrendDesc').textContent = '출처 ' + PA.src + ' · 전체 기간 조회수 합계 상위 ' + top.length + '개 메뉴' + (totName ? ' (팜빌 전체 행 제외)' : '') + ' · 위 추이 기간 선택 적용';
+  }
+  function renderPAInflow(S, ps) {
+    var srcs = paSources(S.inflow); if (!srcs.length) { $('#paInflow').innerHTML = '<p class="empty">유입경로 데이터가 없습니다.</p>'; return; }
+    if (!PA.inSrc || srcs.indexOf(PA.inSrc) < 0) PA.inSrc = srcs[0];
+    paSeg('#paInSrcSeg', srcs, PA.inSrc, function (s) { PA.inSrc = s; renderPAInflow(paSets(), paPeriods(paSets())); });
+    var all = S.inflow.filter(function (r) { return r['출처'] === PA.inSrc; });
+    var cur = all.filter(function (r) { return r['기간'] === PA.period; });
+    var totS = cur.reduce(function (t, r) { return t + (paN(r['방문수(세션)']) || 0); }, 0);
+    $('#paInSub').textContent = paLabel(S, PA.period) + ' · 출처 ' + PA.inSrc + ' · 소스/매체 ' + cur.length + '개 · 방문수(세션) ' + fmt(totS) + (cur.length ? '' : ' · 이 기간의 유입경로 데이터가 없습니다');
+    var maxS = Math.max.apply(null, cur.map(function (r) { return paN(r['방문수(세션)']) || 0; }).concat([1]));
+    var cols = [
+      { k: '순위', t: '순위', f: function (r) { return num(paN(r['순위'])); } },
+      { k: '채널', t: '채널', l: 1, f: function (r) { return esc(r['채널'] || ''); } },
+      { k: '소스/매체', t: '소스 / 매체', l: 1, f: function (r) { return esc(r['소스/매체'] || ''); } },
+      { k: '방문수(세션)', t: '방문수(세션)', f: function (r) { return num(paN(r['방문수(세션)'])) + '<div class="mbar"><i style="width:' + ((paN(r['방문수(세션)']) || 0) / maxS * 100).toFixed(1) + '%"></i></div>'; } },
+      { k: '세션비중(%)', t: '세션 비중', f: function (r) { return paPct(r['세션비중(%)']); } },
+      { k: '활성사용자', t: '활성 사용자', f: function (r) { return num(paN(r['활성사용자'])); } },
+      { k: '신규사용자', t: '신규', f: function (r) { return num(paN(r['신규사용자'])); } },
+      { k: '조회수', t: '조회수', f: function (r) { return num(paN(r['조회수'])); } },
+      { k: '활성사용자당조회수', t: '사용자당 조회수', f: function (r) { return num(paN(r['활성사용자당조회수']), 1); } },
+      { k: '평균참여시간(분, 근사)', t: '평균 참여시간', f: function (r) { return r['평균참여시간(표시)'] ? esc(r['평균참여시간(표시)']) : minSec(paN(r['평균참여시간(분, 근사)'])); } },
+      { k: '이탈률(%)', t: '이탈률', f: function (r) { return paPct(r['이탈률(%)']); } }
+    ];
+    if (!cur.length) $('#paInflow').innerHTML = ''; else
+      paSortTable($('#paInflow'), cols, cur.slice(), PA.isort, function (k) { PA.isort = { k: k, d: PA.isort.k === k ? -PA.isort.d : (k === '채널' || k === '소스/매체' || k === '순위' ? 1 : -1) }; renderPAInflow(paSets(), paPeriods(paSets())); });
+    // 채널별 세션 (전 기간 합계 상위 5개 + 그 외)
+    var cp = paCut(ps), csum = {};
+    all.forEach(function (r) { var c = r['채널'] || '(미지정)'; csum[c] = (csum[c] || 0) + (paN(r['방문수(세션)']) || 0); });
+    var top = Object.keys(csum).sort(function (a, b) { return csum[b] - csum[a]; }).slice(0, 5), colors = ['--s1', '--s2', '--s3', '--s4', '--s5'];
+    var by = {}; all.forEach(function (r) { var c = r['채널'] || '(미지정)', key = top.indexOf(c) >= 0 ? c : '그 외'; var o = by[r['기간']] || (by[r['기간']] = {}); o[key] = (o[key] || 0) + (paN(r['방문수(세션)']) || 0); });
+    var names = top.concat(Object.keys(csum).length > top.length ? ['그 외'] : []);
+    var ser = names.map(function (c, k) { return { name: c, color: k < 5 ? css(colors[k]) : css('--muted'), vals: cp.map(function (p) { return by[p] ? (by[p][c] || 0) : null; }) }; });
+    aLegend('#palCh', ser);
+    aLineChart($('#pachCh'), cp.map(paAxis), ser, { zero: true, hi: cp.indexOf(PA.period), ml: 52, title: function (i) { return paLabel(S, cp[i]); }, fmtV: function (v) { return fmt(Math.round(v)) + '회'; }, label: '채널별 방문수 추이' });
+    $('#paChDesc').textContent = '출처 ' + PA.inSrc + ' · 전체 기간 방문수 상위 5개 채널 + 그 외 (시트에 있는 소스/매체 합계)';
+    // 선택 기간 채널 비중
+    var cc = {}; cur.forEach(function (r) { var c = r['채널'] || '(미지정)'; cc[c] = (cc[c] || 0) + (paN(r['방문수(세션)']) || 0); });
+    var ks = Object.keys(cc).sort(function (a, b) { return cc[b] - cc[a]; });
+    $('#paChShareDesc').textContent = paLabel(S, PA.period) + ' · 방문수(세션) 기준';
+    $('#paChShare').innerHTML = ks.length ? '<div class="chshare">' + ks.map(function (c, k) {
+      var p = totS ? cc[c] / totS * 100 : 0, col = top.indexOf(c) >= 0 ? css(colors[top.indexOf(c)]) : css('--muted');
+      return '<div class="row"><span>' + esc(c) + '</span><div class="bar"><i style="width:' + p.toFixed(1) + '%;background:' + col + '"></i></div><span class="v">' + p.toFixed(1) + '% · ' + fmt(cc[c]) + '</span></div>';
+    }).join('') + '</div>' : '<p class="empty">이 기간의 유입경로 데이터가 없습니다.</p>';
+  }
+  document.querySelectorAll('#paModeSeg button').forEach(function (b) { b.addEventListener('click', function () { if (PA.mode === b.dataset.pamode) return; PA.mode = b.dataset.pamode; PA.period = null; PA.range = 0; try { localStorage.setItem('mv-pact-mode', PA.mode); } catch (e) {} renderPvActivity(); }); });
+  document.querySelectorAll('#paDevSeg button').forEach(function (b) { b.addEventListener('click', function () { PA.dev = b.dataset.dev; renderPvActivity(); }); });
+  document.querySelectorAll('#paDaySeg button').forEach(function (b) { b.addEventListener('click', function () { PA.days = b.dataset.days; renderPADaily(paSets()); }); });
+  $('#paPeriod').addEventListener('change', function () { PA.period = this.value; renderPvActivity(); });
+
   function setView(v, fromHash) {
-    VIEW = v === 'points' || v === 'ppoints' || v === 'activity' || v === 'pharm' ? v : 'members';
+    VIEW = v === 'points' || v === 'ppoints' || v === 'activity' || v === 'pactivity' || v === 'pharm' ? v : 'members';
     if (isPts()) setPSvc(VIEW === 'ppoints' ? 'pv' : 'dv');
     var nsvc = VIEW === 'pharm' ? 'pv' : VIEW === 'members' ? 'dv' : SVC;
     if (nsvc !== SVC) {
@@ -1725,19 +2102,22 @@ body.locked #gate { display: flex; }
       clearMembers(); applySvcChrome(); fillSel();
     }
     if (VIEW === 'members' || VIEW === 'pharm') $('#mainTitle').textContent = SVC_NAME[SVC] + ' 회원 대시보드';
-    else $('#mainTitle').textContent = VIEW === 'ppoints' ? '팜빌 포인트 대시보드' : '닥터빌 회원 대시보드';
+    else $('#mainTitle').textContent = VIEW === 'ppoints' ? '팜빌 포인트 대시보드' : VIEW === 'pactivity' ? '팜빌 활동성 대시보드' : '닥터빌 회원 대시보드';
     document.body.classList.toggle('view-points', isPts());
     document.body.classList.toggle('view-activity', VIEW === 'activity');
+    document.body.classList.toggle('view-pactivity', VIEW === 'pactivity');
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.view === VIEW ? 'true' : 'false'); });
-    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : '구글시트의 최신 값을 불러와 다시 집계합니다';
-    if (!fromHash) { try { history.replaceState(null, '', VIEW === 'points' ? '#points' : VIEW === 'ppoints' ? '#ppoints' : VIEW === 'activity' ? '#activity' : VIEW === 'pharm' ? '#pharm' : location.pathname + location.search); } catch (e) {} }
+    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '팜빌 활동성 시트의 최신 값을 다시 불러옵니다' : '구글시트의 최신 값을 불러와 다시 집계합니다';
+    if (!fromHash) { try { history.replaceState(null, '', VIEW === 'points' ? '#points' : VIEW === 'ppoints' ? '#ppoints' : VIEW === 'activity' ? '#activity' : VIEW === 'pactivity' ? '#pactivity' : VIEW === 'pharm' ? '#pharm' : location.pathname + location.search); } catch (e) {} }
     if (isPts()) { if (!P.loaded) loadPoints(); else { setPointHeader(); renderPoints(); } }
     else if (VIEW === 'activity') { if (!A.data && !A.loading && started) loadActivity(false); else renderActivity(); }
+    else if (VIEW === 'pactivity') { if (!PA.data && !PA.loading && started) loadPvActivity(false); else renderPvActivity(); }
     else { setSource(!!state.remote); if (state.snap) renderAll(); else { $('#subtitle').textContent = '데이터를 불러오는 중…'; if (started) startMembers(); } }
   }
   document.querySelectorAll('.tabs button').forEach(function (b) { b.addEventListener('click', function () { setView(b.dataset.view); }); });
   if (location.hash === '#points') setView('points', true);
   else if (location.hash === '#ppoints') setView('ppoints', true);
+  else if (location.hash === '#pactivity') setView('pactivity', true);
   else if (location.hash === '#activity') setView('activity', true);
   else if (location.hash === '#pharm') setView('pharm', true);
 
