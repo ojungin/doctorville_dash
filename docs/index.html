@@ -265,6 +265,22 @@ a.hcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .soon { text-align: center; padding: 56px 24px; }
 .soon h2 { margin: 0 0 6px; font-size: 18px; }
 .soon p { margin: 0; color: var(--ink-2); }
+/* 세미나 편성 */
+#semMain { display: none; }
+body.view-seminar #semMain { display: block; }
+body.view-seminar #memberMain, body.view-seminar .member-only, body.view-seminar #pdfBtn { display: none !important; }
+.yoy td.plan { outline: 1px dashed var(--axis); outline-offset: -3px; }
+.semtbl { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 980px; font-variant-numeric: tabular-nums; }
+.semtbl th, .semtbl td { padding: 6px 6px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
+.semtbl thead th { font-weight: 500; color: var(--muted); font-size: 12px; text-align: right; }
+.semtbl th.rowh { text-align: left; color: var(--ink); font-weight: 600; max-width: 180px; overflow: hidden; text-overflow: ellipsis; position: sticky; left: 0; background: var(--surface); }
+.semtbl thead th.rowh { color: var(--muted); font-weight: 500; }
+.semtbl th.cur { color: var(--accent); font-weight: 700; }
+.semtbl td.sum { font-weight: 700; background: var(--surface-2); }
+.semtbl td.plan { color: var(--ink-2); font-style: italic; }
+.semtbl td.na, .semtbl .z { color: var(--muted); }
+.semtbl tr.tot th, .semtbl tr.tot td { font-weight: 700; border-top: 1px solid var(--axis); border-bottom: 0; }
+.semtbl + .more, .yoy-wrap + .more { margin-top: 10px; }
 @media (max-width: 1080px) { .home-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 480px) { .hbody { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hs .hv { font-size: 19px; } }
 body.view-points #memberMain, body:not(.view-points) #pointMain { display: none; }
@@ -367,6 +383,7 @@ body.locked #gate { display: flex; }
     <div class="nav-sub" id="navSales">
       <div class="nav-svc">닥터빌</div>
       <a class="nav-item" href="#points" data-view="points">포인트</a>
+      <a class="nav-item" href="#seminar" data-view="seminar">세미나</a>
       <div class="nav-svc">팜빌</div>
       <a class="nav-item" href="#ppoints" data-view="ppoints">포인트</a>
     </div>
@@ -431,6 +448,39 @@ body.locked #gate { display: flex; }
 
 <main id="llmMain">
   <div class="wrap"><section><div class="card soon"><h2>LLM</h2><p>준비 중인 메뉴입니다.</p></div></section></div>
+</main>
+
+<main id="semMain">
+  <div class="wrap" id="semApp">
+    <section>
+      <div class="sec-head">
+        <div>
+          <h2>세미나 편성</h2>
+          <p id="semSrc">닥터빌 편성표(구글시트)를 스크래핑한 월별 집계 저장본</p>
+        </div>
+        <div class="pfilter">
+          <label for="semYear">기준 연도</label>
+          <select id="semYear" aria-label="세미나 기준 연도"></select>
+        </div>
+      </div>
+      <div id="semEmpty" class="empty" hidden></div>
+      <div class="semdata"><div class="kpis" id="semKpis"></div></div>
+    </section>
+    <section class="semdata">
+      <div class="sec-head"><div><h2>월별 세미나 수 — 작년 대비</h2><p id="semYoySub"></p></div></div>
+      <div class="card"><div id="semYoy"></div></div>
+    </section>
+    <section class="semdata">
+      <div class="sec-head"><div><h2>월별 추이</h2><p>편성 건수 · 진하게 표시된 열이 이번 달</p></div></div>
+      <div class="card"><ul class="legend" id="semLg"></ul><div class="chart" id="semCh"></div></div>
+    </section>
+    <section class="semdata">
+      <div class="sec-head"><div><h2>구분별 월 건수</h2><p id="semDimDesc"></p></div>
+        <div class="pfilter"><label for="semDim">구분</label><select id="semDim" aria-label="세미나 집계 구분"></select></div></div>
+      <div class="card"><div id="semDimTbl"></div></div>
+    </section>
+    <footer>편성표 원본(행사명·강사·담당자 등)은 저장하지 않고 월별 건수만 암호화해 게시합니다. 회사(제약사)별 건수는 사전 승인을 받아 포함했으며, 외부 공유 전 사전 승인이 필요합니다.</footer>
+  </div>
 </main>
 
 <main id="memberMain">
@@ -941,6 +991,7 @@ body.locked #gate { display: flex; }
     if (isPts()) return pointRefresh(btn);
     if (VIEW === 'activity') return loadActivity(true, btn);
     if (VIEW === 'pactivity') return loadPvActivity(true, btn);
+    if (VIEW === 'seminar') return loadSeminar(true, btn);
     if (!CONFIG.appsScriptUrl) { toast('구글시트 연동 주소(docs/data/config.json)가 아직 설정되지 않았습니다.', true); return; }
     (PW ? Promise.resolve(PW) : askPw()).then(function (pw) {
       if (!pw) return;
@@ -1092,6 +1143,7 @@ body.locked #gate { display: flex; }
     if (VIEW === 'activity') loadActivity(false);
     if (VIEW === 'pactivity') loadPvActivity(false);
     if (VIEW === 'home') loadHome();
+    if (VIEW === 'seminar') loadSeminar(false);
     $('#weekSel').addEventListener('change', function () { if (state.mode === 'month') loadMonth(this.value); else load(this.value); });
     startMembers();
   }
@@ -1170,7 +1222,7 @@ body.locked #gate { display: flex; }
   });
   buildRangeSeg();
   $('#modeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.mode === state.mode ? 'true' : 'false'); });
-  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); renderPWTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'pactivity' && PA.data) renderPvActivity(); if (isPts() && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
+  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); renderPWTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'pactivity' && PA.data) renderPvActivity(); if (VIEW === 'seminar' && SEM.data) renderSemChart(); if (isPts() && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
 
   function renderAll() {
     if (!state.snap) return;
@@ -1189,6 +1241,7 @@ body.locked #gate { display: flex; }
     if (isPts()) setPointHeader();
     if (VIEW === 'activity') setActHeader();
     if (VIEW === 'pactivity') setPActHeader();
+    if (VIEW === 'seminar') setSemHeader();
     if (VIEW === 'home') renderHome();
   }
 
@@ -2196,12 +2249,168 @@ body.locked #gate { display: flex; }
   document.querySelectorAll('#paDaySeg button').forEach(function (b) { b.addEventListener('click', function () { PA.days = b.dataset.days; renderPADaily(paSets()); }); });
   $('#paPeriod').addEventListener('change', function () { PA.period = this.value; renderPvActivity(); });
 
+  // ---- 세미나 편성 (매출 > 닥터빌 > 세미나) -----------------------------------
+  // 데이터: docs/data/seminar.enc.json — '(닥터빌) 2026 편성표_NEW' RAW 탭을 스크래핑해 월별 건수로 집계 후 대시보드 비밀번호로 암호화한 저장본
+  //        (Apps Script 미사용. 최신화는 Claude에 「세미나 편성 갱신」을 요청하면 시트를 다시 읽어 게시)
+  // 평문 형식: {fetchedAt, source, rule, months:['2025-01'…], total:[], all:[], excluded:[], dims:{key:{label, rows:{이름:[월별]}}}}
+  var SEM = { data: null, loading: false, err: '', year: null, dim: 'inout', all: false };
+  try { var sd = localStorage.getItem('mv-sem-dim'); if (sd) SEM.dim = sd; } catch (e) {}
+  var SEM_DIMS = ['inout', 'type', 'status', 'academic', 'cat', 'tx', 'region', 'survey', 'company'];
+  function semNow() { var d = SEM.data; return new Date(Date.parse(d.fetchedAt) + KST_MS).toISOString().slice(0, 7); }
+  function semYears() { var s = {}; SEM.data.months.forEach(function (m) { s[m.slice(0, 4)] = 1; }); return Object.keys(s).sort(); }
+  function semVal(arr, y, m) { var i = SEM.data.months.indexOf(y + '-' + String(m).padStart(2, '0')); return i < 0 || !arr ? null : (arr[i] || 0); }
+  function semYear(arr, y) { var o = []; for (var m = 1; m <= 12; m++) o.push(semVal(arr, y, m)); return o; }
+  function semSum(a, to) { var t = 0, any = false; a.forEach(function (v, i) { if (i < (to == null ? 12 : to) && v != null) { t += v; any = true; } }); return any ? t : null; }
+  // 기준 월: 선택 연도가 스크래핑 시점의 연도면 그 달, 지난 연도면 12월
+  function semCm(y) { var n = semNow(); return y === n.slice(0, 4) ? +n.slice(5, 7) : (y < n.slice(0, 4) ? 12 : 0); }
+  function setSemHeader() {
+    if (VIEW !== 'seminar') return;
+    var d = SEM.data;
+    $('#subtitle').textContent = d ? '세미나 편성 · ' + d.months[0] + ' ~ ' + d.months[d.months.length - 1] + ' · 시트 스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false })
+      : (SEM.loading ? '세미나 편성 데이터를 불러오는 중…' : '세미나 편성 데이터를 불러오지 못했습니다');
+    $('#srcLabel').textContent = d ? '데이터: 저장본(시트 스크래핑)' : '';
+  }
+  function loadSeminar(fresh, btn) {
+    if (!KEY) return Promise.resolve();
+    SEM.loading = true; SEM.err = ''; setSemHeader();
+    if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
+    $('#semApp').classList.add('loading');
+    return fetchJson('data/seminar.enc.json?t=' + Date.now()).then(function (box) { return decryptBox(KEY, box); }).then(function (d) {
+      if (!d || !d.months || !d.total) throw new Error('형식이 올바르지 않습니다.');
+      var same = SEM.data && SEM.data.fetchedAt === d.fetchedAt;
+      SEM.data = d;
+      if (fresh) toast(same ? '저장본이 최신입니다 (스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) + '). 편성표의 새 내용을 반영하려면 Claude에 「세미나 편성 갱신」을 요청해 주세요.' : '세미나 편성 저장본을 다시 불러왔습니다.', false, 8000);
+    }).catch(function (e) {
+      SEM.err = /404/.test(e.message || '') ? '세미나 편성 저장본(docs/data/seminar.enc.json)이 아직 없습니다. Claude에 「세미나 편성 갱신」을 요청해 주세요.' : '세미나 편성 저장본을 불러오지 못했습니다: ' + (e.message || e);
+      if (VIEW === 'seminar') toast(SEM.err, true, 12000);
+    }).then(function () {
+      SEM.loading = false; $('#semApp').classList.remove('loading');
+      if (btn) { btn.disabled = false; btn.textContent = '갱신'; }
+      renderSeminar();
+    });
+  }
+  function renderSeminar() {
+    if (VIEW !== 'seminar') { if (VIEW === 'home') renderHome(); return; }
+    var d = SEM.data;
+    $('#semEmpty').hidden = !!d; document.querySelectorAll('#semApp .semdata').forEach(function (s) { s.hidden = !d; });
+    if (!d) { $('#semEmpty').textContent = SEM.err || (SEM.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); setSemHeader(); return; }
+    var ys = semYears();
+    if (!SEM.year || ys.indexOf(SEM.year) < 0) SEM.year = ys.indexOf(semNow().slice(0, 4)) >= 0 ? semNow().slice(0, 4) : ys[ys.length - 1];
+    $('#semYear').innerHTML = ys.slice().reverse().map(function (y) { return '<option value="' + y + '">' + y + '년</option>'; }).join(''); $('#semYear').value = SEM.year;
+    var dims = SEM_DIMS.filter(function (k) { return d.dims && d.dims[k]; });
+    if (dims.indexOf(SEM.dim) < 0) SEM.dim = dims[0];
+    $('#semDim').innerHTML = dims.map(function (k) { return '<option value="' + k + '">' + esc(d.dims[k].label) + '</option>'; }).join(''); $('#semDim').value = SEM.dim;
+    $('#semSrc').textContent = '출처 ' + d.source + ' · ' + d.rule;
+    setSemHeader();
+    renderSemKpis(); renderSemYoy(); renderSemChart(); renderSemDim();
+  }
+  function renderSemKpis() {
+    var d = SEM.data, y = SEM.year, py = String(+y - 1), cm = semCm(y), cur = semYear(d.total, y), prv = semYear(d.total, py);
+    var hasPrev = prv.some(function (v) { return v != null; });
+    var cmLbl = cm ? cm + '월' : '-';
+    var ytd = cm ? semSum(cur, cm) : null, ytdP = hasPrev && cm ? semSum(prv, cm) : null;
+    var yr = semSum(cur), yrP = hasPrev ? semSum(prv) : null;
+    var st = d.dims && d.dims.status ? d.dims.status.rows : {}, plan = 0, done = 0;
+    Object.keys(st).forEach(function (k) { var s = semSum(semYear(st[k], y)) || 0; if (k === '확정') done += s; else if (k === '예측' || k === '가예약' || k === '미정') plan += s; });
+    var pct = function (a, b) { return (a != null && b) ? deltaHtml((a - b) / b * 100, '%', 1) : ''; };
+    var items = [
+      { l: cmLbl + ' 세미나 수' + (cm && y === semNow().slice(0, 4) ? ' (진행 중)' : ''), v: cm ? fmt(cur[cm - 1] || 0) : '–', u: '건', m: hasPrev && cm ? pct(cur[cm - 1], prv[cm - 1]) + ' 전년 동월(' + fmt(prv[cm - 1] || 0) + '건) 대비' : '전년 데이터 없음' },
+      { l: y + '년 누적 (1~' + cmLbl + ')', v: ytd == null ? '–' : fmt(ytd), u: '건', m: ytdP != null ? pct(ytd, ytdP) + ' 전년 동기(' + fmt(ytdP) + '건) 대비' : '전년 데이터 없음' },
+      { l: '월평균 (1~' + cmLbl + ')', v: ytd == null ? '–' : fmt(Math.round(ytd / cm)), u: '건', m: ytdP != null ? '전년 동기 월평균 ' + fmt(Math.round(ytdP / cm)) + '건' : '' },
+      { l: y + '년 연간 편성' + (plan ? ' (예정 포함)' : ''), v: yr == null ? '–' : fmt(yr), u: '건', m: (plan ? '확정 ' + fmt(done) + '건 · 예측·가예약 ' + fmt(plan) + '건' : '') + (yrP != null ? (plan ? ' · ' : '') + py + '년 ' + fmt(yrP) + '건' : '') }
+    ];
+    $('#semKpis').innerHTML = items.map(function (it) {
+      return '<div class="card kpi"><div class="label">' + it.l + '</div><div class="value">' + it.v + '<small>' + it.u + '</small></div><div class="meta">' + it.m + '</div></div>';
+    }).join('');
+  }
+  function renderSemYoy() {
+    var d = SEM.data, y = SEM.year, py = String(+y - 1), cm = semCm(y), cur = semYear(d.total, y), prv = semYear(d.total, py);
+    var hasPrev = prv.some(function (v) { return v != null; }), nowY = y === semNow().slice(0, 4);
+    var seq = ['--seq-0', '--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5', '--seq-6'];
+    var max = Math.max.apply(null, cur.concat(prv).filter(function (v) { return v != null; }).concat([1]));
+    var shade = function (v) { if (v == null) return ''; var b = Math.min(6, Math.floor(v / max * 6.999)); return 'background:var(' + seq[b] + ');color:' + (b >= 4 ? 'var(--seq-hi-ink)' : 'var(--ink)'); };
+    var future = function (i) { return nowY && i + 1 > cm; };
+    var cell = function (v, i, yy) {
+      if (v == null) return '<td class="na">–</td>';
+      return '<td class="' + (yy === y && future(i) ? 'plan' : '') + '" style="' + shade(v) + '" title="' + yy + '년 ' + (i + 1) + '월: ' + fmt(v) + '건' + (yy === y && future(i) ? ' (예정 포함)' : '') + '">' + fmt(v) + '</td>';
+    };
+    var diffCell = function (a, b) {
+      if (a == null || b == null) return '<td class="na">–</td>';
+      var x = a - b, cls = x > 0 ? 'up' : x < 0 ? 'down' : 'flat';
+      return '<td><span class="delta ' + cls + '">' + (x > 0 ? '+' : '') + fmt(x) + '</span></td>';
+    };
+    var rateCell = function (a, b) {
+      if (a == null || !b) return '<td class="na">–</td>';
+      var p = (a - b) / b * 100, cls = p > 0 ? 'up' : p < 0 ? 'down' : 'flat';
+      return '<td><span class="delta ' + cls + '">' + (p > 0 ? '▲ ' : p < 0 ? '▼ ' : '') + Math.abs(p).toFixed(1) + '%</span></td>';
+    };
+    var ytd = cm ? semSum(cur, cm) : null, ytdP = cm ? semSum(prv, cm) : null, yr = semSum(cur), yrP = semSum(prv);
+    var head = '<tr><th></th>' + cur.map(function (_, i) { return '<th' + (nowY && i + 1 === cm ? ' class="cur"' : '') + '>' + (i + 1) + '월' + (nowY && i + 1 === cm ? '*' : '') + '</th>'; }).join('') +
+      '<th>연간 합계</th><th>동기간 누적<br>(1~' + (cm || 12) + '월)</th></tr>';
+    var row = function (lbl, arr, yy, s1, s2) { return '<tr><th class="rowh">' + lbl + '</th>' + arr.map(function (v, i) { return cell(v, i, yy); }).join('') + '<td class="sum">' + (s1 == null ? '–' : fmt(s1)) + '</td><td class="sum">' + (s2 == null ? '–' : fmt(s2)) + '</td></tr>'; };
+    var body = (hasPrev ? row(py + '년', prv, py, yrP, ytdP) : '') + row(y + '년', cur, y, yr, ytd);
+    if (hasPrev) body += '<tr class="diff"><th class="rowh">증감</th>' + cur.map(function (v, i) { return diffCell(v, prv[i]); }).join('') + diffCell(yr, yrP) + diffCell(ytd, ytdP) + '</tr>' +
+      '<tr class="diff"><th class="rowh">증감률</th>' + cur.map(function (v, i) { return rateCell(v, prv[i]); }).join('') + rateCell(yr, yrP) + rateCell(ytd, ytdP) + '</tr>';
+    var ex = semSum(semYear(d.excluded, y)) || 0;
+    $('#semYoy').innerHTML = '<div class="yoy-wrap"><table class="yoy"><colgroup><col class="c0">' + cur.map(function () { return '<col>'; }).join('') + '<col class="cs"><col class="cy"></colgroup><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
+      '<div class="yoy-note">' + (nowY ? '* ' + cm + '월은 진행 중이며 이후 달과 함께 편성표의 예측·가예약 건을 포함합니다(점선 칸). ' : '') +
+      '칸 색이 진할수록 세미나가 많습니다(두 해 같은 기준). 송출형태 「사전녹화」 ' + fmt(ex) + '건은 시트 월별 탭과 같은 기준으로 집계에서 제외했습니다.</div>';
+    $('#semYoySub').textContent = (hasPrev ? py + '년과 ' : '') + y + '년의 월별 세미나 편성 건수' + (hasPrev ? ' 비교' : '');
+  }
+  function renderSemChart() {
+    if (!SEM.data || VIEW !== 'seminar') return;
+    var d = SEM.data, y = SEM.year, py = String(+y - 1), cm = semCm(y), nowY = y === semNow().slice(0, 4);
+    var cur = semYear(d.total, y), prv = semYear(d.total, py);
+    var ser = [];
+    if (prv.some(function (v) { return v != null; })) ser.push({ name: py + '년', color: css('--s2'), vals: prv });
+    ser.push({ name: y + '년', color: css('--s1'), vals: cur.map(function (v, i) { return nowY && i + 1 > cm ? null : v; }) });
+    if (nowY && cm < 12) ser.push({ name: y + '년 예정(예측·가예약 포함)', color: css('--s1'), dash: '5 4', vals: cur.map(function (v, i) { return i + 1 >= cm ? v : null; }) });
+    aLegend('#semLg', ser);
+    aLineChart($('#semCh'), cur.map(function (_, i) { return (i + 1) + '월'; }), ser, { zero: true, hi: nowY ? cm - 1 : -1, ml: 44, title: function (i) { return (i + 1) + '월'; }, fmtV: function (v) { return fmt(v) + '건'; }, label: '월별 세미나 수 추이' });
+  }
+  function renderSemDim() {
+    var d = SEM.data, y = SEM.year, py = String(+y - 1), dim = d.dims[SEM.dim], cm = semCm(y), nowY = y === semNow().slice(0, 4);
+    var rows = Object.keys(dim.rows).map(function (k) {
+      var a = semYear(dim.rows[k], y), p = semYear(dim.rows[k], py);
+      return { k: k, a: a, t: semSum(a) || 0, p: semSum(p) };
+    }).filter(function (r) { return r.t > 0 || r.p; }).sort(function (a, b) { return b.t - a.t || (b.p || 0) - (a.p || 0); });
+    var tot = rows.reduce(function (s, r) { return s + r.t; }, 0), hasPrev = rows.some(function (r) { return r.p != null; });
+    var LIM = 15, shown = SEM.all ? rows : rows.slice(0, LIM);
+    var max = 1; rows.forEach(function (r) { r.a.forEach(function (v) { if (v != null && v > max) max = v; }); });
+    var bg = function (v) { if (!v) return ''; var a = Math.min(1, v / max); return 'background:color-mix(in srgb, var(--accent) ' + Math.round(8 + a * 42) + '%, transparent)'; };
+    var head = '<tr><th class="rowh">' + esc(dim.label) + '</th>' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { return '<th' + (nowY && m === cm ? ' class="cur"' : '') + '>' + m + '월</th>'; }).join('') +
+      '<th>' + y + '년 합계</th><th>비중</th>' + (hasPrev ? '<th>' + py + '년 합계</th>' : '') + '</tr>';
+    var body = shown.map(function (r) {
+      return '<tr><th class="rowh" title="' + esc(r.k) + '">' + esc(r.k) + '</th>' + r.a.map(function (v, i) {
+        return v == null ? '<td class="na">–</td>' : '<td class="' + (nowY && i + 1 > cm ? 'plan' : '') + '" style="' + bg(v) + '">' + (v ? fmt(v) : '<span class="z">0</span>') + '</td>';
+      }).join('') + '<td class="sum">' + fmt(r.t) + '</td><td>' + (tot ? (r.t / tot * 100).toFixed(1) + '%' : '–') + '</td>' + (hasPrev ? '<td>' + (r.p == null ? '–' : fmt(r.p)) + '</td>' : '') + '</tr>';
+    }).join('');
+    var colTot = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { var s = null; rows.forEach(function (r) { var v = r.a[m - 1]; if (v != null) s = (s || 0) + v; }); return s; });
+    body += '<tr class="tot"><th class="rowh">합계</th>' + colTot.map(function (v) { return '<td>' + (v == null ? '–' : fmt(v)) + '</td>'; }).join('') + '<td class="sum">' + fmt(tot) + '</td><td>100%</td>' + (hasPrev ? '<td>' + fmt(rows.reduce(function (s, r) { return s + (r.p || 0); }, 0)) + '</td>' : '') + '</tr>';
+    $('#semDimTbl').innerHTML = '<div class="yoy-wrap"><table class="semtbl"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
+      (rows.length > LIM ? '<button type="button" class="btn more" id="semMore">' + (SEM.all ? '상위 ' + LIM + '개만 보기' : '전체 ' + rows.length + '개 보기') + '</button>' : '');
+    var mb = $('#semMore'); if (mb) mb.addEventListener('click', function () { SEM.all = !SEM.all; renderSemDim(); });
+    $('#semDimDesc').textContent = y + '년 월별 · ' + dim.label + ' 기준 · ' + y + '년 합계가 많은 순' + (SEM.dim === 'region' ? ' (송출형태가 지역명인 오프라인 행사만)' : '') + (SEM.dim === 'status' ? ' · 2025년은 상태 미기재' : '');
+  }
+  $('#semYear').addEventListener('change', function () { SEM.year = this.value; SEM.all = false; renderSeminar(); });
+  $('#semDim').addEventListener('change', function () { SEM.dim = this.value; SEM.all = false; try { localStorage.setItem('mv-sem-dim', SEM.dim); } catch (e) {} renderSemDim(); });
+  function homeSeminar() {
+    var d = SEM.data;
+    if (!d) return hCard('seminar', 'dv', '세미나', '', hMsg(HOME.busy.sem || SEM.loading ? '불러오는 중…' : (HOME.semErr || SEM.err || '세미나 메뉴에서 불러올 수 있습니다.')));
+    var n = semNow(), y = n.slice(0, 4), py = String(+y - 1), cm = +n.slice(5, 7), cur = semYear(d.total, y), prv = semYear(d.total, py);
+    var ytd = semSum(cur, cm), ytdP = semSum(prv, cm), yr = semSum(cur);
+    return hCard('seminar', 'dv', '세미나', y + '년 ' + cm + '월 · 스크래핑 ' + new Date(d.fetchedAt).toLocaleDateString('ko-KR'), '<div class="hbody">' +
+      hStat(cm + '월 세미나 수', fmt(cur[cm - 1] || 0), '건', hPct(cur[cm - 1], prv[cm - 1], '전년 동월 대비')) +
+      hStat('누적 (1~' + cm + '월)', ytd == null ? '–' : fmt(ytd), '건', hPct(ytd, ytdP, '전년 동기 대비')) +
+      hStat('연간 편성', yr == null ? '–' : fmt(yr), '건', '예정 포함') + '</div>');
+  }
+
   // ---- 좌측 메뉴 · 화면 전환 ------------------------------------------------
   // 홈 / 매출(닥터빌·팜빌 포인트) / 회원 지표(닥터빌·팜빌 회원 정보·활동성) / 분석 리포트·LLM(준비 중)
-  var VIEWS = ['home', 'members', 'pharm', 'points', 'ppoints', 'activity', 'pactivity', 'report', 'llm'];
+  var VIEWS = ['home', 'members', 'pharm', 'points', 'ppoints', 'seminar', 'activity', 'pactivity', 'report', 'llm'];
   var STATIC_VIEWS = { home: 1, report: 1, llm: 1 };
   var VIEW_TITLE = { home: '닥터빌 · 팜빌 운영 대시보드', report: '분석 리포트', llm: 'LLM',
-    points: '닥터빌 포인트 대시보드', ppoints: '팜빌 포인트 대시보드', activity: '닥터빌 활동성 대시보드', pactivity: '팜빌 활동성 대시보드' };
+    points: '닥터빌 포인트 대시보드', seminar: '닥터빌 세미나 대시보드', ppoints: '팜빌 포인트 대시보드', activity: '닥터빌 활동성 대시보드', pactivity: '팜빌 활동성 대시보드' };
   function setNav(open) {
     document.body.classList.toggle('nav-open', open);
     $('#navBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -2221,6 +2430,7 @@ body.locked #gate { display: flex; }
     document.body.classList.toggle('view-activity', VIEW === 'activity');
     document.body.classList.toggle('view-pactivity', VIEW === 'pactivity');
     document.body.classList.toggle('view-static', stat);
+    document.body.classList.toggle('view-seminar', VIEW === 'seminar');
     ['home', 'report', 'llm'].forEach(function (k) { document.body.classList.toggle('view-' + k, VIEW === k); });
     document.querySelectorAll('#sideNav .nav-item').forEach(function (b) {
       if (b.dataset.view === VIEW) {
@@ -2229,7 +2439,7 @@ body.locked #gate { display: flex; }
       } else b.removeAttribute('aria-current');
     });
     setNav(false);
-    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
+    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 요청)' : VIEW === 'seminar' ? '저장소의 세미나 편성 저장본을 다시 불러옵니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
     if (!fromHash) { try { history.replaceState(null, '', VIEW === 'home' ? location.pathname + location.search : '#' + VIEW); } catch (e) {} }
     if (stat) {
       if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
@@ -2239,6 +2449,7 @@ body.locked #gate { display: flex; }
     if (isPts()) { if (!P.loaded) loadPoints(); else { setPointHeader(); renderPoints(); } }
     else if (VIEW === 'activity') { if (!A.data && !A.loading && started) loadActivity(false); else renderActivity(); }
     else if (VIEW === 'pactivity') { if (!PA.data && !PA.loading && started) loadPvActivity(false); else renderPvActivity(); }
+    else if (VIEW === 'seminar') { if (!SEM.data && !SEM.loading && started) loadSeminar(false); else renderSeminar(); }
     else { setSource(!!state.remote); if (state.snap) renderAll(); else { $('#subtitle').textContent = '데이터를 불러오는 중…'; if (started) startMembers(); } }
   }
   document.querySelectorAll('#sideNav .nav-item').forEach(function (b) {
@@ -2257,7 +2468,7 @@ body.locked #gate { display: flex; }
 
   // ---- 홈: 메뉴별 핵심 지표 요약 ----------------------------------------
   // 이미 불러온 탭 데이터가 있으면 그대로 쓰고, 없으면 저장본(또는 시트 집계)을 읽기만 함 (다른 탭 상태는 바꾸지 않음)
-  var HOME = { pts: {}, pvSnap: null, pvPrev: null, pvSrc: '', pvErr: '', aErr: '', aTried: false, paErr: '', busy: {} };
+  var HOME = { pts: {}, pvSnap: null, pvPrev: null, pvSrc: '', pvErr: '', aErr: '', aTried: false, paErr: '', semErr: '', busy: {} };
   function loadHome() {
     if (!KEY) return;
     ['dv', 'pv'].forEach(function (svc) {
@@ -2300,6 +2511,13 @@ body.locked #gate { display: flex; }
         .then(function (d) { if (!d || !d.weekly) throw new Error('형식 오류'); if (!PA.data) { PA.data = d; PA.cache = null; PA.period = null; } })
         .catch(function () { HOME.paErr = '팜빌 활동성 저장본을 불러오지 못했습니다.'; })
         .then(function () { HOME.busy.pa = 0; renderHome(); });
+    }
+    if (!SEM.data && !SEM.loading && !HOME.busy.sem && !HOME.semErr) {
+      HOME.busy.sem = 1;
+      fetchJson('data/seminar.enc.json?t=' + Date.now()).then(function (b) { return decryptBox(KEY, b); })
+        .then(function (d) { if (!d || !d.months || !d.total) throw new Error('형식 오류'); if (!SEM.data) SEM.data = d; })
+        .catch(function (e) { HOME.semErr = /404/.test(e.message || '') ? '세미나 편성 저장본이 아직 없습니다.' : '세미나 편성 저장본을 불러오지 못했습니다.'; })
+        .then(function () { HOME.busy.sem = 0; renderHome(); });
     }
     renderHome();
   }
@@ -2365,7 +2583,7 @@ body.locked #gate { display: flex; }
     if (VIEW !== 'home') return;
     $('#subtitle').textContent = '메뉴별 핵심 지표 요약';
     if (!KEY) { $('#homeSales').innerHTML = ''; $('#homeMembers').innerHTML = ''; return; }
-    $('#homeSales').innerHTML = homePoints('dv') + homePoints('pv');
+    $('#homeSales').innerHTML = homePoints('dv') + homeSeminar() + homePoints('pv');
     $('#homeMembers').innerHTML = homeMemberCard('dv', 'members') + homeActDv() + homeMemberCard('pv', 'pharm') + homeActPv();
   }
 
