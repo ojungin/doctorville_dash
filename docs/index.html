@@ -568,6 +568,19 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   #schCal .cal-day, #cfCal .cal-day { height: 76px; }
   .cf-ev { font-size: 0; height: 6px; padding: 0; }
 }
+
+/* 좌측 메뉴 v3: 1단 플랫폼(닥터빌·팜빌) → 2단 구분(매출·현황·회원 지표) → 3단 메뉴 */
+.nav-pf { margin-top: 10px; font-size: 15px; font-weight: 800; color: var(--ink) !important; }
+.nav-pf .pf-dot { width: 18px; height: 18px; border-radius: 50%; flex: none; background: linear-gradient(135deg, #2F80FF, #0EAEF2); box-shadow: inset 0 0 0 4px var(--surface); border: 2px solid #2F80FF; }
+.nav-pf[data-svc="pv"] .pf-dot { background: linear-gradient(135deg, #00BB8F, #2AD1A6); border-color: #00BB8F; }
+.nav-pf + .nav-sub { margin-left: 20px; }
+.nav-svc.nav-cat { margin: 10px 0 2px; padding: 3px 8px; font-size: 12.5px; font-weight: 700; color: var(--ink); gap: 7px; }
+.nav-sub > .nav-svc.nav-cat:first-child { margin-top: 4px; }
+.nav-svc.nav-cat::before { display: none; }
+.nav-svc.nav-cat svg { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.nav-svc.nav-cat ~ .nav-item { padding-left: 30px; }
+.nav-svc.nav-cat ~ .nav-item::before { left: 16px; width: 7px; }
+.nav-sep { height: 1px; background: var(--border); margin: 12px 8px 6px; }
 </style>
 </head>
 <body class="locked">
@@ -590,31 +603,30 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   <div class="side-brand">닥터빌 · 팜빌<small>운영 대시보드</small></div>
   <nav>
     <a class="nav-item" href="#home" data-view="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg><span>홈</span></a>
-    <button type="button" class="nav-head" aria-expanded="true" aria-controls="navSales"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg><span>매출</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
-    <div class="nav-sub" id="navSales">
-      <div class="nav-svc" data-svc="dv">닥터빌</div>
+    <button type="button" class="nav-head nav-pf" data-svc="dv" aria-expanded="true" aria-controls="navDv"><span class="pf-dot" aria-hidden="true"></span><span>닥터빌</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <div class="nav-sub" id="navDv">
+      <div class="nav-svc nav-cat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg><span>매출</span></div>
       <a class="nav-item" href="#sales" data-view="sales">매출</a>
       <a class="nav-item" href="#points" data-view="points">포인트</a>
       <a class="nav-item" href="#seminar" data-view="seminar">세미나</a>
       <a class="nav-item" href="#ads" data-view="ads">광고<span class="nav-soon">준비 중</span></a>
-      <div class="nav-svc" data-svc="pv">팜빌</div>
-      <a class="nav-item" href="#ppoints" data-view="ppoints">포인트</a>
-    </div>
-    <button type="button" class="nav-head" aria-expanded="true" aria-controls="navStatus"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17"/><path d="M8 3v4M16 3v4"/></svg><span>현황</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
-    <div class="nav-sub" id="navStatus">
+      <div class="nav-svc nav-cat"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17"/><path d="M8 3v4M16 3v4"/></svg><span>현황</span></div>
       <a class="nav-item" href="#sched" data-view="sched">세미나</a>
       <a class="nav-item" href="#sads" data-view="sads">광고<span class="nav-soon">준비 중</span></a>
       <a class="nav-item" href="#conf" data-view="conf">컨퍼런스</a>
-    </div>
-    <button type="button" class="nav-head" aria-expanded="true" aria-controls="navMembers"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></svg><span>회원 지표</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
-    <div class="nav-sub" id="navMembers">
-      <div class="nav-svc" data-svc="dv">닥터빌</div>
+      <div class="nav-svc nav-cat"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></svg><span>회원 지표</span></div>
       <a class="nav-item" href="#members" data-view="members">회원 정보</a>
       <a class="nav-item" href="#activity" data-view="activity">활동성</a>
-      <div class="nav-svc" data-svc="pv">팜빌</div>
+    </div>
+    <button type="button" class="nav-head nav-pf" data-svc="pv" aria-expanded="true" aria-controls="navPv"><span class="pf-dot" aria-hidden="true"></span><span>팜빌</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <div class="nav-sub" id="navPv">
+      <div class="nav-svc nav-cat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg><span>매출</span></div>
+      <a class="nav-item" href="#ppoints" data-view="ppoints">포인트</a>
+      <div class="nav-svc nav-cat"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></svg><span>회원 지표</span></div>
       <a class="nav-item" href="#pharm" data-view="pharm">회원 정보</a>
       <a class="nav-item" href="#pactivity" data-view="pactivity">활동성</a>
     </div>
+    <div class="nav-sep" role="separator"></div>
     <a class="nav-item" href="#report" data-view="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 12h6"/><path d="M9 16h6"/></svg><span>분석 리포트</span><span class="nav-soon">준비 중</span></a>
     <a class="nav-item" href="#llm" data-view="llm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg><span>LLM</span><span class="nav-soon">준비 중</span></a>
     <a class="nav-item" href="#accounts" data-view="accounts"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.6-3.6 3.2-5.5 6.5-5.5 1.2 0 2.3.2 3.2.7"/><path d="M18 14v6M15 17h6"/></svg><span>계정 관리</span></a>
