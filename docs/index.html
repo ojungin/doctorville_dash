@@ -400,7 +400,7 @@ body.locked #gate { display: flex; }
       <div class="sec-head">
         <div>
           <h2>팜빌 활동성</h2>
-          <p>팜빌 주간/월간 데이터 자동 시트(GA 집계: 내부 트래픽 제외 · 로그인 사용자) 기준 · 개인 식별 정보 없음</p>
+          <p>팜빌 주간/월간 데이터 자동 시트(GA 집계: 내부 트래픽 제외 · 로그인 사용자)를 스크래핑한 저장본 · 개인 식별 정보 없음</p>
         </div>
         <div class="pfilter">
           <div class="seg" id="paModeSeg" role="group" aria-label="팜빌 활동성 분석 단위">
@@ -1839,31 +1839,29 @@ body.locked #gate { display: flex; }
   function setPActHeader() {
     if (VIEW !== 'pactivity') return;
     var d = PA.data;
-    $('#subtitle').textContent = d ? '팜빌 활동성 · ' + (PA.period ? paLabel(paSets(), PA.period) : '') + ' · 불러온 시각 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false })
+    $('#subtitle').textContent = d ? '팜빌 활동성 · ' + (PA.period ? paLabel(paSets(), PA.period) : '') + ' · 시트 스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false })
       : (PA.loading ? '팜빌 활동성 데이터를 불러오는 중…' : '팜빌 활동성 데이터를 불러오지 못했습니다');
-    $('#srcLabel').textContent = d ? '데이터: 팜빌 활동성 시트' : '';
+    $('#srcLabel').textContent = d ? '데이터: 저장본(시트 스크래핑)' : '';
   }
+  // 데이터: docs/data/pv_activity.enc.json — 팜빌 활동성 시트를 스크래핑해 대시보드 비밀번호로 암호화한 저장본
+  //        (Apps Script 미사용. 최신화는 Claude에 「팜빌 활동성 갱신」을 요청하면 시트를 다시 읽어 게시)
   function loadPvActivity(fresh, btn) {
-    if (!CONFIG.appsScriptUrl) { PA.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; renderPvActivity(); return Promise.resolve(); }
-    return (PW ? Promise.resolve(PW) : askPw('팜빌 활동성 시트를 불러오려면 비밀번호를 입력해 주세요.')).then(function (pw) {
-      if (!pw) return;
-      PW = pw; PA.loading = true; PA.err = ''; setPActHeader();
-      if (btn) { btn.disabled = true; btn.textContent = '갱신 중…'; }
-      $('#pactApp').classList.add('loading');
-      return api('activityPv', fresh ? { fresh: true } : {}).then(function (res) {
-        if (!res.activity || !res.activity.menuWeekly) throw new Error('시트의 Apps Script(Code.gs)가 아직 팜빌 활동성을 지원하지 않는 버전입니다. 새 Code.gs로 교체한 뒤 [배포 → 배포 관리 → 편집 → 새 버전]으로 배포해 주세요.');
-        PA.data = res.activity; PA.cache = null; PA.period = null;
-        if (fresh) toast('팜빌 활동성 데이터를 새로 불러왔습니다.');
-      }).catch(function (e) {
-        if (e.code === 'unauthorized') PW = null;
-        PA.err = e.code ? apiErrorText(e) : (/openById|권한|permission|Exception/i.test(e.message || '') ? '팜빌 활동성 시트를 열 권한이 없습니다. 회원분석 시트 메뉴 [대시보드 → 팜빌 활동성 시트 연결 확인]을 한 번 실행해 권한을 승인해 주세요. (' + e.message + ')'
-          : (e.message === 'error' || /Unknown|action/i.test(e.message || '') ? '시트의 Apps Script(Code.gs)가 아직 팜빌 활동성을 지원하지 않는 버전입니다. 새 Code.gs로 교체·새 버전 배포 후 다시 시도해 주세요.' : e.message));
-        toast(PA.err, true, 12000);
-      }).then(function () {
-        PA.loading = false; $('#pactApp').classList.remove('loading');
-        if (btn) { btn.disabled = false; btn.textContent = '갱신'; }
-        renderPvActivity();
-      });
+    if (!KEY) return Promise.resolve();
+    PA.loading = true; PA.err = ''; setPActHeader();
+    if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
+    $('#pactApp').classList.add('loading');
+    return fetchJson('data/pv_activity.enc.json?t=' + Date.now()).then(function (box) { return decryptBox(KEY, box); }).then(function (d) {
+      if (!d || !d.weekly) throw new Error('형식이 올바르지 않습니다.');
+      var same = PA.data && PA.data.fetchedAt === d.fetchedAt;
+      PA.data = d; PA.cache = null; if (!same) PA.period = null;
+      if (fresh) toast(same ? '저장본이 최신입니다 (스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) + '). 시트의 새 값을 반영하려면 Claude에 「팜빌 활동성 갱신」을 요청해 주세요.' : '팜빌 활동성 저장본을 다시 불러왔습니다.', false, 8000);
+    }).catch(function (e) {
+      PA.err = /404/.test(e.message || '') ? '팜빌 활동성 저장본(docs/data/pv_activity.enc.json)이 아직 없습니다. Claude에 「팜빌 활동성 갱신」을 요청해 주세요.' : '팜빌 활동성 저장본을 불러오지 못했습니다: ' + (e.message || e);
+      toast(PA.err, true, 12000);
+    }).then(function () {
+      PA.loading = false; $('#pactApp').classList.remove('loading');
+      if (btn) { btn.disabled = false; btn.textContent = '갱신'; }
+      renderPvActivity();
     });
   }
   function renderPvActivity() {
@@ -2107,7 +2105,7 @@ body.locked #gate { display: flex; }
     document.body.classList.toggle('view-activity', VIEW === 'activity');
     document.body.classList.toggle('view-pactivity', VIEW === 'pactivity');
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.view === VIEW ? 'true' : 'false'); });
-    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '팜빌 활동성 시트의 최신 값을 다시 불러옵니다' : '구글시트의 최신 값을 불러와 다시 집계합니다';
+    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
     if (!fromHash) { try { history.replaceState(null, '', VIEW === 'points' ? '#points' : VIEW === 'ppoints' ? '#ppoints' : VIEW === 'activity' ? '#activity' : VIEW === 'pactivity' ? '#pactivity' : VIEW === 'pharm' ? '#pharm' : location.pathname + location.search); } catch (e) {} }
     if (isPts()) { if (!P.loaded) loadPoints(); else { setPointHeader(); renderPoints(); } }
     else if (VIEW === 'activity') { if (!A.data && !A.loading && started) loadActivity(false); else renderActivity(); }
