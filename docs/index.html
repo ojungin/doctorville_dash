@@ -1894,6 +1894,8 @@ body.locked #gate { display: flex; }
     var mKey = wk ? null : PA.period;
     if (wk) { var rg = paRange(S, PA.period); var ws = weekMonday(PA.period); if (ws != null) { var d6 = new Date(ws + 6 * DAY_MS + KST_MS); mKey = d6.toISOString().slice(0, 7); } }
     S.monthly.forEach(function (r) { if (r['월'] === mKey && r['구분'] === '전체') mrow = r; });
+    var mem = null, memKey = null;   // 회원수가 비어 있으면(진행 중인 달 등) 그 이전 가장 최근 달 값
+    S.monthly.forEach(function (r) { if (r['구분'] === '전체' && r['월'] <= mKey && paN(r['회원수']) != null && (!memKey || r['월'] >= memKey)) { mem = r; memKey = r['월']; } });
     var goal = function (k) { return mrow && paN(mrow[k]) != null ? ' · 목표 대비 ' + num(paN(mrow[k]), 1) + '%' : ''; };
     var items = [
       { l: wk ? 'WAU' : 'MAU', v: num(paN(c[wk ? 'WAU' : 'MAU'])), u: '명', m: chg(wk ? 'WAU' : 'MAU') + (wk ? '' : goal('MAU 목표대비')) },
@@ -1905,7 +1907,7 @@ body.locked #gate { display: flex; }
       { l: '조회수', v: num(paN(c['조회수'])), u: '회', m: chg('조회수') },
       { l: 'DAU/MAU (고착도)', v: num(paN(c['DAU/MAU']), 1), u: '%', m: chgP('DAU/MAU') + (paN(c['WAU/MAU']) != null ? ' · WAU/MAU ' + num(paN(c['WAU/MAU']), 1) + '%' : '') },
       { l: 'YTD 활성 사용자', v: num(paN(c['YTD 활성사용자'])), u: '명', m: 'YTD 신규 ' + num(paN(c['YTD 신규'])) + ' · 방문 ' + num(paN(c['YTD 방문수'])) },
-      { l: '회원수', v: mrow ? num(paN(mrow['회원수'])) : '–', u: '명', m: mrow ? (mKey + ' 월간지표' + goal('회원수 목표대비')) : '월간지표에 값 없음' },
+      { l: '회원수', v: mem ? num(paN(mem['회원수'])) : '–', u: '명', m: mem ? (memKey + ' 월간지표' + (memKey === mKey ? goal('회원수 목표대비') : (paN(mem['회원수 목표대비']) != null ? ' · 목표 대비 ' + num(paN(mem['회원수 목표대비']), 1) + '%' : '') + ' (' + mKey + ' 값 없음)')) : '월간지표에 값 없음' },
       { l: '방문당 조회수', v: (paN(c['조회수']) && paN(c['방문수'])) ? num(paN(c['조회수']) / paN(c['방문수']), 1) : '–', u: '회', m: '조회수 ÷ 방문수' },
       { l: '시트 상태', v: esc(c['상태'] || '–'), u: '', m: (wk ? '주 단위(월~일)' : '월 단위') + ' · 기기 ' + PA.dev }
     ];
@@ -1914,7 +1916,8 @@ body.locked #gate { display: flex; }
     }).join('');
     $('#paKpiNote').textContent = '기기: ' + PA.dev + ' · 증감은 ' + pl + ' 같은 기기 기준 · 회원수·목표 달성률은 월간지표(전체) 값';
   }
-  function paCut(ps) { var n = PA.range ? Math.min(ps.length, PA.range) : ps.length; var end = ps.indexOf(PA.period); if (end < 0) end = ps.length - 1; var st = Math.max(0, end - n + 1); var e2 = Math.min(ps.length, st + n); return ps.slice(st, e2); }
+  // 추이 구간: 선택한 기간까지 (진행 중인 기간을 선택하지 않으면 미완료 값이 추이에 섞이지 않음)
+  function paCut(ps) { var end = ps.indexOf(PA.period); if (end < 0) end = ps.length - 1; var st = PA.range ? Math.max(0, end - PA.range + 1) : 0; return ps.slice(st, end + 1); }
   function renderPATrends(S, ps) {
     var wk = PA.mode === 'week', cp = paCut(ps), labels = cp.map(paAxis), hi = cp.indexOf(PA.period);
     var get = function (dev, k) { return cp.map(function (p) { var r = paRow(S, p, dev); return r ? paN(r[k]) : null; }); };
@@ -1965,11 +1968,11 @@ body.locked #gate { display: flex; }
         el('path', { d: d, fill: 'none', stroke: g[1], 'stroke-width': 2 }, f.svg);
       });
       el('line', { x1: f.m.l, x2: f.m.l + f.iw, y1: yG(100), y2: yG(100), stroke: css('--axis'), 'stroke-dasharray': '3 3' }, f.svg);
-      var tx = el('text', { x: f.m.l + f.iw, y: yG(100) - 4, 'text-anchor': 'end', 'font-size': 10, fill: css('--muted') }, f.svg); tx.textContent = '목표 100% (오른쪽 축 기준 ' + gTop + '%)';
+      var tx = el('text', { x: f.m.l + f.iw, y: yG(100) - 4, 'text-anchor': 'end', 'font-size': 10, fill: css('--muted') }, f.svg); tx.textContent = '점선 = 목표 100% (선 높이 기준 ' + gTop + '%)';
       xLabels(f, ms.map(function (m) { return m.slice(2, 4) + '.' + m.slice(5, 7); }), xOf);
       hoverCols(f, n, xOf, bw, function (i) { var r = mr(ms[i]); return tipRows(ms[i] + (r['상태'] === '진행중' ? ' · 진행 중' : ''), [{ k: '회원수', v: num(paN(r['회원수'])) + '명', color: css('--s1') }].concat(goals.map(function (g) { return { k: g[0], v: paN(r[g[0]]) == null ? '–' : num(paN(r[g[0]]), 1) + '%', color: g[1] }; }))); });
     })();
-    $('#paTrendDesc').textContent = (wk ? '주 단위(월~일) · ' : '월 단위 · ') + '선택한 기간은 음영으로 표시 · 기기 선택 기준 (기기별 차트 제외) · ' + (PA.range ? '선택 기간까지 최근 ' + PA.range + (wk ? '주' : '개월') : '전체 기간');
+    $('#paTrendDesc').textContent = (wk ? '주 단위(월~일) · ' : '월 단위 · ') + '선택한 기간은 음영으로 표시 · 기기 선택 기준 (기기별 차트 제외) · ' + (PA.range ? '선택 기간까지 최근 ' + PA.range + (wk ? '주' : '개월') : '처음부터 선택 기간까지');
   }
   function renderPADaily(S) {
     var rows = S.daily.filter(function (r) { return /^\d{4}-\d{2}-\d{2}$/.test(String(r['날짜'])); });
