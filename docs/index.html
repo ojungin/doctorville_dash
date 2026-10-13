@@ -691,7 +691,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
         <ul class="legend cal-legend" id="schLegend"></ul>
       </div>
       <div class="cal" id="schCal" aria-label="세미나 편성 달력"></div>
-      <p class="anote">하루를 오전(12시 전)·오후 5칸씩 나눠 편성표의 세미나를 시간순으로 표시합니다. 5건을 넘으면 '+n건'으로 줄여 보여 주며, 날짜를 누르면 아래에 전체 상세가 나옵니다. 점선 칸은 예측·가예약 건입니다.</p>
+      <p class="anote">하루를 점심 이전(15시 전)·점심 이후(15시부터) 5칸씩 나눠 편성표의 세미나를 시간순으로 표시합니다. 5건을 넘으면 '+n건'으로 줄여 보여 주며, 날짜를 누르면 아래에 전체 상세가 나옵니다. 점선 칸은 예측·가예약 건입니다.</p>
     </section>
     <section id="schDetailSec">
       <div class="sec-head"><div><h2 id="schDetailTitle">일별 상세</h2><p>편성표 (2026) RAW 탭 기준 · 업체 담당자 정보는 가져오지 않습니다</p></div></div>
@@ -3263,6 +3263,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 
   // ===== 세미나 달력 =====
   var SCH = { month: null, sel: null, data: {}, loading: false, err: '' };
+  var SCH_SPLIT = '15:00';   // 점심 이전 / 점심 이후 구분 기준 시각 (이 시각부터 점심 이후)
   var SCH_TYPE = [['웹심포지엄', '--s1'], ['라이브세미나', '--s3'], ['심포지엄', '--s4'], ['아카데미', '--s5']];
   function schColor(t) { t = t || ''; for (var i = 0; i < SCH_TYPE.length; i++) if (t.indexOf(SCH_TYPE[i][0]) >= 0) return 'var(' + SCH_TYPE[i][1] + ')'; return 'var(--muted)'; }
   function schPlanned(r) { return /예측|가예약|미정/.test(r.status || ''); }
@@ -3296,7 +3297,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var t = todayYmd(), html = WD.map(function (w, i) { return '<div class="cal-wd' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '') + '">' + w + '</div>'; }).join('');
     calDays(m).forEach(function (day) {
       var list = by[day] || [], am = [], pm = [];
-      list.forEach(function (r) { ((r.time && r.time < '12:00') ? am : pm).push(r); });
+      list.forEach(function (r) { ((r.time && r.time < SCH_SPLIT) ? am : pm).push(r); });   // 시간 없는 건은 점심 이후로
       var slots = function (arr) {
         var h = '';
         for (var i = 0; i < 5; i++) {
@@ -3309,7 +3310,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       var out = day.slice(0, 7) !== m, dow = new Date(day + 'T00:00:00').getDay();
       html += '<button type="button" class="cal-day' + (out ? ' out' : '') + (day === t ? ' today' : '') + (day === SCH.sel ? ' sel' : '') + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '') + '" data-day="' + day + '">' +
         '<span class="cal-dn">' + (+day.slice(8)) + (list.length ? '<em>' + list.length + '건</em>' : '') + '</span>' +
-        (out ? '' : '<span class="cal-ampm"><span class="col"><i>오전</i>' + slots(am) + '</span><span class="col"><i>오후</i>' + slots(pm) + '</span></span>') + '</button>';
+        (out ? '' : '<span class="cal-ampm"><span class="col"><i>점심 이전</i>' + slots(am) + '</span><span class="col"><i>점심 이후</i>' + slots(pm) + '</span></span>') + '</button>';
     });
     $('#schCal').innerHTML = html;
     $('#schCal').classList.toggle('loading', SCH.loading);
