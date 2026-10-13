@@ -590,7 +590,7 @@ th.sort.on { color: var(--accent); }
   <div class="wrap" id="salesApp">
     <section>
       <div class="sec-head">
-        <div><h2>닥터빌 매출</h2><p id="slSrc">닥터빌 매출관리 시트를 스크래핑한 저장본</p></div>
+        <div><h2>닥터빌 매출</h2><p id="slSrc">닥터빌 매출관리 시트(구글시트 Apps Script로 실시간 조회)</p></div>
         <div class="pfilter">
           <div class="seg" id="slSeg" role="group" aria-label="내부·외부 구분">
             <button type="button" data-seg="all" aria-pressed="true">전체</button>
@@ -627,7 +627,7 @@ th.sort.on { color: var(--accent); }
         <div class="pfilter"><input id="slQ" class="sl-search" type="search" placeholder="고객사 검색" aria-label="고객사 검색"></div></div>
       <div class="card"><div id="slCustTbl"></div></div>
     </section>
-    <footer>고객사별 매출은 사전 승인을 받아 게시합니다. 담당자 이름·계약 조건 메모는 저장하지 않으며, 협력사 계정은 이 데이터를 열 수 없습니다. 외부 공유 전 사전 승인이 필요합니다.</footer>
+    <footer>매출은 열 때마다 구글시트에서 직접 읽어 오며 저장소에는 저장하지 않습니다. 담당자 이름·계약 조건 메모는 가져오지 않고, 협력사 계정은 이 데이터를 불러올 수 없습니다. 외부 공유 전 사전 승인이 필요합니다.</footer>
   </div>
 </main>
 
@@ -1399,7 +1399,7 @@ th.sort.on { color: var(--accent); }
   }
   // ---- 구글시트(Apps Script) 연동 ----
   function api(action, extra) {
-    var body = { action: action, password: PW }, member = action !== 'activity', svcAt = SVC;
+    var body = { action: action, password: PW }, member = action !== 'activity' && action !== 'sales', svcAt = SVC;
     if (member && svcAt === 'pv') body.svc = 'pv';
     for (var k in (extra || {})) body[k] = extra[k];
     return fetch(CONFIG.appsScriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
@@ -2718,9 +2718,9 @@ th.sort.on { color: var(--accent); }
   $('#paPeriod').addEventListener('change', function () { PA.period = this.value; renderPvActivity(); });
 
   // ---- 닥터빌 매출 (매출 > 닥터빌 > 매출) --------------------------------------
-  // 데이터: docs/data/sales.enc.json — '2026년_매출관리_닥터빌 마케팅팀(내부용)' 시트의 2026년·2025 매출 탭을 스크래핑해
-  //        고객사 × 사업내용 × 월 금액으로 정리 후 시스템 키로 암호화한 저장본 (협력사 계정은 열 수 없음)
-  //        최신화는 Claude에 「닥터빌 매출 갱신」 요청
+  // 데이터: 구글시트 Apps Script(action:'sales', sales.gs)가 '2026년_매출관리_닥터빌 마케팅팀(내부용)' 시트의 2026년·2025 매출 탭을
+  //        고객사 × 사업내용 × 월 금액으로 정리해 돌려줌 — 저장소(GitHub)에는 매출 데이터를 저장하지 않음
+  //        시스템(연동) 비밀번호가 필요해 협력사 계정은 호출할 수 없음. 10분 캐시, [갱신]은 시트를 다시 읽음
   // 평문: {fetchedAt, source, basis, years:{'2026':{rows:[{c, io, cat, gu, m:[12], n?:[12]}], sheetTotal, note}, '2025':{…}}}
   var SL = { data: null, loading: false, err: '', year: null, seg: 'all', cat: 'all', all: false, q: '', sort: { k: 't', d: -1 } };
   var SL_CATS = ['광고', '세미나', '컨퍼런스', '기타'];
@@ -2744,25 +2744,42 @@ th.sort.on { color: var(--accent); }
   function setSalesHeader() {
     if (VIEW !== 'sales') return;
     var d = SL.data;
-    $('#subtitle').textContent = d ? '닥터빌 매출 · ' + d.basis + ' · 시트 스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : (SL.loading ? '매출 데이터를 불러오는 중…' : '매출 데이터를 불러오지 못했습니다');
-    $('#srcLabel').textContent = d ? '데이터: 저장본(시트 스크래핑)' : '';
+    $('#subtitle').textContent = d ? '닥터빌 매출 · ' + d.basis + ' · 시트 조회 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : (SL.loading ? '매출 시트를 불러오는 중…' : '매출 데이터를 불러오지 못했습니다');
+    $('#srcLabel').textContent = d ? '데이터: 매출 시트(실시간)' : '';
+  }
+  var SALES_OLD_GS = '시트의 Apps Script에 매출 기능(sales.gs)이 아직 없습니다. sales.gs 파일을 추가하고 Code.gs를 새 버전으로 바꾼 뒤 [배포 → 배포 관리 → 편집 → 새 버전]으로 배포해 주세요.';
+  function salesApiErr(e) {
+    if (e && e.message === 'no_sales') return SALES_OLD_GS;
+    var m = String(e && e.message || e);
+    if (/openById|권한|permission|Exception|찾을 수 없습니다|구조가 바뀌었습니다/i.test(m)) return '매출 시트를 읽지 못했습니다: ' + m + ' — 시트 메뉴 [대시보드 → 매출 시트 연결 확인]을 실행해 확인해 주세요.';
+    return e && e.code ? apiErrorText(e) : '매출 데이터를 불러오지 못했습니다: ' + m;
+  }
+  function fetchSales(fresh) {
+    return api('sales', fresh ? { fresh: true } : {}).then(function (res) {
+      if (!res.sales || !res.sales.years) { var e = new Error('no_sales'); throw e; }
+      return res.sales;
+    });
   }
   function loadSales(fresh, btn) {
     if (!KEY) return Promise.resolve();
-    SL.loading = true; SL.err = ''; setSalesHeader();
-    if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
-    $('#salesApp').classList.add('loading');
-    return fetchJson('data/sales.enc.json?t=' + Date.now()).then(function (box) { return decryptBox(KEY, box); }).then(function (d) {
-      if (!d || !d.years) throw new Error('형식이 올바르지 않습니다.');
-      var same = SL.data && SL.data.fetchedAt === d.fetchedAt; SL.data = d;
-      if (fresh) toast(same ? '저장본이 최신입니다 (스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) + '). 시트의 새 매출을 반영하려면 Claude에 「닥터빌 매출 갱신」을 요청해 주세요.' : '매출 저장본을 다시 불러왔습니다.', false, 8000);
-    }).catch(function (e) {
-      SL.err = /404/.test(e.message || '') ? '매출 저장본(docs/data/sales.enc.json)이 아직 없습니다. Claude에 「닥터빌 매출 갱신」을 요청해 주세요.' : '매출 저장본을 불러오지 못했습니다: ' + (e.message || e);
-      if (VIEW === 'sales') toast(SL.err, true, 12000);
-    }).then(function () {
-      SL.loading = false; $('#salesApp').classList.remove('loading');
-      if (btn) { btn.disabled = false; btn.textContent = '갱신'; }
-      renderSales();
+    if (!CONFIG.appsScriptUrl) { SL.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; renderSales(); return Promise.resolve(); }
+    return (PW ? Promise.resolve(PW) : askPw('매출 시트를 불러오려면 구글시트 연동 비밀번호를 입력해 주세요.')).then(function (pw) {
+      if (!pw) return;
+      PW = pw; SL.loading = true; SL.err = ''; setSalesHeader();
+      if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
+      $('#salesApp').classList.add('loading');
+      return fetchSales(fresh).then(function (d) {
+        SL.data = d;
+        if (fresh) toast('매출 시트의 최신 값을 불러왔습니다.');
+      }).catch(function (e) {
+        if (e.code === 'unauthorized') PW = null;
+        SL.err = salesApiErr(e);
+        if (VIEW === 'sales') toast(SL.err, true, 12000);
+      }).then(function () {
+        SL.loading = false; $('#salesApp').classList.remove('loading');
+        if (btn) { btn.disabled = false; btn.textContent = '갱신'; }
+        renderSales();
+      });
     });
   }
   function renderSales() {
@@ -2903,7 +2920,7 @@ th.sort.on { color: var(--accent); }
     if (!d.years[y]) { y = slYears().slice(-1)[0]; dn = slDone(y); py = String(+y - 1); }
     var cur = slSum(slRows(y, 'all')), prv = d.years[py] ? slSum(slRows(py, 'all')) : null;
     var ytd = slTot(cur, dn), ytdP = prv ? slTot(prv, dn) : null;
-    return hCard('sales', 'dv', '매출', y + '년 1~' + dn + '월 실적 · 스크래핑 ' + new Date(d.fetchedAt).toLocaleDateString('ko-KR'), '<div class="hbody">' +
+    return hCard('sales', 'dv', '매출', y + '년 1~' + dn + '월 실적 · 시트 조회 ' + new Date(d.fetchedAt).toLocaleDateString('ko-KR'), '<div class="hbody">' +
       hStat(dn + '월 매출', won(cur[dn - 1] || 0), '원', prv ? hPct(cur[dn - 1], prv[dn - 1], '전년 동월 대비') : '') +
       hStat('누적 (1~' + dn + '월)', won(ytd), '원', ytdP != null ? hPct(ytd, ytdP, '전년 동기 대비') : '') +
       hStat('연간 (실적+예정)', won(slTot(cur)), '원', prv ? py + '년 ' + won(slTot(prv)) + '원' : '') + '</div>');
@@ -3102,7 +3119,7 @@ th.sort.on { color: var(--accent); }
       } else b.removeAttribute('aria-current');
     });
     setNav(false);
-    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '저장소의 매출 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 「닥터빌 매출 갱신」 요청)' : VIEW === 'seminar' ? '저장소의 세미나 편성 저장본을 다시 불러옵니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
+    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '매출 시트의 최신 값을 다시 불러옵니다' : VIEW === 'seminar' ? '저장소의 세미나 편성 저장본을 다시 불러옵니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
     if (!fromHash) { try { history.replaceState(null, '', VIEW === 'home' ? location.pathname + location.search : '#' + VIEW); } catch (e) {} }
     if (stat) {
       if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
@@ -3180,9 +3197,9 @@ th.sort.on { color: var(--accent); }
     }
       if (!SL.data && !SL.loading && !HOME.busy.sl && !HOME.slErr) {
         HOME.busy.sl = 1;
-        fetchJson('data/sales.enc.json?t=' + Date.now()).then(function (b) { return decryptBox(KEY, b); })
-          .then(function (d) { if (!d || !d.years) throw new Error('형식 오류'); if (!SL.data) SL.data = d; })
-          .catch(function (e) { HOME.slErr = /404/.test(e.message || '') ? '매출 저장본이 아직 없습니다.' : '매출 저장본을 불러오지 못했습니다.'; })
+        (CONFIG.appsScriptUrl && PW ? fetchSales(false) : Promise.reject(new Error('nopw')))
+          .then(function (d) { if (!SL.data) SL.data = d; })
+          .catch(function (e) { HOME.slErr = e.message === 'nopw' ? '매출 메뉴에서 불러올 수 있습니다.' : e.message === 'no_sales' ? '시트 Apps Script에 매출 기능(sales.gs) 추가가 필요합니다.' : '매출 시트를 불러오지 못했습니다.'; })
           .then(function () { HOME.busy.sl = 0; renderHome(); });
       }
     }
