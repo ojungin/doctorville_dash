@@ -205,10 +205,68 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
 .pyoy-sum .big { font-size: 20px; font-weight: 700; }
 @media (max-width: 860px) { .pyoy-sum { grid-template-columns: minmax(0, 1fr); } .pyoy-sum .g + .g { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 10px; } }
 .pyoy-grid { margin-top: 16px; }
-/* 화면 전환 탭 */
-.tabs { display: flex; gap: 4px; margin-top: 12px; }
-.tabs button { font: inherit; font-size: 13px; font-weight: 600; color: var(--header-sub); background: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 5px 14px; cursor: pointer; }
-.tabs button[aria-selected="true"] { background: rgba(255,255,255,0.14); color: var(--header-ink); border-color: rgba(255,255,255,0.45); }
+/* 좌측 메뉴 */
+body { padding-left: 232px; }
+.side { position: fixed; top: 0; left: 0; bottom: 0; width: 232px; z-index: 40; display: flex; flex-direction: column; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; }
+.side-brand { background: var(--header); color: var(--header-ink); padding: 22px 20px 18px; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.side-brand small { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--header-sub); }
+.side nav { display: flex; flex-direction: column; gap: 2px; padding: 12px 10px 20px; }
+.nav-item, .nav-head { display: flex; align-items: center; gap: 10px; width: 100%; font: inherit; font-size: 14px; font-weight: 600; text-align: left; color: var(--ink-2); background: none; border: 0; border-radius: 8px; padding: 9px 12px; cursor: pointer; text-decoration: none; }
+.nav-item:hover, .nav-head:hover { background: var(--surface-2); color: var(--ink); }
+.nav-item:focus-visible, .nav-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.nav-item[aria-current="page"] { background: var(--accent-soft); color: var(--ink); }
+.nav-item svg, .nav-head svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.nav-head .chev { width: 14px; height: 14px; margin-left: auto; transition: transform .15s; }
+.nav-head[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+.nav-head[aria-expanded="false"] + .nav-sub { display: none; }
+.nav-sub { padding: 0 0 6px 28px; }
+.nav-svc { padding: 8px 12px 2px; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.nav-sub .nav-item { padding: 6px 12px; font-size: 13.5px; font-weight: 500; }
+.nav-sub .nav-item[aria-current="page"] { font-weight: 600; }
+.nav-soon { margin-left: auto; padding: 0 7px; font-size: 10.5px; font-weight: 600; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; }
+.side-foot { margin-top: auto; padding: 12px 20px 18px; font-size: 11.5px; color: var(--muted); }
+.nav-btn { display: none; }
+.nav-scrim { display: none; position: fixed; inset: 0; z-index: 39; background: rgba(0,0,0,0.35); }
+.title-row { display: flex; align-items: center; gap: 10px; }
+body.locked { padding-left: 0; }
+body.locked .side, body.locked .nav-scrim, body.pdf-mode .side, body.pdf-mode .nav-btn { display: none !important; }
+body.pdf-mode { padding-left: 0; }
+@media (max-width: 900px) {
+  body { padding-left: 0; }
+  .side { transform: translateX(-100%); transition: transform .2s; box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+  body.nav-open .side { transform: none; }
+  body.nav-open .nav-scrim { display: block; }
+  .nav-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; flex: none; }
+  .nav-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+}
+/* 홈·준비 중 화면 */
+#homeMain, #reportMain, #llmMain { display: none; }
+body.view-home #homeMain, body.view-report #reportMain, body.view-llm #llmMain { display: block; }
+body.view-static #memberMain, body.view-static #pointMain, body.view-static #actMain, body.view-static #pactMain,
+body.view-static .member-only, body.view-static #refreshBtn, body.view-static #pdfBtn, body.view-static #srcLabel { display: none !important; }
+.home-grp { margin: 22px 0 10px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.home-grp:first-of-type { margin-top: 4px; }
+.home-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+a.hcard { display: flex; flex-direction: column; gap: 12px; color: inherit; text-decoration: none; transition: border-color .15s; }
+a.hcard:hover { border-color: var(--accent); }
+a.hcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hcard .hh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hcard .hh b { font-size: 14px; }
+.hcard .hp { margin-left: auto; font-size: 12px; color: var(--muted); }
+.svc { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); }
+.svc-pv { background: var(--surface-2); border: 1px solid var(--border); }
+.hbody { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 16px; }
+.hs .hl { font-size: 12px; color: var(--ink-2); }
+.hs .hv { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
+.hs .hv small { font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-left: 2px; }
+.hs .hm { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.hcard .hmsg { font-size: 13px; color: var(--muted); padding: 8px 0; }
+.hcard .hgo { font-size: 12px; font-weight: 600; color: var(--accent); }
+.soon { text-align: center; padding: 56px 24px; }
+.soon h2 { margin: 0 0 6px; font-size: 18px; }
+.soon p { margin: 0; color: var(--ink-2); }
+@media (max-width: 1080px) { .home-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .hbody { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hs .hv { font-size: 19px; } }
 body.view-points #memberMain, body:not(.view-points) #pointMain { display: none; }
 body.view-points .member-only { display: none !important; }
 body.view-activity #memberMain, body.view-activity #pointMain, body:not(.view-activity) #actMain { display: none; }
@@ -301,21 +359,42 @@ body.locked #gate { display: flex; }
     </form>
   </div>
 </div>
+<aside class="side" id="sideNav" aria-label="대시보드 메뉴">
+  <div class="side-brand">닥터빌 · 팜빌<small>운영 대시보드</small></div>
+  <nav>
+    <a class="nav-item" href="#home" data-view="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg><span>홈</span></a>
+    <button type="button" class="nav-head" aria-expanded="true" aria-controls="navSales"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg><span>매출</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <div class="nav-sub" id="navSales">
+      <div class="nav-svc">닥터빌</div>
+      <a class="nav-item" href="#points" data-view="points">포인트</a>
+      <div class="nav-svc">팜빌</div>
+      <a class="nav-item" href="#ppoints" data-view="ppoints">포인트</a>
+    </div>
+    <button type="button" class="nav-head" aria-expanded="true" aria-controls="navMembers"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></svg><span>회원 지표</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <div class="nav-sub" id="navMembers">
+      <div class="nav-svc">닥터빌</div>
+      <a class="nav-item" href="#members" data-view="members">회원 정보</a>
+      <a class="nav-item" href="#activity" data-view="activity">활동성</a>
+      <div class="nav-svc">팜빌</div>
+      <a class="nav-item" href="#pharm" data-view="pharm">회원 정보</a>
+      <a class="nav-item" href="#pactivity" data-view="pactivity">활동성</a>
+    </div>
+    <a class="nav-item" href="#report" data-view="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 12h6"/><path d="M9 16h6"/></svg><span>분석 리포트</span><span class="nav-soon">준비 중</span></a>
+    <a class="nav-item" href="#llm" data-view="llm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg><span>LLM</span><span class="nav-soon">준비 중</span></a>
+  </nav>
+  <div class="side-foot">닥터빌사업부 내부용 · 대외비</div>
+</aside>
+<div class="nav-scrim" id="navScrim"></div>
 <div id="pdfRoot">
 <header class="top">
   <div class="wrap">
     <div>
-      <h1 id="mainTitle">닥터빌 회원 대시보드</h1>
+      <div class="title-row">
+        <button class="btn nav-btn" id="navBtn" type="button" aria-controls="sideNav" aria-expanded="false" aria-label="메뉴 열기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <h1 id="mainTitle">닥터빌 회원 대시보드</h1>
+      </div>
       <div class="sub" id="subtitle">데이터를 불러오는 중…</div>
       <div class="pdf-only pdf-stamp" id="pdfStamp"></div>
-      <div class="tabs" role="tablist" aria-label="대시보드 화면">
-        <button type="button" role="tab" id="tabMembers" data-view="members" aria-selected="true">회원 정보</button>
-        <button type="button" role="tab" id="tabPharm" data-view="pharm" aria-selected="false">팜빌 회원</button>
-        <button type="button" role="tab" id="tabPoints" data-view="points" aria-selected="false">포인트 관리</button>
-        <button type="button" role="tab" id="tabPvPoints" data-view="ppoints" aria-selected="false">팜빌 포인트</button>
-        <button type="button" role="tab" id="tabActivity" data-view="activity" aria-selected="false">활동성</button>
-        <button type="button" role="tab" id="tabPvActivity" data-view="pactivity" aria-selected="false">팜빌 활동성</button>
-      </div>
     </div>
     <div class="controls">
       <div class="seg member-only" id="modeSeg" role="group" aria-label="분석 단위">
@@ -332,6 +411,27 @@ body.locked #gate { display: flex; }
     </div>
   </div>
 </header>
+
+<main id="homeMain">
+  <div class="wrap" id="homeApp">
+    <section>
+      <div class="sec-head"><div><h2>한눈에 보기</h2><p>메뉴별 최신 핵심 지표입니다. 카드를 누르면 상세 화면으로 이동합니다.</p></div></div>
+      <h3 class="home-grp">매출</h3>
+      <div class="home-grid" id="homeSales"></div>
+      <h3 class="home-grp">회원 지표</h3>
+      <div class="home-grid" id="homeMembers"></div>
+    </section>
+    <footer>홈 화면은 각 메뉴의 암호화된 집계 저장본(또는 구글시트 집계)에서 요약 수치만 읽어 표시합니다. 외부 공유 전 사전 승인이 필요합니다.</footer>
+  </div>
+</main>
+
+<main id="reportMain">
+  <div class="wrap"><section><div class="card soon"><h2>분석 리포트</h2><p>준비 중인 메뉴입니다.</p></div></section></div>
+</main>
+
+<main id="llmMain">
+  <div class="wrap"><section><div class="card soon"><h2>LLM</h2><p>준비 중인 메뉴입니다.</p></div></section></div>
+</main>
 
 <main id="memberMain">
   <div class="wrap" id="app">
@@ -991,6 +1091,7 @@ body.locked #gate { display: flex; }
     if (isPts()) loadPoints();
     if (VIEW === 'activity') loadActivity(false);
     if (VIEW === 'pactivity') loadPvActivity(false);
+    if (VIEW === 'home') loadHome();
     $('#weekSel').addEventListener('change', function () { if (state.mode === 'month') loadMonth(this.value); else load(this.value); });
     startMembers();
   }
@@ -1088,6 +1189,7 @@ body.locked #gate { display: flex; }
     if (isPts()) setPointHeader();
     if (VIEW === 'activity') setActHeader();
     if (VIEW === 'pactivity') setPActHeader();
+    if (VIEW === 'home') renderHome();
   }
 
   // ---- PDF 내려받기 (브라우저 안에서 생성, 서버 전송 없음) ----------------
@@ -1658,7 +1760,7 @@ body.locked #gate { display: flex; }
     });
   }
   function renderActivity() {
-    if (VIEW !== 'activity') return;
+    if (VIEW !== 'activity') { if (VIEW === 'home') renderHome(); return; }
     $('#aEmpty').hidden = !!A.data; document.querySelectorAll('#actApp .adata').forEach(function (s) { s.hidden = !A.data; });
     if (!A.data) { $('#aEmpty').textContent = A.err || (A.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); setActHeader(); return; }
     var S = aSets(), ps = aPeriods(S.tot);
@@ -1865,7 +1967,7 @@ body.locked #gate { display: flex; }
     });
   }
   function renderPvActivity() {
-    if (VIEW !== 'pactivity') return;
+    if (VIEW !== 'pactivity') { if (VIEW === 'home') renderHome(); return; }
     $('#paEmpty').hidden = !!PA.data; document.querySelectorAll('#pactApp .padata').forEach(function (s) { s.hidden = !PA.data; });
     if (!PA.data) { $('#paEmpty').textContent = PA.err || (PA.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); setPActHeader(); return; }
     var S = paSets(), ps = paPeriods(S);
@@ -2094,33 +2196,182 @@ body.locked #gate { display: flex; }
   document.querySelectorAll('#paDaySeg button').forEach(function (b) { b.addEventListener('click', function () { PA.days = b.dataset.days; renderPADaily(paSets()); }); });
   $('#paPeriod').addEventListener('change', function () { PA.period = this.value; renderPvActivity(); });
 
+  // ---- 좌측 메뉴 · 화면 전환 ------------------------------------------------
+  // 홈 / 매출(닥터빌·팜빌 포인트) / 회원 지표(닥터빌·팜빌 회원 정보·활동성) / 분석 리포트·LLM(준비 중)
+  var VIEWS = ['home', 'members', 'pharm', 'points', 'ppoints', 'activity', 'pactivity', 'report', 'llm'];
+  var STATIC_VIEWS = { home: 1, report: 1, llm: 1 };
+  var VIEW_TITLE = { home: '닥터빌 · 팜빌 운영 대시보드', report: '분석 리포트', llm: 'LLM',
+    points: '닥터빌 포인트 대시보드', ppoints: '팜빌 포인트 대시보드', activity: '닥터빌 활동성 대시보드', pactivity: '팜빌 활동성 대시보드' };
+  function setNav(open) {
+    document.body.classList.toggle('nav-open', open);
+    $('#navBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+    $('#navBtn').setAttribute('aria-label', open ? '메뉴 닫기' : '메뉴 열기');
+  }
   function setView(v, fromHash) {
-    VIEW = v === 'points' || v === 'ppoints' || v === 'activity' || v === 'pactivity' || v === 'pharm' ? v : 'members';
+    VIEW = VIEWS.indexOf(v) >= 0 ? v : 'home';
+    var stat = !!STATIC_VIEWS[VIEW];
     if (isPts()) setPSvc(VIEW === 'ppoints' ? 'pv' : 'dv');
     var nsvc = VIEW === 'pharm' ? 'pv' : VIEW === 'members' ? 'dv' : SVC;
     if (nsvc !== SVC) {
       SVC = nsvc; state = STATES[SVC]; $('#app').classList.remove('loading');
       clearMembers(); applySvcChrome(); fillSel();
     }
-    if (VIEW === 'members' || VIEW === 'pharm') $('#mainTitle').textContent = SVC_NAME[SVC] + ' 회원 대시보드';
-    else $('#mainTitle').textContent = VIEW === 'ppoints' ? '팜빌 포인트 대시보드' : VIEW === 'pactivity' ? '팜빌 활동성 대시보드' : '닥터빌 회원 대시보드';
+    $('#mainTitle').textContent = (VIEW === 'members' || VIEW === 'pharm') ? SVC_NAME[SVC] + ' 회원 대시보드' : VIEW_TITLE[VIEW];
     document.body.classList.toggle('view-points', isPts());
     document.body.classList.toggle('view-activity', VIEW === 'activity');
     document.body.classList.toggle('view-pactivity', VIEW === 'pactivity');
-    document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.view === VIEW ? 'true' : 'false'); });
+    document.body.classList.toggle('view-static', stat);
+    ['home', 'report', 'llm'].forEach(function (k) { document.body.classList.toggle('view-' + k, VIEW === k); });
+    document.querySelectorAll('#sideNav .nav-item').forEach(function (b) {
+      if (b.dataset.view === VIEW) {
+        b.setAttribute('aria-current', 'page');
+        var sub = b.closest('.nav-sub'); if (sub && sub.previousElementSibling) sub.previousElementSibling.setAttribute('aria-expanded', 'true');
+      } else b.removeAttribute('aria-current');
+    });
+    setNav(false);
     $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
-    if (!fromHash) { try { history.replaceState(null, '', VIEW === 'points' ? '#points' : VIEW === 'ppoints' ? '#ppoints' : VIEW === 'activity' ? '#activity' : VIEW === 'pactivity' ? '#pactivity' : VIEW === 'pharm' ? '#pharm' : location.pathname + location.search); } catch (e) {} }
+    if (!fromHash) { try { history.replaceState(null, '', VIEW === 'home' ? location.pathname + location.search : '#' + VIEW); } catch (e) {} }
+    if (stat) {
+      if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
+      else $('#subtitle').textContent = '준비 중인 메뉴입니다';
+      return;
+    }
     if (isPts()) { if (!P.loaded) loadPoints(); else { setPointHeader(); renderPoints(); } }
     else if (VIEW === 'activity') { if (!A.data && !A.loading && started) loadActivity(false); else renderActivity(); }
     else if (VIEW === 'pactivity') { if (!PA.data && !PA.loading && started) loadPvActivity(false); else renderPvActivity(); }
     else { setSource(!!state.remote); if (state.snap) renderAll(); else { $('#subtitle').textContent = '데이터를 불러오는 중…'; if (started) startMembers(); } }
   }
-  document.querySelectorAll('.tabs button').forEach(function (b) { b.addEventListener('click', function () { setView(b.dataset.view); }); });
-  if (location.hash === '#points') setView('points', true);
-  else if (location.hash === '#ppoints') setView('ppoints', true);
-  else if (location.hash === '#pactivity') setView('pactivity', true);
-  else if (location.hash === '#activity') setView('activity', true);
-  else if (location.hash === '#pharm') setView('pharm', true);
+  document.querySelectorAll('#sideNav .nav-item').forEach(function (b) {
+    b.addEventListener('click', function (ev) { ev.preventDefault(); setView(b.dataset.view); });
+  });
+  document.querySelectorAll('#sideNav .nav-head').forEach(function (h) {
+    h.addEventListener('click', function () { h.setAttribute('aria-expanded', h.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'); });
+  });
+  $('#navBtn').addEventListener('click', function () { setNav(!document.body.classList.contains('nav-open')); });
+  $('#navScrim').addEventListener('click', function () { setNav(false); });
+  addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.body.classList.contains('nav-open')) { setNav(false); $('#navBtn').focus(); } });
+  $('#homeApp').addEventListener('click', function (ev) {
+    var a = ev.target.closest('a[data-go]'); if (!a) return;
+    ev.preventDefault(); setView(a.dataset.go); scrollTo(0, 0);
+  });
+
+  // ---- 홈: 메뉴별 핵심 지표 요약 ----------------------------------------
+  // 이미 불러온 탭 데이터가 있으면 그대로 쓰고, 없으면 저장본(또는 시트 집계)을 읽기만 함 (다른 탭 상태는 바꾸지 않음)
+  var HOME = { pts: {}, pvSnap: null, pvPrev: null, pvSrc: '', pvErr: '', aErr: '', aTried: false, paErr: '', busy: {} };
+  function loadHome() {
+    if (!KEY) return;
+    ['dv', 'pv'].forEach(function (svc) {
+      if (HOME.pts[svc] != null || HOME.busy['p' + svc] || (PSTATES[svc] && PSTATES[svc].data)) return;
+      HOME.busy['p' + svc] = 1;
+      getJson(PFILE[svc]).then(function (d) { HOME.pts[svc] = d; }, function () { HOME.pts[svc] = false; })
+        .then(function () { HOME.busy['p' + svc] = 0; renderHome(); });
+    });
+    if (!STATES.dv.snap && !STATES.dv.started && SVC === 'dv') startMembers();
+    var pst = STATES.pv;
+    if (!pst.snap && !HOME.pvSnap && !HOME.busy.pv && !HOME.pvErr) {
+      HOME.busy.pv = 1;
+      var viaSheet = (CONFIG.appsScriptUrl && PW)
+        ? fetch(CONFIG.appsScriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'get', password: PW, svc: 'pv' }) })
+            .then(function (r) { return r.json(); })
+            .then(function (res) { if (res.ok && res.snap && res.snap.svc === 'pv') { HOME.pvSnap = res.snap; HOME.pvPrev = res.prev || null; HOME.pvSrc = '구글시트'; return true; } return false; })
+            .catch(function () { return false; })
+        : Promise.resolve(false);
+      viaSheet.then(function (ok) {
+        if (ok) return;
+        return getJson('data/pv/index.enc.json').then(function (idx) {
+          var l = idx.snapshots;
+          return getJson('data/pv/snapshots/' + l[l.length - 1].week + '.enc.json').then(function (sn) { HOME.pvSnap = sn; HOME.pvSrc = '저장본'; });
+        });
+      }).catch(function () { HOME.pvErr = '팜빌 회원 집계가 아직 없습니다. 팜빌 회원 정보 메뉴에서 [갱신]을 눌러 주세요.'; })
+        .then(function () { HOME.busy.pv = 0; renderHome(); });
+    }
+    if (!A.data && !A.loading && !HOME.aTried) {
+      HOME.aTried = true;
+      if (CONFIG.appsScriptUrl && PW) {
+        HOME.busy.a = 1;
+        api('activity').then(function (res) { if (res.activity && !A.data) { A.data = res.activity; A.period = null; } else if (!res.activity) HOME.aErr = '활동성 메뉴에서 불러올 수 있습니다.'; })
+          .catch(function () { HOME.aErr = '활동성 메뉴에서 불러올 수 있습니다.'; })
+          .then(function () { HOME.busy.a = 0; renderHome(); });
+      } else HOME.aErr = '닥터빌 활동성 메뉴에서 불러올 수 있습니다.';
+    }
+    if (!PA.data && !PA.loading && !HOME.busy.pa && !HOME.paErr) {
+      HOME.busy.pa = 1;
+      fetchJson('data/pv_activity.enc.json?t=' + Date.now()).then(function (b) { return decryptBox(KEY, b); })
+        .then(function (d) { if (!d || !d.weekly) throw new Error('형식 오류'); if (!PA.data) { PA.data = d; PA.cache = null; PA.period = null; } })
+        .catch(function () { HOME.paErr = '팜빌 활동성 저장본을 불러오지 못했습니다.'; })
+        .then(function () { HOME.busy.pa = 0; renderHome(); });
+    }
+    renderHome();
+  }
+  function hStat(label, value, unit, meta) {
+    return '<div class="hs"><div class="hl">' + label + '</div><div class="hv">' + value + (unit ? '<small>' + unit + '</small>' : '') + '</div>' + (meta ? '<div class="hm">' + meta + '</div>' : '') + '</div>';
+  }
+  function hCard(view, svc, title, period, body) {
+    return '<a class="card hcard" href="#' + view + '" data-go="' + view + '"><div class="hh"><span class="svc svc-' + svc + '">' + SVC_NAME[svc] + '</span><b>' + title + '</b>' +
+      (period ? '<span class="hp">' + esc(period) + '</span>' : '') + '</div>' + body + '<div class="hgo">자세히 보기 →</div></a>';
+  }
+  function hMsg(t) { return '<div class="hmsg">' + esc(t) + '</div>'; }
+  function hPct(cur, prv, label) { return (cur != null && prv) ? deltaHtml((cur - prv) / prv * 100, '%', 1) + ' ' + label : ''; }
+  function homeMemberCard(svc, view) {
+    var st = STATES[svc], s = (st.weekCtx && st.weekCtx.snap) || st.snap, p = st.weekCtx ? st.weekCtx.prev : st.prev, src = st.remote ? '구글시트' : '저장본';
+    if (!s && svc === 'pv' && HOME.pvSnap) { s = HOME.pvSnap; p = HOME.pvPrev; src = HOME.pvSrc; }
+    if (!s || !s.kpi) {
+      var msg = svc === 'pv' ? (HOME.pvErr || (HOME.busy.pv ? '불러오는 중…' : '팜빌 회원 정보 메뉴에서 불러올 수 있습니다.')) : (st.started ? '불러오는 중…' : '닥터빌 회원 정보 메뉴에서 불러올 수 있습니다.');
+      return hCard(view, svc, '회원 정보', '', hMsg(msg));
+    }
+    var k = s.kpi, pk = p && p.kpi;
+    return hCard(view, svc, '회원 정보', s.week + ' (' + s.weekStart.slice(5) + '~' + s.weekEnd.slice(5) + ') · ' + src, '<div class="hbody">' +
+      hStat('전체 회원', fmt(k.total), '명', pk ? deltaHtml(k.total - pk.total, '명') + ' 직전 대비' : '') +
+      hStat('주간 신규 가입', fmt(k.newWeek), '명', hPct(k.newWeek, k.newPrevWeek, '전주 대비')) +
+      hStat('7일 내 로그인', fmt(k.active7Rate), '%', fmt(k.active7) + '명') + '</div>');
+  }
+  function homeActDv() {
+    if (!A.data) return hCard('activity', 'dv', '활동성', '', hMsg(HOME.busy.a || A.loading ? '불러오는 중…' : (HOME.aErr || A.err || '닥터빌 활동성 메뉴에서 불러올 수 있습니다.')));
+    var rows = aTable(A.data.weekly), tot = rows.filter(function (r) { return r.dev === '전체'; });
+    if (!tot.length) tot = rows.filter(function (r) { return r.dev == null || r.dev === ''; });
+    var ps = aPeriods(tot);
+    if (!ps.length) return hCard('activity', 'dv', '활동성', '', hMsg('시트에 주간 데이터가 없습니다.'));
+    var cur = aRow(tot, ps[ps.length - 1]), prv = ps.length > 1 ? aRow(tot, ps[ps.length - 2]) : null;
+    var t = weekMonday(isoWeekOf(Date.parse(ps[ps.length - 1] + 'T12:00:00+09:00')));
+    var lab = isoWeekOf(t) + ' (' + mmdd(t) + '~' + mmdd(t + 6 * DAY_MS) + ')';
+    var cmp = function (key) { return prv ? hPct(+cur[key], +prv[key], '전주 대비') : ''; };
+    return hCard('activity', 'dv', '활동성', lab, '<div class="hbody">' +
+      hStat('WAU', num(cur.wau), '명', cmp('wau')) + hStat('MAU', num(cur.mau), '명', cmp('mau')) + hStat('DAU (일 평균)', num(cur.dau), '명', cmp('dau')) + '</div>');
+  }
+  function homeActPv() {
+    if (!PA.data) return hCard('pactivity', 'pv', '활동성', '', hMsg(HOME.busy.pa || PA.loading ? '불러오는 중…' : (HOME.paErr || PA.err || '팜빌 활동성 메뉴에서 불러올 수 있습니다.')));
+    var rows = paRows(PA.data.weekly).filter(function (r) { return r['구분'] === '전체'; });
+    var i = rows.length - 1; while (i > 0 && rows[i]['상태'] === '진행중') i--;
+    if (i < 0) return hCard('pactivity', 'pv', '활동성', '', hMsg('시트에 주간 데이터가 없습니다.'));
+    var cur = rows[i], prv = i > 0 ? rows[i - 1] : null;
+    var cmp = function (key) { return prv ? hPct(paN(cur[key]), paN(prv[key]), '전주 대비') : ''; };
+    return hCard('pactivity', 'pv', '활동성', cur['주차'] + (cur['기간'] ? ' (' + cur['기간'] + ')' : ''), '<div class="hbody">' +
+      hStat('WAU', num(paN(cur['WAU'])), '명', cmp('WAU')) + hStat('MAU', num(paN(cur['MAU'])), '명', cmp('MAU')) + hStat('방문수', num(paN(cur['방문수'])), '회', cmp('방문수')) + '</div>');
+  }
+  function homePoints(svc) {
+    var view = svc === 'pv' ? 'ppoints' : 'points';
+    var d = (PSTATES[svc] && PSTATES[svc].data) || HOME.pts[svc];
+    if (!d) return hCard(view, svc, '포인트', '', hMsg(HOME.busy['p' + svc] ? '불러오는 중…' : '아직 게시된 포인트 집계가 없습니다.'));
+    var i = d.months.length - 1, m = d.months[i];
+    var bal = (d.balanceTotal || d.balance || [])[i];
+    var partial = d.range && d.range.to && d.range.to.slice(0, 7) === m ? ' (~' + d.range.to.slice(5).replace('-', '/') + ')' : '';
+    var prevM = function (arr) { return i > 0 && arr ? '전월 ' + bigP(arr[i - 1]) + 'P' : ''; };
+    return hCard(view, svc, '포인트', m.replace('-', '년 ') + '월' + partial + ' · 집계 ' + (d.generatedAtKst || ''), '<div class="hbody">' +
+      hStat('이번 달 적립', bigP(d.earn.amt[i]), 'P', prevM(d.earn.amt)) +
+      hStat('이번 달 사용', bigP(d.use.amt[i]), 'P', prevM(d.use.amt)) +
+      hStat('잔여 포인트', bal != null ? bigP(bal) : '–', 'P', d.holders ? '보유 ' + fmt(d.holders.over0) + '명' : '') + '</div>');
+  }
+  function renderHome() {
+    if (VIEW !== 'home') return;
+    $('#subtitle').textContent = '메뉴별 핵심 지표 요약';
+    if (!KEY) { $('#homeSales').innerHTML = ''; $('#homeMembers').innerHTML = ''; return; }
+    $('#homeSales').innerHTML = homePoints('dv') + homePoints('pv');
+    $('#homeMembers').innerHTML = homeMemberCard('dv', 'members') + homeActDv() + homeMemberCard('pv', 'pharm') + homeActPv();
+  }
+
+  function viewFromHash() { var h = (location.hash || '').slice(1); return VIEWS.indexOf(h) >= 0 ? h : 'home'; }
+  addEventListener('hashchange', function () { var v = viewFromHash(); if (v !== VIEW) setView(v, true); });
+  setView(viewFromHash(), true);
 
   function setPointHeader(label) {
     if (!isPts()) return;
@@ -2311,7 +2562,7 @@ body.locked #gate { display: flex; }
 
   // ---- 렌더링 ------------------------------------------------------------
   function renderPoints() {
-    if (!isPts()) return;
+    if (!isPts()) { if (VIEW === 'home') renderHome(); return; }
     var has = !!P.data;
     $('#pEmpty').hidden = has;
     document.querySelectorAll('#pointApp .pdata, #pKpis').forEach(function (e) { e.style.display = has ? '' : 'none'; });
