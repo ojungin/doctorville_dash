@@ -151,6 +151,41 @@ grant select on public.profiles to authenticated;
 grant select, insert, update, delete on public.datasets, public.conferences, public.app_secrets to authenticated;
 
 -- =====================================================================
+-- 4-1) 현황 > 세미나: 대시보드에서 직접 등록·수정하는 세미나 (편성표 시트와 병합 표시)
+--   kind new    : 대시보드에서 새로 등록 (DB에만 저장)
+--   kind edit   : 편성표(시트) 건을 대시보드에서 수정 → 시트 [갱신] 후에도 수정값 유지
+--   kind hidden : 편성표 건을 대시보드에서 숨김(삭제) → 일별 상세에서 복원 가능
+--   sheet_key   : 시트 건 식별값 (CID, 없으면 날짜|시간|행사명), sheet_month: 원래 시트 건의 월
+-- 내부 담당자(최고 관리자·관리자·닥터빌 담당자)만 읽기·쓰기
+-- =====================================================================
+create table if not exists public.seminar_entries (
+  id          uuid primary key default gen_random_uuid(),
+  kind        text not null default 'new' check (kind in ('new', 'edit', 'hidden')),
+  sheet_key   text unique,
+  sheet_month text check (sheet_month is null or sheet_month ~ '^\d{4}-\d{2}$'),
+  date        date not null,
+  time        text not null default '',
+  fields      jsonb not null default '{}'::jsonb,
+  created_by  text,
+  created_at  timestamptz not null default now(),
+  updated_by  text,
+  updated_at  timestamptz not null default now(),
+  check (kind = 'new' or sheet_key is not null)
+);
+create index if not exists seminar_entries_date_idx on public.seminar_entries (date);
+create index if not exists seminar_entries_sheet_month_idx on public.seminar_entries (sheet_month);
+
+drop trigger if exists seminar_entries_touch on public.seminar_entries;
+create trigger seminar_entries_touch before update on public.seminar_entries for each row execute function public.touch_conf();
+
+alter table public.seminar_entries enable row level security;
+drop policy if exists seminar_entries_all on public.seminar_entries;
+create policy seminar_entries_all on public.seminar_entries for all to authenticated
+  using (public.is_internal()) with check (public.is_internal());
+revoke all on public.seminar_entries from anon;
+grant select, insert, update, delete on public.seminar_entries to authenticated;
+
+-- =====================================================================
 -- 5) 최초 최고 관리자 등록 (한 번만)
 --    ① Authentication → Users → [Add user] → Create new user
 --       이메일 ojungin@mcircle.biz · 비밀번호 입력 · Auto Confirm User 체크
