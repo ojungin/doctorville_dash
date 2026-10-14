@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>닥터빌 · 팜빌 운영 대시보드</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
 :root {
   color-scheme: light;
@@ -244,7 +245,13 @@ body.pdf-mode { padding-left: 0; }
 #homeMain, #reportMain, #llmMain { display: none; }
 body.view-home #homeMain, body.view-report #reportMain, body.view-llm #llmMain { display: block; }
 body.view-static #memberMain, body.view-static #pointMain, body.view-static #actMain, body.view-static #pactMain,
-body.view-static .member-only, body.view-static #refreshBtn, body.view-static #pdfBtn, body.view-static #srcLabel { display: none !important; }
+body.view-static .member-only, body.view-static #refreshBtn, body.view-static #pdfBtn, body.view-static #srcLabel, body.view-static #dbBadge { display: none !important; }
+.db-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 18px; border: 1px solid var(--line, #E1E1E1); font-size: 11.5px; white-space: nowrap; }
+.db-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #9aa5b1; }
+.db-badge.new::before { background: #2F80FF; }
+.db-badge.err { color: #d93025; border-color: #f3b4ae; cursor: help; }
+.db-badge.err::before { background: #d93025; }
+.db-badge[hidden] { display: none; }
 .home-grp { margin: 22px 0 10px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
 .home-grp:first-of-type { margin-top: 4px; }
 .home-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -595,7 +602,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       <label class="remember"><input id="remember" type="checkbox"> 이 탭을 닫을 때까지 로그인 유지</label>
       <div class="gate-msg" id="gateMsg" role="alert"></div>
       <button type="submit" id="gateBtn">로그인</button>
-      <p class="gate-note">계정은 최고 관리자에게 요청해 주세요. 데이터는 암호화되어 있으며 계정 권한에 맞는 데이터만 열립니다.</p>
+      <p class="gate-note">계정은 최고 관리자에게 요청해 주세요. 데이터는 DB에 저장되며 계정 권한에 맞는 데이터만 열립니다.</p>
     </form>
   </div>
 </div>
@@ -653,6 +660,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       <label for="weekSel" class="member-only" id="periodLbl">기준 주차</label>
       <select id="weekSel" class="member-only" aria-label="기준 기간 선택"></select>
       <span class="src" id="srcLabel"></span>
+      <span class="src db-badge" id="dbBadge" hidden></span>
       <button class="btn primary" id="refreshBtn" type="button" title="구글시트의 최신 값을 불러와 다시 집계합니다">갱신</button>
       <button class="btn" id="pdfBtn" type="button" title="현재 화면을 PDF 파일로 내려받습니다">PDF</button>
       <button class="btn" id="themeBtn" type="button" aria-label="화면 테마 전환">테마</button>
@@ -775,7 +783,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       <div class="sec-head"><div><h2>계정 관리</h2><p>권한: 최고 관리자(계정 등록·관리) · 관리자(계정 확인) · 닥터빌 담당자(계정 메뉴 외 전체) · 협력사 담당자(매출 &gt; 세미나·광고만)</p></div></div>
       <div id="accMe"></div>
       <div class="card"><div id="accList"></div></div>
-      <p class="anote">계정 정보는 저장소 docs/data/accounts.json에 비밀번호로 암호화되어 저장됩니다. 아이디는 해시로만 남고, 계정 목록은 관리자 권한으로만 열립니다.</p>
+      <p class="anote">로그인은 Supabase 인증(이메일·비밀번호)을 사용하고, 권한·이름·소속은 DB(profiles)에 저장됩니다. 비밀번호는 Supabase에 해시로만 저장되며 계정 목록은 관리자 권한으로만 열립니다.</p>
     </section>
   </div>
 </main>
@@ -809,7 +817,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
         <div class="pfilter"><label for="semDim">구분</label><select id="semDim" aria-label="세미나 집계 구분"></select></div></div>
       <div class="card"><div id="semDimTbl"></div></div>
     </section>
-    <footer>편성표 원본(행사명·강사·담당자 등)은 저장하지 않고 월별 건수만 암호화해 게시합니다. 회사(제약사)별 건수는 사전 승인을 받아 포함했으며, 외부 공유 전 사전 승인이 필요합니다.</footer>
+    <footer>편성표 원본(행사명·강사·담당자 등)은 저장하지 않고 월별 건수만 DB와 암호화 파일로 보관합니다. 회사(제약사)별 건수는 사전 승인을 받아 포함했으며, 외부 공유 전 사전 승인이 필요합니다.</footer>
   </div>
 </main>
 
@@ -1156,22 +1164,21 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <label class="fl f-id">아이디 (이메일)<input id="accFId" type="text" inputmode="email" autocapitalize="off" spellcheck="false"></label>
     <div class="xr f-info"><label>이름<input id="accFName" type="text"></label><label>소속<input id="accFOrg" type="text" placeholder="예: 콘텐츠운영팀, ○○제약"></label></div>
     <label class="fl f-info">권한<select id="accFRole"><option value="super">최고 관리자 — 계정 등록·관리, 모든 기능</option><option value="admin">관리자 — 계정 확인, 모든 기능</option><option value="dv">닥터빌 담당자 — 계정 메뉴 외 모든 기능</option><option value="partner">협력사 담당자 — 매출 &gt; 세미나·광고만</option></select></label>
-    <div class="xr"><label>비밀번호<input id="accFPw" type="password" autocomplete="new-password"></label><label>비밀번호 확인<input id="accFPw2" type="password" autocomplete="new-password"></label></div>
-    <p>8자 이상, 영문과 숫자를 함께 넣어 주세요.</p>
+    <div class="xr f-pw"><label>비밀번호<input id="accFPw" type="password" autocomplete="new-password"></label><label>비밀번호 확인<input id="accFPw2" type="password" autocomplete="new-password"></label></div>
+    <p class="f-pw">8자 이상, 영문과 숫자를 함께 넣어 주세요.</p>
     <div class="err" id="accErr"></div>
     <div class="row"><button type="button" id="accCancel">취소</button><button type="submit" class="ok" id="accOk">저장</button></div>
   </form>
 </div>
 <div class="modal-bg" id="ghModal">
   <form class="modal wide" id="ghForm" autocomplete="off">
-    <h3>GitHub 연동 설정</h3>
-    <p>계정 변경을 저장소(docs/data/accounts.json)에 바로 저장하려면 GitHub 토큰이 필요합니다. 토큰은 내 계정 정보 안에 내 비밀번호로 암호화되어 저장됩니다.</p>
+    <h3>보안 키 설정</h3>
+    <p>구글시트(Apps Script)·포인트 갱신 서버 연동 비밀번호이자 저장소 암호화 파일의 키인 <b>시스템 비밀번호</b>를 한 번 등록합니다. 저장소 파일로 맞는지 확인한 뒤 DB(app_secrets)에 저장하며, 내부 담당자 계정에만 열립니다.</p>
     <ul class="steps">
-      <li>GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token</li>
-      <li>Repository access: Only select repositories → ojungin/doctorville_dash</li>
-      <li>Permissions: Contents → Read and write · 만료일은 짧게(예: 90일)</li>
+      <li>기존 대시보드의 구글시트 연동 비밀번호(시트 메뉴 [대시보드 → 비밀번호 설정] 값)와 같습니다</li>
+      <li>협력사 계정에는 세미나 요약 파일 키만 열립니다</li>
     </ul>
-    <input id="ghTok" type="password" placeholder="github_pat_…" autocomplete="off">
+    <input id="ghTok" type="password" placeholder="시스템 비밀번호" autocomplete="off">
     <div class="err" id="ghErr"></div>
     <div class="row"><button type="button" id="ghCancel">취소</button><button type="submit" class="ok" id="ghOk">저장</button></div>
   </form>
@@ -1265,7 +1272,6 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     return subtle.decrypt({ name: 'AES-GCM', iv: unb64(box.iv) }, key, unb64(box.ct))
       .then(function (pt) { return JSON.parse(new TextDecoder().decode(pt)); });
   }
-  function getJson(u) { return fetchJson(u).then(function (box) { return decryptBox(KEY, box); }); }
   function deriveKey(pw) {
     return subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']).then(function (base) {
       return subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: unb64(META.salt), iterations: META.iter }, base,
@@ -1273,16 +1279,14 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     });
   }
   function useKey(key) { return decryptBox(key, META.check).then(function () { KEY = key; return key; }); }
-  // ---- 계정 (ID/PW · 권한) -------------------------------------------------
-  // docs/data/accounts.json (공개 저장소, 내용은 암호화)
-  //   {v, iter, idSalt, partKey:{iv,ct}(시스템 키로 감싼 협력사용 키), users:{sha256(idSalt:아이디): {salt,iv,ct}}, dir:{iv,ct}(계정 목록 · 관리자 키), rev, updatedAt}
-  //   users 값 = 사용자 비밀번호(PBKDF2)로 암호화한 묶음 {id, name, role, k:{main?, part, acct?}, sys?, gh?}
-  //   main: 기존 저장본 전체 키 · part: 협력사 공개용(세미나 요약) 키 · acct: 계정 목록 키 · sys: 구글시트·포인트 서버 연동 비밀번호 · gh: GitHub 토큰(최고 관리자)
+  // ---- 계정 (Supabase Auth · 권한) ------------------------------------------
+  // 로그인: Supabase Auth(이메일·비밀번호). 권한·이름·소속: public.profiles
+  // 연동 비밀값(구글시트·포인트 서버 비밀번호, 저장소 암호화 파일 키): public.app_secrets (권한별 RLS)
+  // 데이터: public.datasets 에 저장 → 이후 화면은 DB 저장본을 읽음 ([갱신]을 누르면 원본을 다시 읽어 DB에 저장)
   // 권한: super 최고 관리자(계정 등록·관리) / admin 관리자(계정 확인) / dv 닥터빌 담당자 / partner 협력사 담당자(세미나·광고만)
   var ROLES = { super: '최고 관리자', admin: '관리자', dv: '닥터빌 담당자', partner: '협력사 담당자' };
   var ROLE_ORDER = ['super', 'admin', 'dv', 'partner'];
-  var ACC = null, BUNDLE = null, USER = null, ROLE = null, PKEY = null, AKEY = null, WRAP = null, SSU = 'mv-user';
-  var GH_REPO = 'ojungin/doctorville_dash', GH_PATH = 'docs/data/accounts.json';
+  var USER = null, ROLE = null, PKEY = null, INTERNAL = false, AUTHED = false, SB = null, SREM = 'mv-remember';
   var PARTNER_VIEWS = { home: 1, seminar: 1, ads: 1 };
   function canView(v) {
     if (!ROLE) return true;
@@ -1290,67 +1294,96 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (ROLE === 'partner') return !!PARTNER_VIEWS[v];
     return true;
   }
-  function hexOf(buf) { return Array.from(new Uint8Array(buf)).map(function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
   function normId(id) { return String(id || '').trim().toLowerCase(); }
-  function idHash(id, acc) { return subtle.digest('SHA-256', new TextEncoder().encode((acc || ACC).idSalt + ':' + normId(id))).then(hexOf); }
-  function pwKey(pw, salt, iter) {
-    return subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']).then(function (b) {
-      return subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: unb64(salt), iterations: iter || ACC.iter }, b, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  function rawKey(raw, uses) { return subtle.importKey('raw', unb64(raw), { name: 'AES-GCM' }, false, uses || ['decrypt']); }
+  // 로그인 유지: 체크하면 이 탭(sessionStorage)에, 아니면 메모리에만 세션 보관 (새로고침하면 다시 로그인)
+  var memStore = {};
+  function remembered() { try { return sessionStorage.getItem(SREM) === '1'; } catch (e) { return false; } }
+  var authStorage = {
+    getItem: function (k) { try { var v = sessionStorage.getItem(k); if (v != null) return v; } catch (e) {} return k in memStore ? memStore[k] : null; },
+    setItem: function (k, v) { memStore[k] = v; if (remembered()) try { sessionStorage.setItem(k, v); } catch (e) {} },
+    removeItem: function (k) { delete memStore[k]; try { sessionStorage.removeItem(k); } catch (e) {} }
+  };
+  function initSupabase() {
+    if (!CONFIG.supabaseUrl || !CONFIG.supabaseAnonKey) throw new Error('nosb');
+    if (!window.supabase || !window.supabase.createClient) throw new Error('nolib');
+    SB = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, {
+      auth: { storage: authStorage, storageKey: 'mv-auth', persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+    });
+    SB.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT' && AUTHED) location.reload(); });
+    return SB;
+  }
+  // 로그인 후: 프로필(권한) → 권한별 비밀값 → 화면 열기
+  function applySession(user) {
+    return SB.from('profiles').select('id,email,name,org,role,active').eq('id', user.id).maybeSingle().then(function (r) {
+      if (r.error) throw r.error;
+      var p = r.data;
+      if (!p || !p.active || !ROLES[p.role]) { var e = new Error('noprofile'); e.code = 'noprofile'; throw e; }
+      USER = { uid: p.id, id: p.email, name: p.name || p.email, org: p.org, role: p.role }; ROLE = p.role;
+      INTERNAL = ROLE !== 'partner'; AUTHED = true; DB.on = true;
+      return loadSecrets();
     });
   }
-  function encJson(key, obj) {
-    var iv = window.crypto.getRandomValues(new Uint8Array(12));
-    return subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(JSON.stringify(obj))).then(function (ct) { return { iv: b64(iv), ct: b64(ct) }; });
-  }
-  function rawKey(raw) { return subtle.importKey('raw', unb64(raw), { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']); }
-  function randB64(n) { return b64(window.crypto.getRandomValues(new Uint8Array(n))); }
-  function loadAccounts() { return fetchJson('data/accounts.json?t=' + Date.now()).then(function (a) { ACC = a; return a; }); }
-  function applyBundle(b) {
-    BUNDLE = b; USER = { id: b.id, name: b.name, role: b.role }; ROLE = ROLES[b.role] ? b.role : 'partner';
-    PW = b.sys || null; KEY = null; PKEY = null; AKEY = null;
-    return Promise.all([
-      b.k.part ? rawKey(b.k.part).then(function (k) { PKEY = k; }) : null,
-      b.k.acct ? rawKey(b.k.acct).then(function (k) { AKEY = k; }) : null,
-      b.k.main ? subtle.importKey('raw', unb64(b.k.main), { name: 'AES-GCM' }, false, ['decrypt']).then(useKey) : null
-    ]);
+  var SECRETS = {};
+  function loadSecrets() {
+    PW = null; KEY = null; PKEY = null; SECRETS = {};
+    return SB.from('app_secrets').select('key,value').then(function (r) {
+      if (r.error) throw r.error;
+      (r.data || []).forEach(function (x) { SECRETS[x.key] = x.value; });
+      if (INTERNAL && SECRETS.sys_password) PW = SECRETS.sys_password;
+      return Promise.all([
+        INTERNAL && SECRETS.main_key ? rawKey(SECRETS.main_key).then(useKey).catch(function () { KEY = null; }) : null,
+        SECRETS.part_key ? rawKey(SECRETS.part_key).then(function (k) { PKEY = k; }).catch(function () {}) : null
+      ]);
+    });
   }
   function unlock() {
     document.body.classList.remove('locked'); $('#pw').value = '';
     applyRoleChrome();
     if (!canView(VIEW)) setView('home'); else if (STATIC_VIEWS[VIEW]) setView(VIEW, true);
     start();
+    if (INTERNAL && !SECRETS.sys_password) toast(ROLE === 'super' ? '구글시트·저장본 연동을 위해 [계정 관리 → 보안 키 설정]을 먼저 해 주세요. 지금은 DB에 저장된 데이터만 표시합니다.' : '연동 보안 키가 아직 설정되지 않았습니다. 최고 관리자에게 [보안 키 설정]을 요청해 주세요. 지금은 DB에 저장된 데이터만 표시합니다.', true, 12000);
   }
   function lock(msg) {
-    KEY = null; PKEY = null; AKEY = null; BUNDLE = null; ROLE = null;
-    try { sessionStorage.removeItem(SSU); sessionStorage.removeItem(SS); sessionStorage.removeItem(SSP); } catch (e) {}
+    KEY = null; PKEY = null; PW = null; ROLE = null; USER = null; AUTHED = false; INTERNAL = false; DB.on = false;
     document.body.classList.add('locked'); $('#gateMsg').textContent = msg || ''; $('#uid').focus();
+  }
+  function authErrText(e) {
+    var m = String(e && (e.message || e) || '');
+    if (e && e.code === 'noprofile') return '계정 권한이 등록되지 않았거나 사용 중지된 계정입니다. 최고 관리자에게 문의해 주세요.';
+    if (/Invalid login credentials/i.test(m)) return '아이디 또는 비밀번호가 올바르지 않습니다.';
+    if (/Email not confirmed/i.test(m)) return '이메일 인증이 완료되지 않은 계정입니다. 최고 관리자에게 문의해 주세요.';
+    if (/rate limit|too many/i.test(m)) return '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.';
+    if (/Failed to fetch|NetworkError/i.test(m)) return 'DB 서버에 연결하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.';
+    return '로그인하지 못했습니다: ' + m;
   }
   $('#gateForm').addEventListener('submit', function (ev) {
     ev.preventDefault();
-    var btn = $('#gateBtn'), id = $('#uid').value, pw = $('#pw').value, entry;
-    if (!META) { $('#gateMsg').textContent = '데이터 정보를 불러오지 못했습니다. 새로고침 해주세요.'; return; }
+    var btn = $('#gateBtn'), id = normId($('#uid').value), pw = $('#pw').value;
+    if (!SB) { $('#gateMsg').textContent = !CONFIG.supabaseUrl ? 'DB(Supabase) 연결 정보가 설정되지 않았습니다. docs/data/config.json 의 supabaseUrl·supabaseAnonKey 를 확인해 주세요.' : 'DB 연결 라이브러리를 불러오지 못했습니다. 새로고침 해주세요.'; return; }
     btn.disabled = true; btn.textContent = '확인 중…'; $('#gateMsg').textContent = '';
-    loadAccounts().catch(function () { var e = new Error('acc'); e.code = 'acc'; throw e; })
-      .then(function () { return idHash(id); })
-      .then(function (h) { entry = ACC.users[h]; if (!entry) throw new Error('nouser'); return pwKey(pw, entry.salt); })
-      .then(function (wk) { WRAP = wk; return subtle.decrypt({ name: 'AES-GCM', iv: unb64(entry.iv) }, wk, unb64(entry.ct)); })
-      .then(function (pt) { return applyBundle(JSON.parse(new TextDecoder().decode(pt))); })
-      .then(function () {
-        if ($('#remember').checked) { try { sessionStorage.setItem(SSU, JSON.stringify(BUNDLE)); } catch (e) {} }
-        unlock();
-      }).catch(function (e) {
-        WRAP = null;
-        $('#gateMsg').textContent = e && e.code === 'acc' ? '계정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' : '아이디 또는 비밀번호가 올바르지 않습니다.';
-        $('#pw').select();
-      }).then(function () { btn.disabled = false; btn.textContent = '로그인'; });
+    try { if ($('#remember').checked) sessionStorage.setItem(SREM, '1'); else sessionStorage.removeItem(SREM); } catch (e) {}
+    SB.auth.signInWithPassword({ email: id, password: pw }).then(function (r) {
+      if (r.error) throw r.error;
+      return applySession(r.data.user);
+    }).then(unlock).catch(function (e) {
+      if (e && e.code === 'noprofile') SB.auth.signOut();
+      lock(authErrText(e)); $('#pw').select();
+    }).then(function () { btn.disabled = false; btn.textContent = '로그인'; });
   });
-  $('#logoutBtn').addEventListener('click', function () { try { sessionStorage.removeItem(SSU); sessionStorage.removeItem(SS); sessionStorage.removeItem(SSP); } catch (e) {} location.reload(); });
+  $('#logoutBtn').addEventListener('click', function () {
+    AUTHED = false;
+    var done = function () { try { sessionStorage.removeItem(SREM); } catch (e) {} location.reload(); };
+    (SB ? SB.auth.signOut().catch(function () {}) : Promise.resolve()).then(done, done);
+  });
   function restoreSession() {
-    var b = null; try { b = JSON.parse(sessionStorage.getItem(SSU) || 'null'); } catch (e) {}
-    if (!b || !b.k) return Promise.resolve();
-    return applyBundle(b).then(unlock).catch(function () { lock(); });
+    if (!SB) return Promise.resolve();
+    return SB.auth.getSession().then(function (r) {
+      var s = r.data && r.data.session; if (!s) return;
+      return applySession(s.user).then(unlock);
+    }).catch(function () { lock(); });
   }
-  // 메뉴: 권한에 없는 항목 숨김 (데이터는 권한별 키로 따로 암호화되어 있어 숨김과 별개로 열리지 않음)
+  // 메뉴: 권한에 없는 항목 숨김 (데이터는 DB 행 수준 보안(RLS)으로 권한별로 따로 막혀 있음)
   function applyRoleChrome() {
     document.querySelectorAll('#sideNav .nav-item').forEach(function (a) { a.hidden = !canView(a.dataset.view); });
     document.querySelectorAll('#sideNav .nav-sub').forEach(function (sub) {
@@ -1367,24 +1400,103 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     document.body.classList.toggle('role-partner', ROLE === 'partner');
   }
 
-  // ---- 계정 관리 화면 ------------------------------------------------------
+  // ---- DB 저장소 (Supabase public.datasets) --------------------------------
+  // 처음 열 때: DB에 저장본이 있으면 그것을 표시, 없으면 원본(구글시트·저장소 파일)을 읽어 DB에 저장
+  // [갱신]: 원본을 다시 읽어 DB 저장본을 덮어씀 (다른 담당자도 같은 저장본을 봄)
+  var DB = { on: false, meta: {}, view: {}, err: '' };
+  function dbGet(key) {
+    return SB.from('datasets').select('data,fetched_at').eq('key', key).maybeSingle().then(function (r) { if (r.error) throw r.error; return r.data; });
+  }
+  function dbPut(key, data, scope, source) {
+    if (!INTERNAL) return Promise.resolve(false);
+    var at = new Date().toISOString();
+    return SB.from('datasets').upsert({ key: key, scope: scope || 'internal', data: data, source: source || null, fetched_at: at }).then(function (r) {
+      if (r.error) throw r.error;
+      DB.err = ''; return true;
+    }).catch(function (e) { DB.err = 'DB 저장 실패: ' + (e.message || e); console.warn(DB.err, key); dbBadge(); return false; });
+  }
+  function dbPurge(prefix) {
+    if (!INTERNAL) return Promise.resolve();
+    return SB.from('datasets').delete().like('key', prefix.replace(/[%_\\]/g, '\\$&') + '%').then(function (r) { if (r.error) console.warn('DB 정리 실패', r.error.message); });
+  }
+  // 저장본 키 → 화면 (상단 DB 배지 표시용)
+  function viewOfKey(key) {
+    if (/^api\|get\|pv|^file\|data\/pv\//.test(key)) return 'pharm';
+    if (/^api\|get\|dv|^file\|data\/(index|snapshots)/.test(key)) return 'members';
+    if (/^api\|activity/.test(key)) return 'activity';
+    if (/^api\|sales/.test(key)) return 'sales';
+    if (/^api\|schedule/.test(key)) return 'sched';
+    if (/seminar/.test(key)) return 'seminar';
+    if (/pv_points/.test(key)) return 'ppoints';
+    if (/points/.test(key)) return 'points';
+    if (/pv_activity/.test(key)) return 'pactivity';
+    if (key === 'conferences') return 'conf';
+    return '';
+  }
+  function dbNote(key, at, from) {
+    var m = { at: at, from: from }, view = viewOfKey(key); DB.meta[key] = m;
+    if (view) DB.view[view] = m;
+    if (view === VIEW) dbBadge();
+  }
+  // opt: fresh(원본 강제) · ttl(ms, 지나면 원본 재확인) · scope · source · valid(data→bool, 저장 여부)
+  function dbCached(key, fetcher, opt) {
+    opt = opt || {};
+    if (!DB.on) return fetcher();
+    var viaSource = function () {
+      return fetcher().then(function (data) {
+        if (!opt.valid || opt.valid(data)) { dbPut(key, data, opt.scope, opt.source); dbNote(key, new Date().toISOString(), 'source'); }
+        return data;
+      });
+    };
+    if (opt.fresh) return viaSource();
+    return dbGet(key).then(function (row) {
+      var hit = row && row.data != null && (!opt.valid || opt.valid(row.data));
+      if (hit && !(opt.ttl && Date.now() - Date.parse(row.fetched_at) > opt.ttl)) { dbNote(key, row.fetched_at, 'db'); return row.data; }
+      return viaSource().catch(function (e) { if (hit) { dbNote(key, row.fetched_at, 'db'); return row.data; } throw e; });
+    }, function (e) { DB.err = 'DB 읽기 실패: ' + (e.message || e); console.warn(DB.err, key); dbBadge(); return viaSource(); });
+  }
+  function dbBadge() {
+    var b = $('#dbBadge'); if (!b) return;
+    if (!DB.on) { b.hidden = true; return; }
+    var m = DB.view[VIEW], t = m ? new Date(m.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+    b.hidden = false;
+    b.className = 'src db-badge' + (DB.err ? ' err' : m && m.from === 'source' ? ' new' : '');
+    b.textContent = DB.err ? 'DB 오류 ⓘ' : m ? (m.from === 'db' ? 'DB 저장본 · ' + t : 'DB 저장 · ' + t) : 'DB 연결됨';
+    b.title = DB.err || (m ? (m.from === 'db' ? 'DB에 저장된 데이터를 표시 중입니다 (' + t + ' 저장). [갱신]을 누르면 원본을 다시 읽어 저장합니다.' : '원본에서 방금 읽어 DB에 저장했습니다.') : 'Supabase DB에 연결되었습니다.');
+  }
+  // 저장소 암호화 파일(docs/data/*.enc.json) → 복호화 → DB 저장본
+  var PUB_SEM = 'data/seminar_pub.enc.json';
+  function loadEnc(path, opt) {
+    opt = opt || {};
+    var pub = path === PUB_SEM, k = pub ? PKEY : KEY;
+    var src = function () {
+      if (!k) return Promise.reject(new Error('보안 키가 없어 저장소 파일을 열 수 없습니다 (최고 관리자: 계정 관리 → 보안 키 설정).'));
+      return fetchJson(path + '?t=' + Date.now()).then(function (box) { return decryptBox(k, box); });
+    };
+    return dbCached('file|' + path, src, { fresh: opt.fresh, ttl: opt.ttl, scope: pub ? 'partner' : 'internal', source: 'repo:' + path, valid: opt.valid });
+  }
+  function getJson(u) { return loadEnc(u, { ttl: /index\.enc\.json$/.test(u) ? 12 * 3600000 : 0 }); }
+
+  // ---- 계정 관리 화면 (profiles + Edge Function admin-users) -----------------
   var ACCV = { dir: null, err: '', loading: false };
-  function decDir(acc) { return subtle.decrypt({ name: 'AES-GCM', iv: unb64(acc.dir.iv) }, AKEY, unb64(acc.dir.ct)).then(function (pt) { return JSON.parse(new TextDecoder().decode(pt)); }); }
   function loadDir() {
-    if (!AKEY) return Promise.resolve();
+    if (!(ROLE === 'super' || ROLE === 'admin')) return Promise.resolve();
     ACCV.loading = true; renderAccounts();
-    return loadAccounts().then(decDir).then(function (d) { ACCV.dir = d; ACCV.err = ''; })
-      .catch(function (e) { ACCV.err = '계정 목록을 불러오지 못했습니다: ' + (e.message || e); })
+    return SB.from('profiles').select('id,email,name,org,role,active,created_at,updated_at').then(function (r) {
+      if (r.error) throw r.error;
+      ACCV.dir = (r.data || []).map(function (p) { return { uid: p.id, id: p.email, name: p.name, org: p.org, role: p.role, active: p.active, createdAt: p.created_at, updatedAt: p.updated_at }; });
+      ACCV.err = '';
+    }).catch(function (e) { ACCV.err = '계정 목록을 불러오지 못했습니다: ' + (e.message || e); })
       .then(function () { ACCV.loading = false; renderAccounts(); });
   }
   function fmtDate(s) { return s ? new Date(s).toLocaleDateString('ko-KR') : '–'; }
   function renderAccounts() {
     if (VIEW !== 'accounts') return;
     $('#subtitle').textContent = '로그인 계정 ' + (ROLE === 'super' ? '등록·관리' : '확인');
-    var sup = ROLE === 'super';
+    var sup = ROLE === 'super', keyOk = !!SECRETS.sys_password;
     $('#accMe').innerHTML = USER ? '<div class="card acc-me"><div><div class="hl">내 계정</div><b>' + esc(USER.name) + '</b> · ' + esc(USER.id) + ' <span class="role role-' + ROLE + '">' + ROLES[ROLE] + '</span></div>' +
-      (sup ? '<div class="acc-act"><button type="button" class="btn" id="accMyPw">내 비밀번호 변경</button><button type="button" class="btn" id="accGh">GitHub 연동 ' + (BUNDLE && BUNDLE.gh ? '변경' : '설정') + '</button><button type="button" class="btn accent" id="accAdd">계정 등록</button></div>' : '') + '</div>' +
-      (sup && !(BUNDLE && BUNDLE.gh) ? '<p class="anote warn">계정 등록·수정·삭제를 저장하려면 먼저 [GitHub 연동 설정]에서 이 저장소에 쓰기 권한이 있는 토큰을 등록해 주세요.</p>' : '') : '';
+      '<div class="acc-act"><button type="button" class="btn" id="accMyPw">내 비밀번호 변경</button>' + (sup ? '<button type="button" class="btn" id="accKey">보안 키 ' + (keyOk ? '재설정' : '설정') + '</button><button type="button" class="btn accent" id="accAdd">계정 등록</button>' : '') + '</div></div>' +
+      (sup && !keyOk ? '<p class="anote warn">구글시트(Apps Script)·포인트 서버·저장소 파일을 읽으려면 [보안 키 설정]에서 시스템 비밀번호를 한 번 등록해 주세요. 등록 전에는 DB에 저장된 데이터만 볼 수 있습니다.</p>' : '') : '';
     var d = ACCV.dir;
     if (!d) { $('#accList').innerHTML = '<div class="empty">' + esc(ACCV.err || (ACCV.loading ? '불러오는 중…' : '계정 목록이 없습니다.')) + '</div>'; }
     else {
@@ -1393,57 +1505,55 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       $('#accList').innerHTML = '<p class="acc-sum">' + ROLE_ORDER.map(function (r) { return ROLES[r] + ' <b>' + (cnt[r] || 0) + '</b>명'; }).join(' · ') + '</p>' +
         '<div class="yoy-wrap"><table class="acctbl"><thead><tr><th>아이디</th><th>이름</th><th>소속</th><th>권한</th><th>등록일</th><th>최근 변경</th>' + (sup ? '<th></th>' : '') + '</tr></thead><tbody>' +
         rows.map(function (r) {
-          var me = USER && normId(r.id) === normId(USER.id);
-          return '<tr><td>' + esc(r.id) + (me ? ' <span class="me">나</span>' : '') + '</td><td>' + esc(r.name || '') + '</td><td>' + esc(r.org || '') + '</td><td><span class="role role-' + r.role + '">' + (ROLES[r.role] || r.role) + '</span></td><td>' + fmtDate(r.createdAt) + '</td><td>' + fmtDate(r.updatedAt) + '</td>' +
-            (sup ? '<td class="acts">' + (me ? '' : '<button type="button" class="btn sm" data-act="edit" data-id="' + esc(r.id) + '">수정</button><button type="button" class="btn sm" data-act="pw" data-id="' + esc(r.id) + '">비밀번호 재설정</button><button type="button" class="btn sm danger" data-act="del" data-id="' + esc(r.id) + '">삭제</button>') + '</td>' : '') + '</tr>';
+          var me = USER && r.uid === USER.uid;
+          return '<tr><td>' + esc(r.id) + (me ? ' <span class="me">나</span>' : '') + (r.active === false ? ' <small>(사용 중지)</small>' : '') + '</td><td>' + esc(r.name || '') + '</td><td>' + esc(r.org || '') + '</td><td><span class="role role-' + r.role + '">' + (ROLES[r.role] || r.role) + '</span></td><td>' + fmtDate(r.createdAt) + '</td><td>' + fmtDate(r.updatedAt) + '</td>' +
+            (sup ? '<td class="acts">' + (me ? '' : '<button type="button" class="btn sm" data-act="edit" data-id="' + esc(r.uid) + '">수정</button><button type="button" class="btn sm" data-act="pw" data-id="' + esc(r.uid) + '">비밀번호 재설정</button><button type="button" class="btn sm danger" data-act="del" data-id="' + esc(r.uid) + '">삭제</button>') + '</td>' : '') + '</tr>';
         }).join('') + '</tbody></table></div>';
     }
-    if (sup) {
-      var b1 = $('#accAdd'); if (b1) b1.onclick = function () { accForm('add'); };
-      var b2 = $('#accMyPw'); if (b2) b2.onclick = function () { accForm('mypw'); };
-      var b3 = $('#accGh'); if (b3) b3.onclick = ghForm;
-    }
+    var b1 = $('#accAdd'); if (b1) b1.onclick = function () { accForm('add'); };
+    var b2 = $('#accMyPw'); if (b2) b2.onclick = function () { accForm('mypw'); };
+    var b3 = $('#accKey'); if (b3) b3.onclick = keyForm;
+  }
+  function adminCall(body) {
+    return SB.functions.invoke('admin-users', { body: body }).then(function (r) {
+      if (r.error) {
+        var ctx = r.error.context;
+        return (ctx && ctx.json ? ctx.json().catch(function () { return null; }) : Promise.resolve(null)).then(function (j) {
+          throw new Error(j && j.error ? j.error : /Failed to send|fetch/i.test(r.error.message || '') ? '계정 관리 함수(admin-users)에 연결하지 못했습니다. Supabase Edge Function 배포 상태를 확인해 주세요.' : (r.error.message || '요청 실패'));
+        });
+      }
+      if (!r.data || !r.data.ok) throw new Error((r.data && r.data.error) || '요청 실패');
+      return r.data;
+    });
   }
   $('#accList').addEventListener('click', function (ev) {
     var b = ev.target.closest('button[data-act]'); if (!b || ROLE !== 'super') return;
-    var r = (ACCV.dir || []).find(function (x) { return x.id === b.dataset.id; }); if (!r) return;
+    var r = (ACCV.dir || []).find(function (x) { return x.uid === b.dataset.id; }); if (!r) return;
     if (b.dataset.act === 'del') {
       if (!confirmBox(r.name + '(' + r.id + ') 계정을 삭제할까요? 삭제 후에는 이 계정으로 로그인할 수 없습니다.')) return;
-      saveAccounts(function (acc, dir) {
-        return idHash(r.id, acc).then(function (h) { delete acc.users[h]; return dir.filter(function (x) { return normId(x.id) !== normId(r.id); }); });
-      }, '계정 삭제: ' + r.role).then(function (ok) { if (ok) toast(r.name + ' 계정을 삭제했습니다.'); });
+      b.disabled = true;
+      adminCall({ action: 'delete', id: r.uid }).then(function () { toast(r.name + ' 계정을 삭제했습니다.'); return loadDir(); })
+        .catch(function (e) { toast(e.message || String(e), true, 8000); b.disabled = false; });
     } else accForm(b.dataset.act, r);
   });
   function confirmBox(msg) { return window.confirm(msg); }
-  // 권한별로 넘겨줄 키 (협력사: 세미나 요약 키만)
-  function bundleFor(id, name, role) {
-    var k = { part: BUNDLE.k.part };
-    if (role !== 'partner') k.main = BUNDLE.k.main;
-    if (role === 'super' || role === 'admin') k.acct = BUNDLE.k.acct;
-    var b = { id: normId(id), name: name, role: role, k: k };
-    if (role !== 'partner' && BUNDLE.sys) b.sys = BUNDLE.sys;
-    return b;
-  }
-  function wrapEntry(bundle, pw, iter) {
-    var salt = randB64(16);
-    return pwKey(pw, salt, iter).then(function (wk) { return encJson(wk, bundle).then(function (box) { return { salt: salt, iv: box.iv, ct: box.ct, wk: wk }; }); });
-  }
   function pwRule(pw, pw2) {
     if (pw.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
     if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) return '비밀번호에 영문과 숫자를 함께 넣어 주세요.';
     if (pw !== pw2) return '비밀번호 확인이 일치하지 않습니다.';
     return '';
   }
-  // 계정 등록·수정·비밀번호 재설정 폼
+  // 계정 등록·수정·비밀번호 재설정·내 비밀번호 변경 폼
   function accForm(mode, r) {
     var m = $('#accModal'), add = mode === 'add', edit = mode === 'edit', pwOnly = mode === 'pw' || mode === 'mypw';
     $('#accTitle').textContent = add ? '계정 등록' : edit ? '계정 수정' : mode === 'mypw' ? '내 비밀번호 변경' : '비밀번호 재설정';
-    $('#accDesc').textContent = add ? '등록 후 아이디와 초기 비밀번호를 당사자에게 따로 전달해 주세요.' : edit ? '권한이나 이름을 바꾸면 계정 정보를 다시 암호화하므로 새 비밀번호를 정해 전달해야 합니다.' : mode === 'mypw' ? '변경 후 다음 로그인부터 새 비밀번호를 사용합니다.' : r.name + '(' + r.id + ')의 새 비밀번호를 정해 당사자에게 전달해 주세요.';
+    $('#accDesc').textContent = add ? '등록 후 아이디와 초기 비밀번호를 당사자에게 따로 전달해 주세요.' : edit ? '이름·소속·권한을 바꿉니다. 비밀번호는 그대로 유지됩니다.' : mode === 'mypw' ? '변경 후 다음 로그인부터 새 비밀번호를 사용합니다.' : r.name + '(' + r.id + ')의 새 비밀번호를 정해 당사자에게 전달해 주세요.';
     $('#accFId').value = r ? r.id : (mode === 'mypw' ? USER.id : ''); $('#accFId').readOnly = !add;
     $('#accFName').value = r ? r.name || '' : ''; $('#accFOrg').value = r ? r.org || '' : '';
     $('#accFRole').value = r ? r.role : 'dv';
     $('#accFPw').value = ''; $('#accFPw2').value = ''; $('#accErr').textContent = '';
     m.querySelectorAll('.f-info').forEach(function (x) { x.hidden = pwOnly; });
+    m.querySelectorAll('.f-pw').forEach(function (x) { x.hidden = edit; });
     m.querySelector('.f-id').hidden = mode === 'mypw';
     m.classList.add('show'); (add ? $('#accFId') : pwOnly ? $('#accFPw') : $('#accFName')).focus();
     $('#accCancel').onclick = function () { m.classList.remove('show'); };
@@ -1453,101 +1563,53 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       if (add && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id)) err = '아이디는 이메일 형식으로 입력해 주세요.';
       else if (add && (ACCV.dir || []).some(function (x) { return normId(x.id) === id; })) err = '이미 등록된 아이디입니다.';
       else if (!pwOnly && !name) err = '이름을 입력해 주세요.';
-      else if (!ROLES[role]) err = '권한을 선택해 주세요.';
-      else err = pwRule(pw, $('#accFPw2').value);
+      else if (!pwOnly && !ROLES[role]) err = '권한을 선택해 주세요.';
+      else if (!edit) err = pwRule(pw, $('#accFPw2').value);
       $('#accErr').textContent = err; if (err) return;
       var ok = $('#accOk'); ok.disabled = true; ok.textContent = '저장 중…';
-      var now = new Date().toISOString(), newWrap = null, msg;
-      var p;
-      if (mode === 'mypw') {
-        msg = '내 비밀번호 변경';
-        p = saveAccounts(function (acc, dir) {
-          return Promise.all([idHash(USER.id, acc), wrapEntry(BUNDLE, pw, acc.iter)]).then(function (x) {
-            newWrap = x[1].wk; delete x[1].wk; acc.users[x[0]] = x[1];
-            dir.forEach(function (d) { if (normId(d.id) === normId(USER.id)) d.updatedAt = now; }); return dir;
-          });
-        }, msg).then(function (saved) { if (saved) { WRAP = newWrap; } return saved; });
-      } else {
-        var cur = r || {}, nb = bundleFor(id, pwOnly ? cur.name : name, pwOnly ? cur.role : role);
-        msg = add ? '계정 등록: ' + nb.role : edit ? '계정 수정: ' + nb.role : '비밀번호 재설정';
-        p = saveAccounts(function (acc, dir) {
-          return Promise.all([idHash(id, acc), wrapEntry(nb, pw, acc.iter)]).then(function (x) {
-            delete x[1].wk;
-            if (add && acc.users[x[0]]) throw new Error('이미 등록된 아이디입니다.');
-            acc.users[x[0]] = x[1];
-            if (add) dir.push({ id: id, name: name, org: org, role: role, createdAt: now, createdBy: USER.id, updatedAt: now });
-            else dir.forEach(function (d) { if (normId(d.id) === id) { if (!pwOnly) { d.name = name; d.org = org; d.role = role; } d.updatedAt = now; d.updatedBy = USER.id; } });
-            return dir;
-          });
-        }, msg);
-      }
-      p.then(function (saved) {
-        if (!saved) return;
+      var p = mode === 'mypw' ? SB.auth.updateUser({ password: pw }).then(function (x) { if (x.error) throw new Error(/same|different/i.test(x.error.message) ? '지금 비밀번호와 다른 비밀번호를 입력해 주세요.' : x.error.message); })
+        : add ? adminCall({ action: 'create', email: id, password: pw, name: name, org: org, role: role })
+        : edit ? adminCall({ action: 'update', id: r.uid, name: name, org: org, role: role })
+        : adminCall({ action: 'reset', id: r.uid, password: pw });
+      p.then(function () {
         m.classList.remove('show');
-        toast((add ? '계정을 등록했습니다' : mode === 'mypw' ? '비밀번호를 변경했습니다' : edit ? '계정을 수정했습니다' : '비밀번호를 재설정했습니다') + '. GitHub Pages 반영까지 1~2분 걸립니다.', false, 8000);
+        toast(add ? '계정을 등록했습니다.' : mode === 'mypw' ? '비밀번호를 변경했습니다.' : edit ? '계정을 수정했습니다.' : '비밀번호를 재설정했습니다.');
+        if (mode !== 'mypw') loadDir();
       }).catch(function (e) { $('#accErr').textContent = e.message || String(e); })
         .then(function () { ok.disabled = false; ok.textContent = '저장'; });
     };
   }
-  // ---- GitHub 저장 (최고 관리자 토큰) ---------------------------------------
-  function ghFetch(path, opt, tok) {
-    opt = opt || {}; opt.headers = Object.assign({ Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + (tok || BUNDLE.gh) }, opt.headers || {});
-    return fetch('https://api.github.com/repos/' + GH_REPO + path, opt).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.message || ('GitHub ' + r.status)); e.status = r.status; throw e; } return j; });
-    });
-  }
-  function ghErr(e) {
-    if (e.status === 401) return 'GitHub 토큰이 만료되었거나 올바르지 않습니다. [GitHub 연동 변경]에서 다시 등록해 주세요.';
-    if (e.status === 403 || e.status === 404) return 'GitHub 토큰에 이 저장소 쓰기 권한(Contents: Read and write)이 없습니다.';
-    if (e.status === 409) return '다른 변경과 겹쳤습니다. 잠시 후 다시 시도해 주세요.';
-    return 'GitHub 저장 실패: ' + (e.message || e);
-  }
-  // 최신 accounts.json(sha 포함)을 받아 변경 → 계정 목록 재암호화 → 커밋
-  function saveAccounts(mutate, message, tokOverride) {
-    if (ROLE !== 'super') return Promise.reject(new Error('최고 관리자만 변경할 수 있습니다.'));
-    if (!tokOverride && !(BUNDLE && BUNDLE.gh)) return Promise.reject(new Error('먼저 [GitHub 연동 설정]에서 토큰을 등록해 주세요.'));
-    var sha, acc;
-    return ghFetch('/contents/' + GH_PATH + '?ref=main', null, tokOverride).then(function (j) {
-      sha = j.sha; acc = JSON.parse(decodeURIComponent(escape(atob(String(j.content).replace(/\s/g, '')))));
-      return decDir(acc);
-    }).then(function (dir) { return mutate(acc, dir); }).then(function (dir) {
-      return encJson(AKEY, dir).then(function (box) {
-        acc.dir = box; acc.rev = (acc.rev || 0) + 1; acc.updatedAt = new Date().toISOString();
-        var body = JSON.stringify(acc, null, 1);
-        return ghFetch('/contents/' + GH_PATH, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: '계정 관리 · ' + message, content: btoa(unescape(encodeURIComponent(body))), sha: sha, branch: 'main' }) }, tokOverride)
-          .then(function () { ACC = acc; ACCV.dir = dir; renderAccounts(); return true; });
-      });
-    }).catch(function (e) { if (e.status) throw new Error(ghErr(e)); throw e; });
-  }
-  function ghForm() {
+  // ---- 보안 키 설정 (최고 관리자): 시스템 비밀번호 → 저장소 파일 키 확인 → app_secrets 저장 ----
+  function keyForm() {
     var m = $('#ghModal'); $('#ghTok').value = ''; $('#ghErr').textContent = ''; m.classList.add('show'); $('#ghTok').focus();
     $('#ghCancel').onclick = function () { m.classList.remove('show'); };
     $('#ghForm').onsubmit = function (ev) {
       ev.preventDefault();
-      var tok = $('#ghTok').value.trim(), ok = $('#ghOk');
-      if (!tok) { $('#ghErr').textContent = '토큰을 입력해 주세요.'; return; }
-      ok.disabled = true; ok.textContent = '확인 중…';
-      (WRAP ? Promise.resolve(WRAP) : askPw('토큰을 내 계정에 암호화해 저장하려면 내 로그인 비밀번호를 입력해 주세요.').then(function (pw) {
-        if (!pw) throw new Error('취소했습니다.');
-        return idHash(USER.id).then(function (h) { var e = ACC.users[h]; return pwKey(pw, e.salt).then(function (wk) { return subtle.decrypt({ name: 'AES-GCM', iv: unb64(e.iv) }, wk, unb64(e.ct)).then(function () { WRAP = wk; return wk; }); }); })
-          .catch(function (e) { if (e.message === '취소했습니다.') throw e; throw new Error('로그인 비밀번호가 올바르지 않습니다.'); });
-      })).then(function () {
-        return ghFetch('', null, tok).then(function (repo) { if (!repo.permissions || !repo.permissions.push) { var e = new Error('no push'); e.status = 403; throw e; } });
+      var pw = $('#ghTok').value, ok = $('#ghOk'), main, part = null;
+      if (!pw) { $('#ghErr').textContent = '시스템 비밀번호를 입력해 주세요.'; return; }
+      if (!META) { $('#ghErr').textContent = '저장소 정보(meta.json)를 불러오지 못했습니다. 새로고침 해주세요.'; return; }
+      ok.disabled = true; ok.textContent = '확인 중…'; $('#ghErr').textContent = '';
+      deriveKey(pw).then(function (k) {
+        return decryptBox(k, META.check).then(function () { return k; }, function () { throw new Error('시스템 비밀번호가 올바르지 않습니다 (저장소 데이터를 열 수 없음).'); });
+      }).then(function (k) {
+        return subtle.exportKey('raw', k).then(function (raw) { main = b64(raw); return k; });
+      }).then(function (k) {
+        // 협력사 세미나 요약 파일 키 (기존 accounts.json 에 시스템 키로 감싸 보관된 값)
+        return fetchJson('data/accounts.json?t=' + Date.now()).then(function (acc) { return acc.partKey ? decryptBox(k, acc.partKey) : null; })
+          .then(function (x) { part = x && x.part || null; }, function () { part = null; });
       }).then(function () {
-        var nb = Object.assign({}, BUNDLE, { gh: tok });
-        return saveAccounts(function (acc, dir) {
-          return idHash(USER.id, acc).then(function (h) {
-            var e = acc.users[h];
-            return encJson(WRAP, nb).then(function (box) { acc.users[h] = { salt: e.salt, iv: box.iv, ct: box.ct }; return dir; });
-          });
-        }, 'GitHub 연동 토큰 갱신', tok).then(function () { BUNDLE = nb; try { if (sessionStorage.getItem(SSU)) sessionStorage.setItem(SSU, JSON.stringify(BUNDLE)); } catch (e) {} });
-      }).then(function () { m.classList.remove('show'); toast('GitHub 연동을 저장했습니다. 이제 계정 변경이 바로 저장소에 반영됩니다.'); renderAccounts(); })
-        .catch(function (e) { $('#ghErr').textContent = e.status ? ghErr(e) : (e.message || String(e)); })
+        var rows = [{ key: 'sys_password', value: pw, scope: 'internal' }, { key: 'main_key', value: main, scope: 'internal' }];
+        if (part) rows.push({ key: 'part_key', value: part, scope: 'partner' });
+        return SB.from('app_secrets').upsert(rows).then(function (r) { if (r.error) throw r.error; });
+      }).then(loadSecrets).then(function () {
+        m.classList.remove('show'); renderAccounts();
+        toast('보안 키를 저장했습니다. 내부 담당자는 다음 로그인부터 구글시트·저장소 연동을 사용할 수 있습니다.' + (part ? '' : ' (협력사용 세미나 키는 찾지 못해 건너뜀)'), false, 8000);
+      }).catch(function (e) { $('#ghErr').textContent = e.message || String(e); })
         .then(function () { ok.disabled = false; ok.textContent = '저장'; });
     };
   }
   // ---- 구글시트(Apps Script) 연동 ----
-  function api(action, extra) {
+  function apiRaw(action, extra) {
     var body = { action: action, password: PW }, member = action === 'get' || action === 'refresh', svcAt = SVC;
     if (member && svcAt === 'pv') body.svc = 'pv';
     for (var k in (extra || {})) body[k] = extra[k];
@@ -1561,6 +1623,29 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
         return res;
       });
   }
+  // 구글시트 응답을 DB 저장본으로 캐시: get(회원 집계)·activity·sales·schedule
+  //   refresh(회원 [갱신]) = 원본 재집계 → 'get' 저장본을 덮어쓰고, 주차·월별 저장본은 비움
+  //   fresh:true = 원본 다시 읽기 → 저장본 덮어씀
+  var API_DB = { get: function (r) { return !!r.snap; }, activity: function (r) { return !!r.activity; }, activityPv: function (r) { return !!r.activity; }, sales: function (r) { return !!(r.sales && r.sales.years); }, schedule: function (r) { return !!r.schedule; } };
+  function stableStr(o) { return JSON.stringify(Object.keys(o).sort().reduce(function (a, k) { a[k] = o[k]; return a; }, {})); }
+  function apiKey(action, extra, svc) {
+    var ex = {}; for (var k in (extra || {})) if (k !== 'fresh') ex[k] = extra[k];
+    return 'api|' + action + (action === 'get' ? '|' + (svc || 'dv') : '') + (Object.keys(ex).length ? '|' + stableStr(ex) : '');
+  }
+  function api(action, extra) {
+    var keyAction = action === 'refresh' ? 'get' : action, valid = API_DB[keyAction], svcAt = SVC, member = keyAction === 'get';
+    if (!DB.on || !valid) return apiRaw(action, extra);
+    var key = apiKey(keyAction, extra, svcAt), fresh = action === 'refresh' || !!(extra && extra.fresh);
+    var fetcher = function () {
+      if (!PW) { var e = new Error('nopw'); e.code = 'nopw'; return Promise.reject(e); }
+      return apiRaw(action, extra);
+    };
+    return dbCached(key, fetcher, { fresh: fresh, source: 'apps-script:' + action, valid: valid }).then(function (res) {
+      if (action === 'refresh') dbPurge('api|get|' + svcAt + '|');
+      if (member && svcAt !== SVC) { var st = new Error('stale'); st.code = 'stale'; throw st; }
+      return res;
+    });
+  }
   var toastT;
   function toast(msg, err, ms) {
     if (!msg) return;   // 탭 전환으로 버려진 응답(stale)
@@ -1569,6 +1654,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   }
   function apiErrorText(e) {
     if (e.code === 'stale') return '';
+    if (e.code === 'nopw') return 'DB에 저장된 데이터가 없고, 구글시트 연동 보안 키도 아직 설정되지 않았습니다. 최고 관리자가 [계정 관리 → 보안 키 설정]을 해 주세요.';
     if (e.code === 'old_gs') return '시트의 Apps Script(Code.gs)가 아직 팜빌을 지원하지 않는 버전입니다. 저장소 apps-script/Code.gs로 교체한 뒤 [배포 → 배포 관리 → 편집 → 새 버전]으로 배포해 주세요.';
     if (e.code === 'unauthorized') return '구글시트 연동 비밀번호가 다릅니다. 시트 메뉴 [대시보드 → 비밀번호 설정] 값을 확인해 주세요.';
     if (e.code === 'locked') return '비밀번호 오류가 반복되어 10분간 갱신이 잠겼습니다.';
@@ -1619,12 +1705,15 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 
 
   if (!subtle) { $('#gateMsg').textContent = '이 브라우저는 암호화 기능을 지원하지 않습니다. 최신 Chrome/Edge/Safari를 사용해주세요.'; }
-  else Promise.all([fetchJson('data/meta.json'), fetchJson('data/config.json').catch(function () { return {}; })]).then(function (r) {
-    var m = r[0]; CONFIG = r[1] || {};
-    META = m;
-    try { sessionStorage.removeItem(SS); sessionStorage.removeItem(SSP); } catch (e) {}   // 이전 공용 비밀번호 세션 정리
+  else Promise.all([fetchJson('data/meta.json').catch(function () { return null; }), fetchJson('data/config.json').catch(function () { return {}; })]).then(function (r) {
+    META = r[0]; CONFIG = r[1] || {};
+    try { sessionStorage.removeItem(SS); sessionStorage.removeItem(SSP); sessionStorage.removeItem('mv-user'); } catch (e) {}   // 이전 방식(accounts.json) 세션 정리
+    try { initSupabase(); } catch (e) {
+      $('#gateMsg').textContent = e.message === 'nosb' ? 'DB(Supabase) 연결 정보가 아직 설정되지 않았습니다. docs/data/config.json 에 supabaseUrl·supabaseAnonKey 를 넣어 주세요.' : 'DB 연결 라이브러리를 불러오지 못했습니다. 새로고침 해주세요.';
+      return;
+    }
     return restoreSession();
-  }).catch(function () { $('#gateMsg').textContent = '데이터 정보를 불러오지 못했습니다.'; });
+  }).catch(function () { $('#gateMsg').textContent = '설정 정보를 불러오지 못했습니다. 새로고침 해주세요.'; });
 
   // ISO 주차 계산 (KST 월요일 기준)
   var KST_MS = 9 * 3600000, DAY_MS = 86400000, HIST_FROM = '2025-W01';
@@ -1750,7 +1839,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   var started = false;
   function start() {
     if (started) return; started = true;
-    if (!KEY) {   // 협력사 담당자: 세미나 요약 키만 있음
+    if (!INTERNAL) {   // 협력사 담당자: 세미나 요약만
       if (VIEW === 'home') loadHome();
       if (VIEW === 'seminar') loadSeminar(false);
       return;
@@ -1773,7 +1862,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (st.started) return; st.started = true;
     var stale = function (e) { if (e && e.code === 'stale') { st.started = false; return true; } return false; };
     var p;
-    p = (CONFIG.appsScriptUrl && PW)
+    p = (CONFIG.appsScriptUrl && (PW || DB.on))
       ? api('get').then(function (res) {
           if (res.snap) return applyRemote(res);
           // 팜빌: 시트에 저장된 집계가 없으면 처음 한 번 집계해 저장 (닥터빌은 저장본 표시 후 [갱신] 안내)
@@ -2415,9 +2504,9 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   }
   function loadActivity(fresh, btn) {
     if (!CONFIG.appsScriptUrl) { A.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; renderActivity(); return Promise.resolve(); }
-    return (PW ? Promise.resolve(PW) : askPw('활동성 시트를 불러오려면 비밀번호를 입력해 주세요.')).then(function (pw) {
+    return needPw('활동성 시트를 불러오려면 비밀번호를 입력해 주세요.', fresh).then(function (pw) {
       if (!pw) return;
-      PW = pw; A.loading = true; A.err = ''; setActHeader();
+      A.loading = true; A.err = ''; setActHeader();
       if (btn) { btn.disabled = true; btn.textContent = '갱신 중…'; }
       $('#actApp').classList.add('loading');
       return api('activity', fresh ? { fresh: true } : {}).then(function (res) {
@@ -2624,15 +2713,15 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   // 데이터: docs/data/pv_activity.enc.json — 팜빌 활동성 시트를 스크래핑해 대시보드 비밀번호로 암호화한 저장본
   //        (Apps Script 미사용. 최신화는 Claude에 「팜빌 활동성 갱신」을 요청하면 시트를 다시 읽어 게시)
   function loadPvActivity(fresh, btn) {
-    if (!KEY) return Promise.resolve();
+    if (!INTERNAL) return Promise.resolve();
     PA.loading = true; PA.err = ''; setPActHeader();
     if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
     $('#pactApp').classList.add('loading');
-    return fetchJson('data/pv_activity.enc.json?t=' + Date.now()).then(function (box) { return decryptBox(KEY, box); }).then(function (d) {
+    return loadEnc('data/pv_activity.enc.json', { fresh: fresh, valid: function (d) { return !!(d && d.weekly); } }).then(function (d) {
       if (!d || !d.weekly) throw new Error('형식이 올바르지 않습니다.');
       var same = PA.data && PA.data.fetchedAt === d.fetchedAt;
       PA.data = d; PA.cache = null; if (!same) PA.period = null;
-      if (fresh) toast(same ? '저장본이 최신입니다 (스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) + '). 시트의 새 값을 반영하려면 Claude에 「팜빌 활동성 갱신」을 요청해 주세요.' : '팜빌 활동성 저장본을 다시 불러왔습니다.', false, 8000);
+      if (fresh) toast('저장소 파일을 다시 읽어 DB에 저장했습니다' + (same ? ' (스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) + ' — 변동 없음). 시트의 새 값을 반영하려면 Claude에 「팜빌 활동성 갱신」을 요청해 주세요.' : '.'), false, 8000);
     }).catch(function (e) {
       PA.err = /404/.test(e.message || '') ? '팜빌 활동성 저장본(docs/data/pv_activity.enc.json)이 아직 없습니다. Claude에 「팜빌 활동성 갱신」을 요청해 주세요.' : '팜빌 활동성 저장본을 불러오지 못했습니다: ' + (e.message || e);
       toast(PA.err, true, 12000);
@@ -2916,11 +3005,11 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     });
   }
   function loadSales(fresh, btn) {
-    if (!KEY) return Promise.resolve();
+    if (!INTERNAL) return Promise.resolve();
     if (!CONFIG.appsScriptUrl) { SL.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; renderSales(); return Promise.resolve(); }
-    return (PW ? Promise.resolve(PW) : askPw('매출 시트를 불러오려면 구글시트 연동 비밀번호를 입력해 주세요.')).then(function (pw) {
+    return needPw('매출 시트를 불러오려면 구글시트 연동 비밀번호를 입력해 주세요.', fresh).then(function (pw) {
       if (!pw) return;
-      PW = pw; SL.loading = true; SL.err = ''; setSalesHeader();
+      SL.loading = true; SL.err = ''; setSalesHeader();
       if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
       $('#salesApp').classList.add('loading');
       return fetchSales(fresh).then(function (d) {
@@ -3089,7 +3178,15 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   try { var sd = localStorage.getItem('mv-sem-dim'); if (sd) SEM.dim = sd; } catch (e) {}
   var SEM_DIMS = ['inout', 'type', 'status', 'academic', 'cat', 'tx', 'region', 'survey', 'company'];
   // 협력사 담당자는 회사별 건수를 뺀 요약본(seminar_pub.enc.json, 협력사용 키)을 읽음
-  function semFile() { return KEY ? 'data/seminar.enc.json' : 'data/seminar_pub.enc.json'; }
+  function semValid(d) { return !!(d && d.months && d.total); }
+  // 내부 담당자가 세미나 저장본을 읽으면 협력사용 요약(회사별 제외)을 DB에 함께 저장 → 협력사는 DB에서 읽음
+  var semPubDone = false;
+  function semPublish(d, fresh) {
+    if (!INTERNAL || !DB.on || (semPubDone && !fresh)) return;
+    var pub = JSON.parse(JSON.stringify(d)); if (pub.dims) delete pub.dims.company; pub.scope = 'partner';
+    dbPut('file|' + PUB_SEM, pub, 'partner', 'derived:seminar').then(function (ok) { if (ok) semPubDone = true; });
+  }
+  function semFile() { return INTERNAL ? 'data/seminar.enc.json' : PUB_SEM; }
   function semNow() { var d = SEM.data; return new Date(Date.parse(d.fetchedAt) + KST_MS).toISOString().slice(0, 7); }
   function semYears() { var s = {}; SEM.data.months.forEach(function (m) { s[m.slice(0, 4)] = 1; }); return Object.keys(s).sort(); }
   function semVal(arr, y, m) { var i = SEM.data.months.indexOf(y + '-' + String(m).padStart(2, '0')); return i < 0 || !arr ? null : (arr[i] || 0); }
@@ -3105,15 +3202,15 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     $('#srcLabel').textContent = d ? '데이터: 저장본(시트 스크래핑)' : '';
   }
   function loadSeminar(fresh, btn) {
-    var sk = KEY || PKEY; if (!sk) return Promise.resolve();
+    if (!AUTHED) return Promise.resolve();
     SEM.loading = true; SEM.err = ''; setSemHeader();
     if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
     $('#semApp').classList.add('loading');
-    return fetchJson(semFile() + '?t=' + Date.now()).then(function (box) { return decryptBox(sk, box); }).then(function (d) {
-      if (!d || !d.months || !d.total) throw new Error('형식이 올바르지 않습니다.');
+    return loadEnc(semFile(), { fresh: fresh, valid: semValid }).then(function (d) {
+      if (!semValid(d)) throw new Error('형식이 올바르지 않습니다.');
       var same = SEM.data && SEM.data.fetchedAt === d.fetchedAt;
-      SEM.data = d;
-      if (fresh) toast(same ? '저장본이 최신입니다 (스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) + '). 편성표의 새 내용을 반영하려면 Claude에 「세미나 편성 갱신」을 요청해 주세요.' : '세미나 편성 저장본을 다시 불러왔습니다.', false, 8000);
+      SEM.data = d; semPublish(d, fresh);
+      if (fresh) toast('저장소 파일을 다시 읽어 DB에 저장했습니다' + (same ? ' (스크래핑 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) + ' — 변동 없음). 편성표의 새 내용을 반영하려면 Claude에 「세미나 편성 갱신」을 요청해 주세요.' : '.'), false, 8000);
     }).catch(function (e) {
       SEM.err = /404/.test(e.message || '') ? '세미나 편성 저장본(docs/data/seminar.enc.json)이 아직 없습니다. Claude에 「세미나 편성 갱신」을 요청해 주세요.' : '세미나 편성 저장본을 불러오지 못했습니다: ' + (e.message || e);
       if (VIEW === 'seminar') toast(SEM.err, true, 12000);
@@ -3259,7 +3356,8 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (e && e.code) return apiErrorText(e);
     return what + ': ' + (e && e.message || e);
   }
-  function needPw(msg) { return PW ? Promise.resolve(PW) : askPw(msg).then(function (pw) { if (pw) PW = pw; return pw; }); }
+  var DBPW = '\u0000db';   // 비밀번호 없이 DB 저장본만 읽는 경우의 표시값
+  function needPw(msg, fresh) { if (PW) return Promise.resolve(PW); if (DB.on && !fresh) return Promise.resolve(DBPW); return askPw(msg).then(function (pw) { if (pw) PW = pw; return pw; }); }
 
   // ===== 세미나 달력 =====
   var SCH = { month: null, sel: null, data: {}, loading: false, err: '' };
@@ -3268,12 +3366,12 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   function schColor(t) { t = t || ''; for (var i = 0; i < SCH_TYPE.length; i++) if (t.indexOf(SCH_TYPE[i][0]) >= 0) return 'var(' + SCH_TYPE[i][1] + ')'; return 'var(--muted)'; }
   function schPlanned(r) { return /예측|가예약|미정/.test(r.status || ''); }
   function loadSchedule(fresh, btn) {
-    if (!KEY) return Promise.resolve();
+    if (!INTERNAL) return Promise.resolve();
     if (!SCH.month) SCH.month = todayYmd().slice(0, 7);
     if (!CONFIG.appsScriptUrl) { SCH.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; renderSchedule(); return Promise.resolve(); }
     var m = SCH.month;
     if (!fresh && SCH.data[m]) { renderSchedule(); return Promise.resolve(); }
-    return needPw('편성표를 불러오려면 구글시트 연동 비밀번호를 입력해 주세요.').then(function (pw) {
+    return needPw('편성표를 불러오려면 구글시트 연동 비밀번호를 입력해 주세요.', fresh).then(function (pw) {
       if (!pw) return;
       SCH.loading = true; SCH.err = ''; renderSchedule();
       if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
@@ -3348,22 +3446,41 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 
   // ===== 컨퍼런스 달력 =====
   var CF = { month: null, events: null, loading: false, err: '' };
+  // 행사는 Supabase public.conferences 표에 바로 저장 (기존 회원 시트 _conferences 탭은 표가 비어 있을 때 한 번 가져옴)
+  function cfFromDb(r) {
+    return { id: r.id, date: r.date || '', endDate: r.end_date || '', name: r.name || '', hostType: r.host_type || '', host: r.host || '', start: r.start_time || '', end: r.end_time || '',
+      place: r.place || '', scale: r.scale || '', pm: r.pm || '', note: r.note || '', createdBy: r.created_by || '', createdAt: r.created_at || '', updatedBy: r.updated_by || '', updatedAt: r.updated_at || '' };
+  }
+  function cfToDb(o) {
+    return { date: o.date, end_date: o.endDate || null, name: o.name, host_type: o.hostType || '', host: o.host || '', start_time: o.start || '', end_time: o.end || '',
+      place: o.place || '', scale: o.scale || '', pm: o.pm || '', note: o.note || '' };
+  }
+  function cfUser() { return USER ? USER.name + '(' + USER.id + ')' : ''; }
+  function sbq(p) { return p.then(function (r) { if (r.error) throw new Error(r.error.message); return r.data; }); }
+  function cfImportSheet() {   // 표가 비어 있고 구글시트 연동이 되면 _conferences 탭 행사를 한 번 옮김
+    if (!PW || !CONFIG.appsScriptUrl) return Promise.resolve([]);
+    return apiRaw('confList').then(function (res) {
+      var ev = (res.events || []).filter(function (e) { return e.date && e.name; });
+      if (!ev.length) return [];
+      var uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      var rows = ev.map(function (e) { var o = cfToDb(e); if (uuid.test(e.id || '')) o.id = e.id; o.created_by = e.createdBy || cfUser(); o.updated_by = e.updatedBy || o.created_by; if (e.createdAt) o.created_at = e.createdAt; return o; });
+      return sbq(SB.from('conferences').upsert(rows).select()).then(function (d) { toast('회원 시트 _conferences 탭의 행사 ' + d.length + '건을 DB로 옮겼습니다.', false, 8000); return d; });
+    }).catch(function (e) { console.warn('시트 행사 가져오기 생략', e); return []; });
+  }
   function loadConf(fresh, btn) {
-    if (!KEY) return Promise.resolve();
+    if (!INTERNAL) return Promise.resolve();
     if (!CF.month) CF.month = todayYmd().slice(0, 7);
-    if (!CONFIG.appsScriptUrl) { CF.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; renderConf(); return Promise.resolve(); }
     if (CF.events && !fresh) { renderConf(); return Promise.resolve(); }
-    return needPw('컨퍼런스 일정을 불러오려면 구글시트 연동 비밀번호를 입력해 주세요.').then(function (pw) {
-      if (!pw) return;
-      CF.loading = true; CF.err = ''; renderConf();
-      if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
-      return api('confList').then(function (res) {
-        if (!res.events) throw new Error('old_gs_status');
-        CF.events = res.events;
-        if (fresh) toast('컨퍼런스 일정을 다시 불러왔습니다.');
-      }).catch(function (e) { if (e.code === 'unauthorized') PW = null; CF.err = statusApiErr(e, '컨퍼런스 일정을 불러오지 못했습니다'); if (VIEW === 'conf') toast(CF.err, true, 12000); })
-        .then(function () { CF.loading = false; if (btn) { btn.disabled = false; btn.textContent = '갱신'; } renderConf(); });
-    });
+    CF.loading = true; CF.err = ''; renderConf();
+    if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
+    return sbq(SB.from('conferences').select('*').order('date')).then(function (rows) {
+      return rows.length ? rows : cfImportSheet();
+    }).then(function (rows) {
+      CF.events = rows.map(cfFromDb);
+      dbNote('conferences', new Date().toISOString(), 'db');
+      if (fresh) toast('컨퍼런스 일정을 DB에서 다시 불러왔습니다.');
+    }).catch(function (e) { CF.err = '컨퍼런스 일정을 불러오지 못했습니다: ' + (e.message || e); if (VIEW === 'conf') toast(CF.err, true, 12000); })
+      .then(function () { CF.loading = false; if (btn) { btn.disabled = false; btn.textContent = '갱신'; } renderConf(); });
   }
   function cfOn(e, day) { return e.date && day >= e.date && day <= (e.endDate || e.date); }
   function cfTime(e) { return e.start ? e.start + (e.end ? '~' + e.end : '') : ''; }
@@ -3375,7 +3492,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var inMonth = ev.filter(function (e) { return e.date && (e.date.slice(0, 7) === m || (e.endDate || e.date).slice(0, 7) === m || (e.date < m && (e.endDate || '') > m)); })
       .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.start || '') < (b.start || '') ? -1 : 1; });
     $('#subtitle').textContent = CF.events ? '컨퍼런스 · ' + monthLabel(m) + ' 행사 ' + inMonth.length + '건 · 날짜를 누르면 행사를 등록합니다' : (CF.loading ? '컨퍼런스 일정을 불러오는 중…' : (CF.err || '컨퍼런스'));
-    $('#srcLabel').textContent = CF.events ? '데이터: 회원 시트 _conferences 탭' : '';
+    $('#srcLabel').textContent = CF.events ? '데이터: DB(컨퍼런스 표)' : '';
     var html = WD.map(function (w, i) { return '<div class="cal-wd' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '') + '">' + w + '</div>'; }).join('');
     calDays(m).forEach(function (day) {
       var list = ev.filter(function (e) { return cfOn(e, day); }), out = day.slice(0, 7) !== m, dow = new Date(day + 'T00:00:00').getDay();
@@ -3416,9 +3533,9 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     $('#cfDel').onclick = function () {
       if (!window.confirm('「' + e.name + '」 행사를 삭제할까요?')) return;
       busy(true, '삭제 중…');
-      api('confDelete', { id: e.id }).then(function () {
+      sbq(SB.from('conferences').delete().eq('id', e.id)).then(function () {
         CF.events = CF.events.filter(function (x) { return x.id !== e.id; }); m.classList.remove('show'); renderConf(); toast('행사를 삭제했습니다.');
-      }).catch(function (er) { $('#cfErr').textContent = statusApiErr(er, '삭제하지 못했습니다'); }).then(function () { busy(false); });
+      }).catch(function (er) { $('#cfErr').textContent = '삭제하지 못했습니다: ' + (er.message || er); }).then(function () { busy(false); });
     };
     $('#cfForm').onsubmit = function (ev) {
       ev.preventDefault();
@@ -3427,12 +3544,12 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       var err = !o.name ? '행사명을 입력해 주세요.' : !o.host ? '주최자를 입력해 주세요.' : !o.date ? '날짜를 입력해 주세요.' : (o.endDate && o.endDate < o.date) ? '종료일이 시작일보다 빠릅니다.' : (o.start && o.end && o.end < o.start && (!o.endDate || o.endDate === o.date)) ? '종료 시간이 시작 시간보다 빠릅니다.' : '';
       $('#cfErr').textContent = err; if (err) return;
       busy(true, '저장 중…');
-      api('confSave', { event: o, user: USER ? USER.name + '(' + USER.id + ')' : '' }).then(function (res) {
-        if (!res.event) throw new Error('old_gs_status');
-        var saved = res.event; CF.events = (CF.events || []).filter(function (x) { return x.id !== saved.id; }).concat([saved]);
+      var row = cfToDb(o); row.updated_by = cfUser();
+      (e.id ? sbq(SB.from('conferences').update(row).eq('id', e.id).select().single()) : (row.created_by = row.updated_by, sbq(SB.from('conferences').insert(row).select().single()))).then(function (r) {
+        var saved = cfFromDb(r); CF.events = (CF.events || []).filter(function (x) { return x.id !== saved.id; }).concat([saved]);
         if (saved.date) CF.month = saved.date.slice(0, 7);
         m.classList.remove('show'); renderConf(); toast(edit ? '행사를 수정했습니다.' : '행사를 등록했습니다.');
-      }).catch(function (er) { $('#cfErr').textContent = statusApiErr(er, '저장하지 못했습니다'); }).then(function () { busy(false); });
+      }).catch(function (er) { $('#cfErr').textContent = '저장하지 못했습니다: ' + (er.message || er); }).then(function () { busy(false); });
     };
   }
 
@@ -3472,8 +3589,8 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
         var sub = b.closest('.nav-sub'); if (sub && sub.previousElementSibling) sub.previousElementSibling.setAttribute('aria-expanded', 'true');
       } else b.removeAttribute('aria-current');
     });
-    setNav(false);
-    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 저장본을 다시 불러옵니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '매출 시트의 최신 값을 다시 불러옵니다' : VIEW === 'sched' ? '편성표에서 이번 달 세미나를 다시 불러옵니다' : VIEW === 'conf' ? '컨퍼런스 일정을 다시 불러옵니다' : VIEW === 'seminar' ? '저장소의 세미나 편성 저장본을 다시 불러옵니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
+    setNav(false); dbBadge();
+    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 파일을 다시 읽어 DB에 저장합니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '매출 시트의 최신 값을 다시 불러옵니다' : VIEW === 'sched' ? '편성표에서 이번 달 세미나를 다시 불러옵니다' : VIEW === 'conf' ? 'DB에서 컨퍼런스 일정을 다시 불러옵니다' : VIEW === 'seminar' ? '저장소의 세미나 편성 파일을 다시 읽어 DB에 저장합니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
     if (!fromHash) { try { history.replaceState(null, '', VIEW === 'home' ? location.pathname + location.search : '#' + VIEW); } catch (e) {} }
     if (stat) {
       if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
@@ -3508,8 +3625,8 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   // 이미 불러온 탭 데이터가 있으면 그대로 쓰고, 없으면 저장본(또는 시트 집계)을 읽기만 함 (다른 탭 상태는 바꾸지 않음)
   var HOME = { pts: {}, pvSnap: null, pvPrev: null, pvSrc: '', pvErr: '', aErr: '', aTried: false, paErr: '', semErr: '', slErr: '', busy: {} };
   function loadHome() {
-    if (!KEY && !PKEY) return;
-    if (KEY) {
+    if (!AUTHED) return;
+    if (INTERNAL) {
     ['dv', 'pv'].forEach(function (svc) {
       if (HOME.pts[svc] != null || HOME.busy['p' + svc] || (PSTATES[svc] && PSTATES[svc].data)) return;
       HOME.busy['p' + svc] = 1;
@@ -3520,10 +3637,14 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var pst = STATES.pv;
     if (!pst.snap && !HOME.pvSnap && !HOME.busy.pv && !HOME.pvErr) {
       HOME.busy.pv = 1;
-      var viaSheet = (CONFIG.appsScriptUrl && PW)
-        ? fetch(CONFIG.appsScriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'get', password: PW, svc: 'pv' }) })
-            .then(function (r) { return r.json(); })
-            .then(function (res) { if (res.ok && res.snap && res.snap.svc === 'pv') { HOME.pvSnap = res.snap; HOME.pvPrev = res.prev || null; HOME.pvSrc = '구글시트'; return true; } return false; })
+      var pvKey = apiKey('get', null, 'pv'), pvOk = function (res) { return !!(res && res.ok !== false && res.snap && res.snap.svc === 'pv'); };
+      var viaSheet = (CONFIG.appsScriptUrl && (PW || DB.on))
+        ? dbCached(pvKey, function () {
+            if (!PW) return Promise.reject(new Error('nopw'));
+            return fetch(CONFIG.appsScriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'get', password: PW, svc: 'pv' }) })
+              .then(function (r) { return r.json(); }).then(function (res) { if (!pvOk(res)) throw new Error('nopv'); return res; });
+          }, { source: 'apps-script:get', valid: pvOk })
+            .then(function (res) { HOME.pvSnap = res.snap; HOME.pvPrev = res.prev || null; HOME.pvSrc = DB.meta[pvKey] && DB.meta[pvKey].from === 'db' ? 'DB 저장본' : '구글시트'; return true; })
             .catch(function () { return false; })
         : Promise.resolve(false);
       viaSheet.then(function (ok) {
@@ -3537,7 +3658,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     }
     if (!A.data && !A.loading && !HOME.aTried) {
       HOME.aTried = true;
-      if (CONFIG.appsScriptUrl && PW) {
+      if (CONFIG.appsScriptUrl && (PW || DB.on)) {
         HOME.busy.a = 1;
         api('activity').then(function (res) { if (res.activity && !A.data) { A.data = res.activity; A.period = null; } else if (!res.activity) HOME.aErr = '활동성 메뉴에서 불러올 수 있습니다.'; })
           .catch(function () { HOME.aErr = '활동성 메뉴에서 불러올 수 있습니다.'; })
@@ -3546,14 +3667,14 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     }
     if (!PA.data && !PA.loading && !HOME.busy.pa && !HOME.paErr) {
       HOME.busy.pa = 1;
-      fetchJson('data/pv_activity.enc.json?t=' + Date.now()).then(function (b) { return decryptBox(KEY, b); })
+      loadEnc('data/pv_activity.enc.json', { valid: function (d) { return !!(d && d.weekly); } })
         .then(function (d) { if (!d || !d.weekly) throw new Error('형식 오류'); if (!PA.data) { PA.data = d; PA.cache = null; PA.period = null; } })
         .catch(function () { HOME.paErr = '팜빌 활동성 저장본을 불러오지 못했습니다.'; })
         .then(function () { HOME.busy.pa = 0; renderHome(); });
     }
       if (!SL.data && !SL.loading && !HOME.busy.sl && !HOME.slErr) {
         HOME.busy.sl = 1;
-        (CONFIG.appsScriptUrl && PW ? fetchSales(false) : Promise.reject(new Error('nopw')))
+        (CONFIG.appsScriptUrl && (PW || DB.on) ? fetchSales(false) : Promise.reject(new Error('nopw')))
           .then(function (d) { if (!SL.data) SL.data = d; })
           .catch(function (e) { HOME.slErr = e.message === 'nopw' ? '매출 메뉴에서 불러올 수 있습니다.' : e.message === 'no_sales' ? '시트 Apps Script에 매출 기능(sales.gs) 추가가 필요합니다.' : '매출 시트를 불러오지 못했습니다.'; })
           .then(function () { HOME.busy.sl = 0; renderHome(); });
@@ -3561,8 +3682,8 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     }
     if (!SEM.data && !SEM.loading && !HOME.busy.sem && !HOME.semErr) {
       HOME.busy.sem = 1;
-      fetchJson(semFile() + '?t=' + Date.now()).then(function (b) { return decryptBox(KEY || PKEY, b); })
-        .then(function (d) { if (!d || !d.months || !d.total) throw new Error('형식 오류'); if (!SEM.data) SEM.data = d; })
+      loadEnc(semFile(), { valid: semValid })
+        .then(function (d) { if (!semValid(d)) throw new Error('형식 오류'); if (!SEM.data) { SEM.data = d; semPublish(d); } })
         .catch(function (e) { HOME.semErr = /404/.test(e.message || '') ? '세미나 편성 저장본이 아직 없습니다.' : '세미나 편성 저장본을 불러오지 못했습니다.'; })
         .then(function () { HOME.busy.sem = 0; renderHome(); });
     }
@@ -3629,8 +3750,8 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   function renderHome() {
     if (VIEW !== 'home') return;
     $('#subtitle').textContent = '메뉴별 핵심 지표 요약';
-    if (!KEY && !PKEY) { $('#homeSales').innerHTML = ''; $('#homeMembers').innerHTML = ''; return; }
-    if (!KEY) { $('#homeSales').innerHTML = homeSeminar(); $('#homeMembers').innerHTML = ''; return; }
+    if (!AUTHED) { $('#homeSales').innerHTML = ''; $('#homeMembers').innerHTML = ''; return; }
+    if (!INTERNAL) { $('#homeSales').innerHTML = homeSeminar(); $('#homeMembers').innerHTML = ''; return; }
     $('#homeSales').innerHTML = homeSales() + homeSeminar() + homePoints('dv') + homePoints('pv');
     $('#homeMembers').innerHTML = homeMemberCard('dv', 'members') + homeActDv() + homeMemberCard('pv', 'pharm') + homeActPv();
   }
@@ -3654,11 +3775,11 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       : '새로 추가된 파일이 없습니다. 폴더의 CSV ' + fmt(fs.length) + '개는 모두 이미 적재되어 있습니다.') + '</div>' +
       (lastF ? '<div>가장 최근 적재 파일: ' + esc(lastF.name) + ' · 거래 ' + (lastF.dmin || '').slice(0, 10) + ' ~ ' + (lastF.dmax || '').slice(0, 10) + ' · ' + esc(lastF.loadedAt || '') + ' 적재</div>' : '') +
       '<div>현재 집계 데이터: <b>' + d.range.from + ' ~ ' + d.range.to + '</b> · 집계 ' + esc(d.generatedAtKst) + ' KST</div>' +
-      (pub.mode === 'local' ? '<div class="warn">지금 화면은 PC에서 방금 만든 집계입니다. 새로고침하거나 다른 사람이 볼 때도 반영되려면 PC의 <b>publish\\' + (PSVC === 'pv' ? 'pv_points' : 'points') + '.enc.json</b> 파일을 저장소 <b>docs/data/</b>에 올려 주세요.</div>' : '');
+      (pub.mode === 'local' ? '<div>방금 만든 집계를 DB에 저장했습니다. 새로고침하거나 다른 담당자가 볼 때도 이 집계가 표시됩니다.</div>' : '');
     $('#pStatus').innerHTML = html; $('#pStatus').hidden = false;
   }
   function loadPoints() {
-    if (!KEY) return;
+    if (!INTERNAL) return;
     P.loaded = true;
     var st = P, svc = PSVC;
     $('#pointApp').classList.add('loading');
@@ -3697,6 +3818,9 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
         // 닥터빌(최상위)·팜빌(res.pv) 결과를 각각 반영하고, 지금 보고 있는 탭 기준으로 안내
         PSTATES.dv.data = res.data; PSTATES.dv.loaded = true;
         if (res.pv && res.pv.ok) { ensurePv(); PSTATES.pv.data = res.pv.data; PSTATES.pv.loaded = true; }
+        // 갱신 결과를 DB에 저장 → 다른 담당자도 저장소 업로드 없이 같은 집계를 봄
+        if (res.ok && res.data) { dbPut('file|' + PFILE.dv, res.data, 'internal', 'point-agent'); dbNote('file|' + PFILE.dv, new Date().toISOString(), 'source'); }
+        if (res.pv && res.pv.ok && res.pv.data) { dbPut('file|' + PFILE.pv, res.pv.data, 'internal', 'point-agent'); dbNote('file|' + PFILE.pv, new Date().toISOString(), 'source'); }
         var cur = PSVC === 'pv' ? res.pv : res;
         if (!cur || !cur.ok) { var e1 = new Error(PSVC === 'pv' ? (cur ? '팜빌 포인트 갱신 실패: ' + (cur.message || cur.error) : '포인트 갱신 서버가 이전 버전입니다 (v1.6.0 이상 필요). 서버 창을 닫고 bat을 다시 실행해 주세요.') : (res.message || res.error)); e1.code = 'pv'; throw e1; }
         buildPeriods(); setPointHeader('데이터: 방금 갱신'); renderPoints();
