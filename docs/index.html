@@ -566,6 +566,14 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 .cal-dn .add { margin-left: auto; font-size: 14px; font-weight: 400; color: var(--muted); opacity: 0; }
 .cal-day.cf:hover .add, .cal-day.cf:focus-visible .add { opacity: 1; }
 .modal.cfm { max-width: 540px; max-height: calc(100vh - 32px); overflow-y: auto; }
+.modal.sem { max-width: 620px; }
+#schCal .slot.db { outline: 1px solid #2F80FF; outline-offset: -1px; }
+.cal-legend i.dbm { background: none; outline: 1px solid #2F80FF; outline-offset: -1px; }
+.schtbl small.dbtag { display: block; margin-top: 2px; font-size: 10.5px; color: #2F80FF; font-weight: 600; }
+.schtbl tr.click { cursor: pointer; }
+.schtbl tr.click:hover td { background: rgba(47,128,255,.06); }
+.schtbl tr.hid td { color: var(--muted); }
+#schAddDay { align-self: flex-end; }
 .modal textarea { font: inherit; font-size: 14px; padding: 9px 11px; border: 1px solid var(--axis); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; }
 .modal .xr input, .modal .xr select { width: 100%; }
 .modal button.danger-btn { color: var(--down); border-color: color-mix(in srgb, var(--down) 40%, transparent); }
@@ -695,14 +703,15 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   <div class="wrap" id="schedApp">
     <section>
       <div class="sec-head">
-        <div class="cal-head"><button type="button" class="btn" id="schPrev" aria-label="이전 달">‹</button><h2 id="schMonth"></h2><button type="button" class="btn" id="schNext" aria-label="다음 달">›</button><button type="button" class="btn" id="schToday">오늘</button></div>
+        <div class="cal-head"><button type="button" class="btn" id="schPrev" aria-label="이전 달">‹</button><h2 id="schMonth"></h2><button type="button" class="btn" id="schNext" aria-label="다음 달">›</button><button type="button" class="btn" id="schToday">오늘</button><button type="button" class="btn accent" id="schAdd">+ 세미나 등록</button></div>
         <ul class="legend cal-legend" id="schLegend"></ul>
       </div>
+      <p class="anote warn" id="schEntErr" hidden></p>
       <div class="cal" id="schCal" aria-label="세미나 편성 달력"></div>
-      <p class="anote">하루를 점심 이전(15시 전)·점심 이후(15시부터) 5칸씩 나눠 편성표의 세미나를 시간순으로 표시합니다. 5건을 넘으면 '+n건'으로 줄여 보여 주며, 날짜를 누르면 아래에 전체 상세가 나옵니다. 점선 칸은 예측·가예약 건입니다.</p>
+      <p class="anote">하루를 점심 이전(15시 전)·점심 이후(15시부터) 5칸씩 나눠 편성표의 세미나를 시간순으로 표시합니다. 5건을 넘으면 '+n건'으로 줄여 보여 주며, 날짜를 누르면 아래에 전체 상세가 나옵니다. 점선 칸은 예측·가예약 건, 파란 테두리 칸은 대시보드에서 등록·수정한 건입니다. [+ 세미나 등록]이나 일별 상세의 행을 눌러 DB에 직접 등록·수정할 수 있습니다.</p>
     </section>
     <section id="schDetailSec">
-      <div class="sec-head"><div><h2 id="schDetailTitle">일별 상세</h2><p>편성표 (2026) RAW 탭 기준 · 업체 담당자 정보는 가져오지 않습니다</p></div></div>
+      <div class="sec-head"><div><h2 id="schDetailTitle">일별 상세</h2><p>편성표 (2026) RAW 탭 + 대시보드 등록·수정(DB) · 행을 누르면 수정 · 업체 담당자 정보는 가져오지 않습니다</p></div><button type="button" class="btn" id="schAddDay" hidden>+ 이 날짜에 등록</button></div>
       <div class="card"><div id="schDetail"></div></div>
     </section>
   </div>
@@ -1181,6 +1190,25 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <input id="ghTok" type="password" placeholder="시스템 비밀번호" autocomplete="off">
     <div class="err" id="ghErr"></div>
     <div class="row"><button type="button" id="ghCancel">취소</button><button type="submit" class="ok" id="ghOk">저장</button></div>
+  </form>
+</div>
+<div class="modal-bg" id="seModal">
+  <form class="modal wide cfm sem" id="seForm" autocomplete="off">
+    <h3 id="seTitle">세미나 등록</h3>
+    <p id="seDesc"></p>
+    <div class="xr"><label>날짜 *<input id="seDate" type="date"></label><label>시간<input id="seTime" type="time"></label></div>
+    <div class="xr"><label>상태<select id="se_status"><option value="">–</option><option>확정</option><option>예측</option><option>가예약</option><option>취소</option><option>완료</option></select></label><label>유형<select id="se_type"><option value="">–</option><option>웹심포지엄</option><option>라이브세미나</option><option>심포지엄</option><option>아카데미</option><option>기타</option></select></label></div>
+    <div class="xr"><label>송출형태<input id="se_tx" type="text" maxlength="40" placeholder="예: 라이브, 사전녹화"></label><label>구분<select id="se_io"><option value="">–</option><option>내부</option><option>외부</option></select></label></div>
+    <div class="xr"><label>회사<input id="se_company" type="text" maxlength="80"></label><label>카테고리<input id="se_cat" type="text" maxlength="60"></label></div>
+    <label class="fl">품목<input id="se_product" type="text" maxlength="120"></label>
+    <label class="fl">행사명 *<input id="se_title" type="text" maxlength="200"></label>
+    <label class="fl">연제<input id="se_topic" type="text" maxlength="300"></label>
+    <div class="xr"><label>강사명(소속)<input id="se_speaker" type="text" maxlength="200"></label><label>장소<input id="se_place" type="text" maxlength="120"></label></div>
+    <div class="xr"><label>채널<input id="se_channel" type="text" maxlength="40"></label><label>PM<input id="se_pm" type="text" maxlength="40"></label></div>
+    <div class="xr"><label>PM(내부)<input id="se_pmIn" type="text" maxlength="40"></label><label>신청자수<input id="se_apply" type="text" maxlength="20"></label></div>
+    <div class="xr"><label>참석자수<input id="se_attend" type="text" maxlength="20"></label><span></span></div>
+    <div class="err" id="seErr"></div>
+    <div class="row"><button type="button" id="seDel" class="danger-btn" hidden>삭제</button><button type="button" id="seRevert" hidden>시트 값으로 되돌리기</button><span style="flex:1"></span><button type="button" id="seCancel">취소</button><button type="submit" class="ok" id="seOk">저장</button></div>
   </form>
 </div>
 <div class="modal-bg" id="cfModal">
@@ -3360,38 +3388,75 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   function needPw(msg, fresh) { if (PW) return Promise.resolve(PW); if (DB.on && !fresh) return Promise.resolve(DBPW); return askPw(msg).then(function (pw) { if (pw) PW = pw; return pw; }); }
 
   // ===== 세미나 달력 =====
-  var SCH = { month: null, sel: null, data: {}, loading: false, err: '' };
+  // 편성표(구글시트) 월별 조회 + DB(seminar_entries) 직접 등록·수정을 합쳐서 표시
+  //   kind new: 대시보드에서 새로 등록 / edit: 시트 건을 대시보드에서 수정(시트 [갱신] 후에도 수정값 유지) / hidden: 시트 건을 대시보드에서 숨김(삭제)
+  //   시트 건 식별: CID가 있으면 CID, 없으면 날짜|시간|행사명(원래 시트 값)
+  var SCH = { month: null, sel: null, data: {}, ent: {}, entErr: '', loading: false, err: '', view: {} };
   var SCH_SPLIT = '15:00';   // 점심 이전 / 점심 이후 구분 기준 시각 (이 시각부터 점심 이후)
   var SCH_TYPE = [['웹심포지엄', '--s1'], ['라이브세미나', '--s3'], ['심포지엄', '--s4'], ['아카데미', '--s5']];
+  var SE_FIELDS = ['status', 'type', 'tx', 'io', 'company', 'cat', 'product', 'title', 'topic', 'speaker', 'place', 'channel', 'pm', 'pmIn', 'apply', 'attend'];
   function schColor(t) { t = t || ''; for (var i = 0; i < SCH_TYPE.length; i++) if (t.indexOf(SCH_TYPE[i][0]) >= 0) return 'var(' + SCH_TYPE[i][1] + ')'; return 'var(--muted)'; }
   function schPlanned(r) { return /예측|가예약|미정/.test(r.status || ''); }
+  function schKey(r) { return r.cid ? 'cid:' + String(r.cid).trim() : 'r:' + r.date + '|' + (r.time || '') + '|' + String(r.title || r.company || '').trim(); }
+  function loadSchEntries(m) {
+    if (!SB || !INTERNAL) return Promise.resolve();
+    var from = m + '-01', to = monthAdd(m, 1) + '-01';
+    return sbq(SB.from('seminar_entries').select('*').or('and(date.gte.' + from + ',date.lt.' + to + '),sheet_month.eq.' + m))
+      .then(function (rows) { SCH.ent[m] = rows || []; SCH.entErr = ''; })
+      .catch(function (e) {
+        SCH.entErr = /seminar_entries|does not exist|schema cache/i.test(e.message || '') ? 'DB에 세미나 등록 표(seminar_entries)가 아직 없습니다. supabase/schema.sql 의 세미나 부분을 실행해 주세요.' : 'DB 등록 세미나를 불러오지 못했습니다: ' + (e.message || e);
+        SCH.ent[m] = SCH.ent[m] || [];
+      });
+  }
   function loadSchedule(fresh, btn) {
     if (!INTERNAL) return Promise.resolve();
     if (!SCH.month) SCH.month = todayYmd().slice(0, 7);
-    if (!CONFIG.appsScriptUrl) { SCH.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; renderSchedule(); return Promise.resolve(); }
     var m = SCH.month;
-    if (!fresh && SCH.data[m]) { renderSchedule(); return Promise.resolve(); }
-    return needPw('편성표를 불러오려면 구글시트 연동 비밀번호를 입력해 주세요.', fresh).then(function (pw) {
-      if (!pw) return;
-      SCH.loading = true; SCH.err = ''; renderSchedule();
-      if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
-      return api('schedule', { month: m, fresh: !!fresh }).then(function (res) {
-        if (!res.schedule) throw new Error('old_gs_status');
-        SCH.data[m] = res.schedule;
-        if (fresh) toast(monthLabel(m) + ' 편성표를 다시 불러왔습니다.');
-      }).catch(function (e) { if (e.code === 'unauthorized') PW = null; SCH.err = statusApiErr(e, '편성표를 불러오지 못했습니다'); if (VIEW === 'sched') toast(SCH.err, true, 12000); })
-        .then(function () { SCH.loading = false; if (btn) { btn.disabled = false; btn.textContent = '갱신'; } renderSchedule(); });
+    if (!fresh && SCH.data[m] && SCH.ent[m]) { renderSchedule(); return Promise.resolve(); }
+    var sheet = function () {
+      if (!fresh && SCH.data[m]) return Promise.resolve();
+      if (!CONFIG.appsScriptUrl) { SCH.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; return Promise.resolve(); }
+      return needPw('편성표를 불러오려면 구글시트 연동 비밀번호를 입력해 주세요.', fresh).then(function (pw) {
+        if (!pw) return;
+        return api('schedule', { month: m, fresh: !!fresh }).then(function (res) {
+          if (!res.schedule) throw new Error('old_gs_status');
+          SCH.data[m] = res.schedule;
+          if (fresh) toast(monthLabel(m) + ' 편성표를 다시 불러왔습니다. 대시보드에서 수정한 건은 수정값을 유지합니다.');
+        }).catch(function (e) { if (e.code === 'unauthorized') PW = null; SCH.err = statusApiErr(e, '편성표를 불러오지 못했습니다'); if (VIEW === 'sched') toast(SCH.err, true, 12000); });
+      });
+    };
+    SCH.loading = true; SCH.err = ''; renderSchedule();
+    if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
+    return Promise.all([sheet(), loadSchEntries(m)]).then(function () {
+      SCH.loading = false; if (btn) { btn.disabled = false; btn.textContent = '갱신'; } renderSchedule();
     });
+  }
+  // 시트 행 + DB 등록·수정을 합친 이 달 목록
+  function schRows(m) {
+    var sheet = (SCH.data[m] && SCH.data[m].rows) || [], ents = SCH.ent[m] || [], ov = {}, out = [], hidden = [];
+    ents.forEach(function (e) { if (e.sheet_key) ov[e.sheet_key] = e; });
+    sheet.forEach(function (r) {
+      var o = ov[schKey(r)];
+      if (o) { if (o.kind === 'hidden') hidden.push({ r: r, e: o }); return; }
+      out.push(Object.assign({}, r, { _src: 'sheet' }));
+    });
+    ents.forEach(function (e) {
+      if (e.kind === 'hidden' || !e.date || e.date.slice(0, 7) !== m) return;
+      out.push(Object.assign({}, e.fields || {}, { date: e.date, time: e.time || '', _src: e.kind, _ent: e }));
+    });
+    return { rows: out, hidden: hidden };
   }
   function renderSchedule() {
     if (VIEW !== 'sched') return;
     if (!SCH.month) SCH.month = todayYmd().slice(0, 7);
-    var m = SCH.month, d = SCH.data[m], rows = d ? d.rows : [], by = {};
+    var m = SCH.month, d = SCH.data[m], mg = schRows(m), rows = mg.rows, by = {}, nDb = rows.filter(function (r) { return r._src !== 'sheet'; }).length;
+    SCH.view = { by: by, hidden: mg.hidden };
     rows.forEach(function (r) { (by[r.date] || (by[r.date] = [])).push(r); });
     Object.keys(by).forEach(function (k) { by[k].sort(function (a, b) { return (a.time || '99') < (b.time || '99') ? -1 : (a.time || '99') > (b.time || '99') ? 1 : 0; }); });
     $('#schMonth').textContent = monthLabel(m);
-    $('#subtitle').textContent = d ? '편성표 · ' + monthLabel(m) + ' 세미나 ' + rows.length + '건 · 시트 조회 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : (SCH.loading ? '편성표를 불러오는 중…' : (SCH.err || '편성표'));
-    $('#srcLabel').textContent = d ? '데이터: 편성표(실시간)' : '';
+    $('#subtitle').textContent = (d || SCH.ent[m]) ? '편성표 · ' + monthLabel(m) + ' 세미나 ' + rows.length + '건' + (nDb ? ' (대시보드 등록·수정 ' + nDb + '건)' : '') + (d ? ' · 시트 조회 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : '') : (SCH.loading ? '편성표를 불러오는 중…' : (SCH.err || '편성표'));
+    $('#srcLabel').textContent = d ? '데이터: 편성표 + DB 등록' : (SCH.ent[m] ? '데이터: DB 등록' : '');
+    $('#schEntErr').textContent = SCH.entErr; $('#schEntErr').hidden = !SCH.entErr;
     var t = todayYmd(), html = WD.map(function (w, i) { return '<div class="cal-wd' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '') + '">' + w + '</div>'; }).join('');
     calDays(m).forEach(function (day) {
       var list = by[day] || [], am = [], pm = [];
@@ -3401,7 +3466,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
         for (var i = 0; i < 5; i++) {
           if (i === 4 && arr.length > 5) { h += '<span class="slot more">+' + (arr.length - 4) + '건</span>'; break; }
           var r = arr[i];
-          h += r ? '<span class="slot' + (schPlanned(r) ? ' plan' : '') + '" style="--c:' + schColor(r.type) + '" title="' + esc((r.time || '') + ' ' + (r.company || '') + ' · ' + (r.title || '')) + '"><b>' + esc(r.time || '–') + '</b>' + esc(r.company || r.title || '') + '</span>' : '<span class="slot empty"></span>';
+          h += r ? '<span class="slot' + (schPlanned(r) ? ' plan' : '') + (r._src !== 'sheet' ? ' db' : '') + '" style="--c:' + schColor(r.type) + '" title="' + esc((r.time || '') + ' ' + (r.company || '') + ' · ' + (r.title || '') + (r._src === 'new' ? ' (대시보드 등록)' : r._src === 'edit' ? ' (대시보드 수정)' : '')) + '"><b>' + esc(r.time || '–') + '</b>' + esc(r.company || r.title || '') + '</span>' : '<span class="slot empty"></span>';
         }
         return h;
       };
@@ -3413,25 +3478,30 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     $('#schCal').innerHTML = html;
     $('#schCal').classList.toggle('loading', SCH.loading);
     // 유형 범례
-    $('#schLegend').innerHTML = SCH_TYPE.map(function (x) { return '<li><i style="background:var(' + x[1] + ')"></i>' + x[0] + '</li>'; }).join('') + '<li><i class="dash"></i>예측·가예약</li>';
-    renderSchDetail(by);
+    $('#schLegend').innerHTML = SCH_TYPE.map(function (x) { return '<li><i style="background:var(' + x[1] + ')"></i>' + x[0] + '</li>'; }).join('') + '<li><i class="dash"></i>예측·가예약</li><li><i class="dbm"></i>대시보드 등록·수정</li>';
+    renderSchDetail(by, mg.hidden);
   }
-  function renderSchDetail(by) {
+  function renderSchDetail(by, hidden) {
     var day = SCH.sel, host = $('#schDetail');
-    if (!day || day.slice(0, 7) !== SCH.month) { host.innerHTML = '<div class="empty">달력에서 날짜를 누르면 그날 편성된 세미나의 상세 내용이 여기에 표시됩니다.</div>'; $('#schDetailTitle').textContent = '일별 상세'; return; }
-    var list = (by || {})[day] || [];
+    $('#schAddDay').hidden = !(day && day.slice(0, 7) === SCH.month);
+    if (!day || day.slice(0, 7) !== SCH.month) { host.innerHTML = '<div class="empty">달력에서 날짜를 누르면 그날 편성된 세미나의 상세 내용이 여기에 표시됩니다. 행을 누르면 수정할 수 있습니다.</div>'; $('#schDetailTitle').textContent = '일별 상세'; return; }
+    var list = (by || {})[day] || [], hid = (hidden || []).filter(function (h) { return h.r.date === day; });
     $('#schDetailTitle').textContent = dayLabel(day) + ' · 세미나 ' + list.length + '건';
-    if (!list.length) { host.innerHTML = '<div class="empty">이 날짜에 편성된 세미나가 없습니다.</div>'; return; }
+    if (!list.length && !hid.length) { host.innerHTML = '<div class="empty">이 날짜에 편성된 세미나가 없습니다. [이 날짜에 등록]으로 추가할 수 있습니다.</div>'; return; }
     host.innerHTML = '<div class="yoy-wrap"><table class="schtbl"><thead><tr><th>시간</th><th>상태</th><th>유형 · 송출</th><th>구분</th><th>회사 · 품목</th><th>행사명 · 연제</th><th>강사</th><th>장소</th><th>채널</th><th>PM</th><th>신청 / 참석</th></tr></thead><tbody>' +
-      list.map(function (r) {
-        return '<tr><td class="tm">' + esc(r.time || r.timeText || '–') + '</td><td><span class="st' + (schPlanned(r) ? ' plan' : '') + '">' + esc(r.status || '–') + '</span></td>' +
+      list.map(function (r, i) {
+        return '<tr class="click" data-i="' + i + '" title="눌러서 수정"><td class="tm">' + esc(r.time || r.timeText || '–') + (r._src === 'new' ? '<small class="dbtag">DB 등록</small>' : r._src === 'edit' ? '<small class="dbtag">DB 수정</small>' : '') + '</td><td><span class="st' + (schPlanned(r) ? ' plan' : '') + '">' + esc(r.status || '–') + '</span></td>' +
           '<td><span class="tp" style="--c:' + schColor(r.type) + '">' + esc(r.type || '–') + '</span><small>' + esc(r.tx || '') + '</small></td>' +
           '<td>' + (r.io ? '<span class="io-chip io-' + (r.io === '내부' ? 'in' : 'out') + '">' + esc(r.io) + '</span>' : '–') + '</td>' +
           '<td><b>' + esc(r.company || '–') + '</b><small>' + esc([r.cat, r.product || r.lead].filter(Boolean).join(' · ')) + '</small></td>' +
           '<td class="ttl"><b>' + esc(r.title || '–') + '</b>' + (r.topic && r.topic !== '-' ? '<small>' + esc(r.topic) + '</small>' : '') + '</td>' +
           '<td class="wrapc">' + esc(r.speaker || '–') + '</td><td class="wrapc">' + esc(r.place || '–') + '</td><td>' + esc(r.channel || '–') + '</td>' +
           '<td>' + esc(r.pm || '–') + (r.pmIn ? '<small>내부 ' + esc(r.pmIn) + '</small>' : '') + '</td><td class="num">' + esc(r.apply || '–') + '<small>' + esc(r.attend || '') + '</small></td></tr>';
+      }).join('') +
+      hid.map(function (h, i) {
+        return '<tr class="hid"><td class="tm">' + esc(h.r.time || '–') + '<small class="dbtag">숨김</small></td><td colspan="9"><s>' + esc((h.r.company ? h.r.company + ' · ' : '') + (h.r.title || '')) + '</s> <small>대시보드에서 삭제한 시트 건</small></td><td><button type="button" class="btn sm" data-restore="' + i + '">복원</button></td></tr>';
       }).join('') + '</tbody></table></div>';
+    SCH.view.dayList = list; SCH.view.dayHidden = hid;
   }
   $('#schCal').addEventListener('click', function (ev) {
     var b = ev.target.closest('.cal-day'); if (!b) return;
@@ -3440,9 +3510,88 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     SCH.sel = day; renderSchedule();
     $('#schDetailSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+  $('#schDetail').addEventListener('click', function (ev) {
+    var rb = ev.target.closest('button[data-restore]');
+    if (rb) { var h = SCH.view.dayHidden[+rb.dataset.restore]; if (h) seRestore(h.e, rb); return; }
+    var tr = ev.target.closest('tr[data-i]'); if (!tr) return;
+    var r = SCH.view.dayList[+tr.dataset.i]; if (r) seForm(r);
+  });
   $('#schPrev').addEventListener('click', function () { SCH.month = monthAdd(SCH.month, -1); SCH.sel = null; renderSchedule(); loadSchedule(false); });
   $('#schNext').addEventListener('click', function () { SCH.month = monthAdd(SCH.month, 1); SCH.sel = null; renderSchedule(); loadSchedule(false); });
   $('#schToday').addEventListener('click', function () { SCH.month = todayYmd().slice(0, 7); SCH.sel = todayYmd(); renderSchedule(); loadSchedule(false); });
+  $('#schAdd').addEventListener('click', function () { seForm(null, SCH.sel && SCH.sel.slice(0, 7) === SCH.month ? SCH.sel : (SCH.month === todayYmd().slice(0, 7) ? todayYmd() : SCH.month + '-01')); });
+  $('#schAddDay').addEventListener('click', function () { if (SCH.sel) seForm(null, SCH.sel); });
+
+  // ---- 세미나 등록·수정 (DB seminar_entries) ----
+  function seUser() { return USER ? USER.name + '(' + USER.id + ')' : ''; }
+  function seReload(months) {
+    var u = {}; months.forEach(function (x) { if (x) u[x] = 1; });
+    return Promise.all(Object.keys(u).map(loadSchEntries)).then(renderSchedule);
+  }
+  function seRestore(e, btn) {
+    if (!window.confirm('숨긴 시트 건을 다시 표시할까요?')) return;
+    if (btn) btn.disabled = true;
+    sbq(SB.from('seminar_entries').delete().eq('id', e.id)).then(function () { toast('시트 건을 다시 표시합니다.'); return seReload([e.sheet_month, e.date && e.date.slice(0, 7)]); })
+      .catch(function (er) { toast('복원하지 못했습니다: ' + (er.message || er), true); if (btn) btn.disabled = false; });
+  }
+  function seSetSelect(sel, v) {
+    if (v && ![].some.call(sel.options, function (o) { return o.value === v; })) { var o = document.createElement('option'); o.value = v; o.textContent = v; o.dataset.extra = '1'; sel.appendChild(o); }
+    sel.value = v || '';
+  }
+  function seForm(r, day) {
+    var m = $('#seModal'), src = r ? r._src : 'add', ent = r && r._ent;
+    m.querySelectorAll('option[data-extra]').forEach(function (o) { o.remove(); });
+    $('#seTitle').textContent = !r ? '세미나 등록' : '세미나 수정';
+    $('#seDesc').textContent = !r ? '대시보드에서 직접 등록한 세미나는 DB에만 저장되며 구글시트 편성표에는 쓰지 않습니다.'
+      : src === 'sheet' ? '편성표(구글시트)에서 불러온 건입니다. 여기서 수정하면 DB에 저장되고, 시트를 [갱신]해도 수정한 값이 유지됩니다.'
+      : src === 'edit' ? '편성표 건을 대시보드에서 수정한 상태입니다.' + (ent && ent.updated_by ? ' 최근 수정 ' + ent.updated_by + ' ' + new Date(ent.updated_at).toLocaleString('ko-KR', { hour12: false }) : '')
+      : '대시보드에서 등록한 건입니다.' + (ent && ent.created_by ? ' 등록 ' + ent.created_by : '') + (ent && ent.updated_by && ent.updated_at ? ' · 최근 수정 ' + ent.updated_by + ' ' + new Date(ent.updated_at).toLocaleString('ko-KR', { hour12: false }) : '');
+    $('#seDate').value = r ? r.date : (day || ''); $('#seTime').value = r ? (r.time || '') : '';
+    SE_FIELDS.forEach(function (f) { var el = $('#se_' + f); if (!el) return; if (el.tagName === 'SELECT') seSetSelect(el, r ? r[f] || '' : (f === 'status' ? '확정' : '')); else el.value = r ? r[f] || '' : ''; });
+    $('#seErr').textContent = '';
+    $('#seDel').hidden = !r; $('#seDel').textContent = src === 'new' ? '삭제' : '삭제(숨김)';
+    $('#seRevert').hidden = src !== 'edit';
+    m.classList.add('show'); (r ? $('#se_title') : $('#seDate')).focus();
+    var busy = function (on, txt) { ['#seOk', '#seDel', '#seRevert'].forEach(function (q) { $(q).disabled = on; }); $('#seOk').textContent = on && txt ? txt : '저장'; };
+    var done = function (msg, months) { m.classList.remove('show'); toast(msg); return seReload(months); };
+    var oldMonth = r ? (ent ? ent.sheet_month || (ent.date || '').slice(0, 7) : r.date.slice(0, 7)) : null;
+    $('#seCancel').onclick = function () { m.classList.remove('show'); };
+    $('#seRevert').onclick = function () {
+      if (!window.confirm('대시보드에서 수정한 내용을 지우고 편성표(시트) 값으로 되돌릴까요?')) return;
+      busy(true, '처리 중…');
+      sbq(SB.from('seminar_entries').delete().eq('id', ent.id)).then(function () { return done('시트 값으로 되돌렸습니다.', [ent.sheet_month, ent.date.slice(0, 7)]); })
+        .catch(function (er) { $('#seErr').textContent = '되돌리지 못했습니다: ' + (er.message || er); }).then(function () { busy(false); });
+    };
+    $('#seDel').onclick = function () {
+      var name = (r.company ? r.company + ' · ' : '') + (r.title || '');
+      if (!window.confirm(src === 'new' ? '「' + name + '」 세미나를 삭제할까요?' : '「' + name + '」 건을 달력에서 숨길까요? (편성표 원본은 그대로이며, 일별 상세에서 다시 복원할 수 있습니다)')) return;
+      busy(true, '삭제 중…');
+      var p = src === 'new' ? sbq(SB.from('seminar_entries').delete().eq('id', ent.id))
+        : src === 'edit' ? sbq(SB.from('seminar_entries').update({ kind: 'hidden', updated_by: seUser() }).eq('id', ent.id))
+        : sbq(SB.from('seminar_entries').insert({ kind: 'hidden', sheet_key: schKey(r), sheet_month: r.date.slice(0, 7), date: r.date, time: r.time || '', fields: seFieldsOf(r), created_by: seUser(), updated_by: seUser() }));
+      p.then(function () { return done(src === 'new' ? '세미나를 삭제했습니다.' : '달력에서 숨겼습니다. 일별 상세에서 복원할 수 있습니다.', [oldMonth, r.date.slice(0, 7)]); })
+        .catch(function (er) { $('#seErr').textContent = '삭제하지 못했습니다: ' + (er.message || er); }).then(function () { busy(false); });
+    };
+    $('#seForm').onsubmit = function (ev) {
+      ev.preventDefault();
+      var date = $('#seDate').value, time = $('#seTime').value, f = {};
+      SE_FIELDS.forEach(function (k) { var el = $('#se_' + k); if (el) f[k] = String(el.value || '').trim(); });
+      var err = !date ? '날짜를 입력해 주세요.' : !f.title && !f.company ? '행사명 또는 회사를 입력해 주세요.' : '';
+      $('#seErr').textContent = err; if (err) return;
+      busy(true, '저장 중…');
+      var row = { date: date, time: time || '', fields: f, updated_by: seUser() }, p;
+      if (src === 'add') { row.kind = 'new'; row.created_by = seUser(); p = sbq(SB.from('seminar_entries').insert(row)); }
+      else if (src === 'sheet') {
+        var keep = {}; ['cid', 'no', 'vendor', 'lead', 'survey', 'surveyN', 'timeText'].forEach(function (k) { if (r[k]) keep[k] = r[k]; });
+        row.fields = Object.assign(keep, f); row.kind = 'edit'; row.sheet_key = schKey(r); row.sheet_month = r.date.slice(0, 7); row.created_by = seUser();
+        p = sbq(SB.from('seminar_entries').upsert(row, { onConflict: 'sheet_key' }));
+      } else { row.fields = Object.assign({}, ent.fields || {}, f); p = sbq(SB.from('seminar_entries').update(row).eq('id', ent.id)); }
+      p.then(function () { SCH.sel = date; return done(src === 'add' ? '세미나를 등록했습니다.' : '세미나를 수정했습니다.', [oldMonth, date.slice(0, 7)]); })
+        .then(function () { if (date.slice(0, 7) !== SCH.month) { SCH.month = date.slice(0, 7); loadSchedule(false); } })
+        .catch(function (er) { $('#seErr').textContent = '저장하지 못했습니다: ' + (er.message || er); }).then(function () { busy(false); });
+    };
+  }
+  function seFieldsOf(r) { var f = {}; SE_FIELDS.concat(['cid', 'no']).forEach(function (k) { if (r[k]) f[k] = r[k]; }); return f; }
 
   // ===== 컨퍼런스 달력 =====
   var CF = { month: null, events: null, loading: false, err: '' };
@@ -3590,7 +3739,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       } else b.removeAttribute('aria-current');
     });
     setNav(false); dbBadge();
-    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 파일을 다시 읽어 DB에 저장합니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '매출 시트의 최신 값을 다시 불러옵니다' : VIEW === 'sched' ? '편성표에서 이번 달 세미나를 다시 불러옵니다' : VIEW === 'conf' ? 'DB에서 컨퍼런스 일정을 다시 불러옵니다' : VIEW === 'seminar' ? '저장소의 세미나 편성 파일을 다시 읽어 DB에 저장합니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
+    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 파일을 다시 읽어 DB에 저장합니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '매출 시트의 최신 값을 다시 불러옵니다' : VIEW === 'sched' ? '편성표에서 이번 달 세미나를 다시 불러옵니다 (대시보드에서 수정한 건은 유지)' : VIEW === 'conf' ? 'DB에서 컨퍼런스 일정을 다시 불러옵니다' : VIEW === 'seminar' ? '저장소의 세미나 편성 파일을 다시 읽어 DB에 저장합니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
     if (!fromHash) { try { history.replaceState(null, '', VIEW === 'home' ? location.pathname + location.search : '#' + VIEW); } catch (e) {} }
     if (stat) {
       if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
