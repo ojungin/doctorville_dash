@@ -1,11 +1,18 @@
 // 닥터빌 · 팜빌 운영 대시보드 — 계정 관리 Edge Function (admin-users)
 // 최고 관리자(profiles.role = 'super')만 호출 가능. 계정 등록·수정·비밀번호 재설정·삭제.
 // 배포: Supabase 대시보드 → Edge Functions → Deploy a new function → Via Editor → 이름 admin-users → 이 코드 붙여넣기 → Deploy
+// 배포 후 Settings 탭의 'Verify JWT with legacy secret'은 끔 (이 코드가 직접 로그인·최고 관리자 여부를 확인)
 // SUPABASE_URL · SUPABASE_ANON_KEY · SUPABASE_SERVICE_ROLE_KEY 는 Supabase가 자동으로 넣어 줍니다 (따로 설정하지 않음).
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const ALLOW_ORIGINS = ['https://ojungin.github.io'];
 const ROLES = ['super', 'admin', 'dv', 'partner'];
+// 관리자 키: 기존 SUPABASE_SERVICE_ROLE_KEY, 없으면 새 형식 SUPABASE_SECRET_KEYS({"default":"sb_secret_…"})
+function serviceKey() {
+  const k = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (k) return k;
+  try { const o = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}'); return o.default || Object.values(o)[0] as string; } catch { return ''; }
+}
 
 function cors(req: Request) {
   const o = req.headers.get('Origin') || '';
@@ -31,7 +38,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return out(req, { ok: false, error: 'method' }, 405);
   try {
     const url = Deno.env.get('SUPABASE_URL')!;
-    const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+    const admin = createClient(url, serviceKey(), { auth: { persistSession: false } });
     // 호출한 사람 확인 (로그인 토큰 → 사용자 → 프로필 권한)
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     const { data: who, error: whoErr } = await admin.auth.getUser(jwt);
