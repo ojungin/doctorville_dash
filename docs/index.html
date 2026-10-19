@@ -241,6 +241,35 @@ body.pdf-mode { padding-left: 0; }
   .nav-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; flex: none; }
   .nav-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 }
+/* 분석 리포트 */
+.rp-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.rp-tabs button { border: 0; background: none; padding: 10px 20px; font: inherit; font-size: 15px; font-weight: 600; color: var(--ink-2); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.rp-tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.rp-row { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; }
+.rp-range[hidden] { display: none; }
+.rp-range { display: inline-flex; align-items: center; gap: 6px; }
+.rp-range input[type=date] { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.rp-print { margin-left: auto; }
+.rp-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--ink-2); margin-top: 12px; }
+.rp-srcs { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.rp-srcs i { font-style: normal; font-size: 11.5px; padding: 1px 8px; border-radius: 18px; border: 1px solid var(--border); color: var(--ink-2); }
+.rp-srcs i.ok { border-color: var(--accent); color: var(--accent); }
+.rp-srcs i.bad { color: var(--down); border-color: var(--down); }
+.rp-cdesc { font-size: 12px; color: var(--muted); margin: 0 0 4px; }
+.rp-cov { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.rp-h3 { margin: 0 0 8px; font-size: 14px; font-weight: 700; }
+.rp-tbl { min-width: 720px; }
+.rp-tbl td.rp-c { color: var(--muted); font-size: 11.5px; text-align: left; white-space: normal; }
+.rp-tbl th.rowh.sub { padding-left: 20px; font-weight: 500; }
+.rp-tbl tr.rp-grp th { color: var(--muted); font-size: 11.5px; font-weight: 600; padding-top: 10px; }
+.rp-yoy td.rp-hi { background: var(--accent-soft); }
+.rp-yoy td.est { color: var(--ink-2); font-style: italic; }
+.rp-yoy .rp-ml { color: var(--muted); font-weight: 500; margin-right: 6px; }
+@media print {
+  body.view-report #sideNav, body.view-report .top, body.view-report #navScrim, body.view-report #rpPrint, body.view-report .rp-tabs, body.view-report #toast { display: none !important; }
+  body.view-report { padding-left: 0 !important; }
+  body.view-report section { break-inside: avoid; }
+}
 /* 홈·준비 중 화면 */
 #homeMain, #reportMain, #llmMain { display: none; }
 body.view-home #homeMain, body.view-report #reportMain, body.view-llm #llmMain { display: block; }
@@ -642,7 +671,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       <a class="nav-item" href="#pactivity" data-view="pactivity">활동성</a>
     </div>
     <div class="nav-sep" role="separator"></div>
-    <a class="nav-item" href="#report" data-view="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 12h6"/><path d="M9 16h6"/></svg><span>분석 리포트</span><span class="nav-soon">준비 중</span></a>
+    <a class="nav-item" href="#report" data-view="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 12h6"/><path d="M9 16h6"/></svg><span>분석 리포트</span></a>
     <a class="nav-item" href="#llm" data-view="llm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg><span>LLM</span><span class="nav-soon">준비 중</span></a>
     <a class="nav-item" href="#accounts" data-view="accounts"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.6-3.6 3.2-5.5 6.5-5.5 1.2 0 2.3.2 3.2.7"/><path d="M18 14v6M15 17h6"/></svg><span>계정 관리</span></a>
   </nav>
@@ -692,7 +721,31 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 </main>
 
 <main id="reportMain">
-  <div class="wrap"><section><div class="card soon"><h2>분석 리포트</h2><p>준비 중인 메뉴입니다.</p></div></section></div>
+  <div class="wrap" id="rpApp">
+    <section class="rp-ctl">
+      <div class="rp-tabs" id="rpTabs" role="tablist" aria-label="리포트 플랫폼">
+        <button type="button" role="tab" data-svc="dv" aria-selected="true">닥터빌</button>
+        <button type="button" role="tab" data-svc="pv" aria-selected="false">팜빌</button>
+      </div>
+      <div class="card">
+        <div class="rp-row">
+          <div class="seg" id="rpKind" role="group" aria-label="리포트 기간 단위">
+            <button type="button" data-kind="ytd" aria-pressed="true">년 (YTD)</button>
+            <button type="button" data-kind="month" aria-pressed="false">월</button>
+            <button type="button" data-kind="week" aria-pressed="false">주</button>
+            <button type="button" data-kind="range" aria-pressed="false">기간 지정</button>
+          </div>
+          <span id="rpMonthWrap" hidden><select id="rpMonth" aria-label="리포트 월"></select></span>
+          <span id="rpWeekWrap" hidden><select id="rpWeek" aria-label="리포트 주차"></select></span>
+          <span id="rpRangeWrap" class="rp-range" hidden><input type="date" id="rpFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="rpTo" aria-label="종료일"></span>
+          <button type="button" class="btn rp-print" id="rpPrint" title="브라우저 인쇄 창에서 PDF로 저장할 수 있습니다">인쇄 · PDF</button>
+        </div>
+        <div class="rp-meta" id="rpMeta"></div>
+      </div>
+    </section>
+    <div id="rpBody"></div>
+    <footer>분석 리포트는 각 메뉴의 집계값(월·주·일 단위)만 사용하며 개인 단위 데이터는 쓰지 않습니다. 고객사별 매출 등 협력사 관련 수치는 외부 공유 전 사전 승인이 필요합니다.</footer>
+  </div>
 </main>
 
 <main id="llmMain">
@@ -1880,6 +1933,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (VIEW === 'activity') loadActivity(false);
     if (VIEW === 'pactivity') loadPvActivity(false);
     if (VIEW === 'home') loadHome();
+    if (VIEW === 'report') rpLoad();
     if (VIEW === 'seminar') loadSeminar(false);
     $('#weekSel').addEventListener('change', function () { if (state.mode === 'month') loadMonth(this.value); else load(this.value); });
     startMembers();
@@ -1982,7 +2036,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (VIEW === 'sales') setSalesHeader();
     if (VIEW === 'sched') renderSchedule();
     if (VIEW === 'conf') renderConf();
-    if (VIEW === 'home') renderHome();
+    if (VIEW === 'home' || VIEW === 'report') renderHome();
   }
 
   // ---- PDF 내려받기 (브라우저 안에서 생성, 서버 전송 없음) ----------------
@@ -2553,7 +2607,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     });
   }
   function renderActivity() {
-    if (VIEW !== 'activity') { if (VIEW === 'home') renderHome(); return; }
+    if (VIEW !== 'activity') { if (VIEW === 'home' || VIEW === 'report') renderHome(); return; }
     $('#aEmpty').hidden = !!A.data; document.querySelectorAll('#actApp .adata').forEach(function (s) { s.hidden = !A.data; });
     if (!A.data) { $('#aEmpty').textContent = A.err || (A.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); setActHeader(); return; }
     var S = aSets(), ps = aPeriods(S.tot);
@@ -2760,7 +2814,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     });
   }
   function renderPvActivity() {
-    if (VIEW !== 'pactivity') { if (VIEW === 'home') renderHome(); return; }
+    if (VIEW !== 'pactivity') { if (VIEW === 'home' || VIEW === 'report') renderHome(); return; }
     $('#paEmpty').hidden = !!PA.data; document.querySelectorAll('#pactApp .padata').forEach(function (s) { s.hidden = !PA.data; });
     if (!PA.data) { $('#paEmpty').textContent = PA.err || (PA.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); setPActHeader(); return; }
     var S = paSets(), ps = paPeriods(S);
@@ -3055,7 +3109,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     });
   }
   function renderSales() {
-    if (VIEW !== 'sales') { if (VIEW === 'home') renderHome(); return; }
+    if (VIEW !== 'sales') { if (VIEW === 'home' || VIEW === 'report') renderHome(); return; }
     var d = SL.data;
     $('#slEmpty').hidden = !!d; document.querySelectorAll('#salesApp .sldata').forEach(function (s) { s.hidden = !d; });
     if (!d) { $('#slEmpty').textContent = SL.err || (SL.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); setSalesHeader(); return; }
@@ -3249,7 +3303,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     });
   }
   function renderSeminar() {
-    if (VIEW !== 'seminar') { if (VIEW === 'home') renderHome(); return; }
+    if (VIEW !== 'seminar') { if (VIEW === 'home' || VIEW === 'report') renderHome(); return; }
     var d = SEM.data;
     $('#semEmpty').hidden = !!d; document.querySelectorAll('#semApp .semdata').forEach(function (s) { s.hidden = !d; });
     if (!d) { $('#semEmpty').textContent = SEM.err || (SEM.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); setSemHeader(); return; }
@@ -3743,6 +3797,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (!fromHash) { try { history.replaceState(null, '', VIEW === 'home' ? location.pathname + location.search : '#' + VIEW); } catch (e) {} }
     if (stat) {
       if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
+      else if (VIEW === 'report') { renderReport(); if (started) rpLoad(); }
       else if (VIEW === 'accounts') { renderAccounts(); if (started && !ACCV.dir && !ACCV.loading) loadDir(); }
       else $('#subtitle').textContent = '준비 중인 메뉴입니다';
       return;
@@ -3897,6 +3952,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       hStat('잔여 포인트', bal != null ? bigP(bal) : '–', 'P', d.holders ? '보유 ' + fmt(d.holders.over0) + '명' : '') + '</div>');
   }
   function renderHome() {
+    if (VIEW === 'report') { renderReport(); return; }
     if (VIEW !== 'home') return;
     $('#subtitle').textContent = '메뉴별 핵심 지표 요약';
     if (!AUTHED) { $('#homeSales').innerHTML = ''; $('#homeMembers').innerHTML = ''; return; }
@@ -3904,6 +3960,440 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     $('#homeSales').innerHTML = homeSales() + homeSeminar() + homePoints('dv') + homePoints('pv');
     $('#homeMembers').innerHTML = homeMemberCard('dv', 'members') + homeActDv() + homeMemberCard('pv', 'pharm') + homeActPv();
   }
+
+
+  // ---- 분석 리포트 (닥터빌 · 팜빌 탭) ----------------------------------------
+  // 원천은 각 메뉴가 이미 쓰는 저장본·시트 집계(월·주·일 단위)를 그대로 사용. 선택 기간 [a, b]는 일 단위로 맞춤:
+  //   합계형: 기간에 완전히 들어가는 월 → 주 → 일 값을 먼저 쓰고, 남는 날은 그 날을 포함한 주·월 값을 일할(추정)
+  //   평균형: DAU 일 평균(일 → 주 → 월, 겹친 일수 가중) · WAU 주 평균 · MAU 월 평균
+  //   시점형: 기간 끝 이전 마지막 값(전체 회원·잔여 포인트)
+  //   전년 동기: 같은 날짜(주 단위 선택이면 같은 ISO 주차, 364일 전), 올해 집계가 끝난 날까지만 비교
+  var RP = { svc: 'dv', kind: 'ytd', month: null, week: null, from: null, to: null, dvSnap: null, dvBusy: false, dvErr: '' };
+  function rdn(s) { return Math.floor(Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / DAY_MS); }
+  function rds(n) { return new Date(n * DAY_MS).toISOString().slice(0, 10); }
+  function rMonthEnd(ym) { return new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7), 0)).toISOString().slice(0, 10); }
+  function rShiftY(s, k) { var md = s.slice(5); if (md === '02-29') md = '02-28'; return (+s.slice(0, 4) + k) + '-' + md; }
+  function rWeekStart(w) { var ms = weekMonday(w); return ms == null ? null : new Date(ms + KST_MS).toISOString().slice(0, 10); }
+  function rWeekOf(s) { return isoWeekOf(Date.parse(s + 'T12:00:00+09:00')); }
+  function rKstDay(iso, off) { var t = Date.parse(iso); return isNaN(t) ? null : rds(Math.floor((t + KST_MS) / DAY_MS) + (off || 0)); }
+  function rPad(n) { return (n < 10 ? '0' : '') + n; }
+  function rMd(s) { return (+s.slice(5, 7)) + '/' + (+s.slice(8, 10)); }
+  function rSpan(a, b) { var s = rds(a), e = rds(b); return (s.slice(0, 4) !== e.slice(0, 4) ? s.slice(0, 4) + '/' : '') + rMd(s) + '~' + rMd(e); }
+  function rSrc(end) { return { end: end, en: end ? rdn(end) : -1e9, m: [], w: [], d: [] }; }
+  function rPush(src, g, s, e, v) { v = paN(v); if (v != null && s && e) src[g].push({ s: s, e: e, a: rdn(s), b: rdn(e), v: v }); }
+
+  function rSum(src, a, b) {
+    var b2 = Math.min(b, src.en); if (b2 < a) return { val: null, a: a, b: b2, est: 0, miss: b - a + 1, none: true };
+    var n = b2 - a + 1, cov = new Uint8Array(n), val = 0, any = false, est = 0;
+    ['m', 'w', 'd'].forEach(function (g) {
+      src[g].forEach(function (it) {
+        if (it.a < a || it.b > b2) return;
+        for (var x = it.a; x <= it.b; x++) if (cov[x - a]) return;
+        for (x = it.a; x <= it.b; x++) cov[x - a] = 1;
+        val += it.v; any = true;
+      });
+    });
+    ['d', 'w', 'm'].forEach(function (g) {
+      src[g].forEach(function (it) {
+        if (it.b > src.en || it.b < a || it.a > b2) return;
+        var len = it.b - it.a + 1;
+        for (var x = Math.max(it.a, a); x <= Math.min(it.b, b2); x++) if (!cov[x - a]) { cov[x - a] = 2; val += it.v / len; est++; any = true; }
+      });
+    });
+    var miss = 0; for (var i = 0; i < n; i++) if (!cov[i]) miss++;
+    return { val: any ? val : null, a: a, b: b2, est: est, miss: miss + (b - b2) };
+  }
+  var RP_AVG = { dau: [['d', 1], ['w', 1], ['m', 1]], wau: [['w', 4]], mau: [['m', 15], ['w', 4]], mavg: [['m', 15]] };
+  function rAvg(src, a, b, how) {
+    var b2 = Math.min(b, src.en); if (b2 < a) return { val: null, a: a, b: b2, none: true };
+    var pref = RP_AVG[how];
+    if (how === 'dau' && !src.d.length) {   // 일별 값이 없고 기간이 월 단위로 딱 맞으면 월간 DAU 사용
+      var fm = src.m.filter(function (it) { return it.a >= a && it.b <= b2; }), dd = 0, sv0 = 0;
+      fm.forEach(function (it) { var len = it.b - it.a + 1; dd += len; sv0 += it.v * len; });
+      if (fm.length && dd === b2 - a + 1) return { val: sv0 / dd, a: a, b: b2, g: 'm', cnt: fm.length };
+    }
+    for (var k = 0; k < pref.length; k++) {
+      var g = pref[k][0], minO = pref[k][1], sw = 0, sv = 0, cnt = 0;
+      src[g].forEach(function (it) {
+        if (it.b > src.en) return;
+        var o = Math.min(it.b, b2) - Math.max(it.a, a) + 1; if (o < minO) return;
+        var w = how === 'dau' ? o : 1; sw += w; sv += it.v * w; cnt++;
+      });
+      if (sw) return { val: sv / sw, a: a, b: b2, g: g, cnt: cnt };
+    }
+    return { val: null, a: a, b: b2 };
+  }
+  function rLevel(src, a, b) {
+    var b2 = Math.min(b, src.en), best = null;
+    ['m', 'w', 'd'].forEach(function (g) { src[g].forEach(function (it) { if (it.b <= b2 && it.b >= a - 31 && (!best || it.b >= best.b)) best = it; }); });
+    return { val: best ? best.v : null, a: a, b: b2, at: best ? best.e : null, none: !best };
+  }
+  function rEval(mt, a, b) { return !mt.src ? null : mt.kind === 'sum' ? rSum(mt.src, a, b) : mt.kind === 'level' ? rLevel(mt.src, a, b) : rAvg(mt.src, a, b, mt.how); }
+  // 전년 값이 올해와 같은 범위로 집계됐을 때만 증감률 표시
+  function rOk(c, p) { return !!(c && p && c.val != null && p.val != null && (p.miss || 0) <= (c.miss || 0) + 1); }
+  function rCmp(mt, P) {
+    var c = rEval(mt, P.a, P.b); if (!c) return null;
+    var end = c.b >= P.a ? c.b : P.b;
+    return { cur: c, prev: rEval(mt, P.shift(P.a), P.shift(end)) };
+  }
+  function rFmt(mt, v) {
+    if (v == null || isNaN(v)) return '–';
+    if (mt.unit === '원') return won(v) + '원';
+    if (mt.unit === 'P') return bigP(v) + 'P';
+    return fmt(Math.round(v)) + mt.unit;
+  }
+  function rRate(c, p) { return rOk(c, p) && p.val ? (c.val - p.val) / Math.abs(p.val) * 100 : null; }
+  function rCov(mt, r) {
+    if (!r || !mt.src) return '';
+    if (r.none) return '이 기간 데이터 없음';
+    if (mt.kind === 'level') return r.at ? r.at + ' 기준' : '';
+    if (mt.kind !== 'sum') return rSpan(r.a, r.b) + ' · ' + (r.g === 'd' ? '일별' : r.g === 'w' ? '주간 ' + r.cnt + '주' : r.g === 'm' ? '월간 ' + r.cnt + '개월' : '') + ' 평균';
+    var t = [rSpan(r.a, r.b)];
+    if (r.est) t.push(r.est + '일 일할 추정');
+    if (r.miss) t.push(r.miss + '일 미집계');
+    return t.join(' · ');
+  }
+
+  // ---- 원천 → 지표 ----
+  function rSnap(svc) {
+    var c = [STATES[svc] && STATES[svc].snap, svc === 'pv' ? HOME.pvSnap : RP.dvSnap].filter(function (s) { return s && s.kpi && s.svc === svc; });
+    c.sort(function (x, y) { return x.weekEnd < y.weekEnd ? 1 : -1; });
+    return c[0] || null;
+  }
+  function rMembers(svc) {
+    var s = rSnap(svc); if (!s) return null;
+    var end = s.monthRef && s.monthRef.end > s.weekEnd ? s.monthRef.end : s.weekEnd;
+    var nw = rSrc(end), tot = rSrc(end);
+    (s.monthlySeries || []).forEach(function (x) { rPush(nw, 'm', x.start, x.end, x.new); rPush(tot, 'm', x.start, x.end, x.cumulative); });
+    (s.weekly || []).forEach(function (x) { rPush(nw, 'w', x.start, x.end, x.new); rPush(tot, 'w', x.start, x.end, x.cumulative); });
+    return { end: s.weekEnd, fine: true, at: s.generatedAtKst, newM: nw, total: tot };
+  }
+  function rPoints(svc) {
+    var d = (PSTATES[svc] && PSTATES[svc].data) || HOME.pts[svc]; if (!d || !d.months) return null;
+    var end = d.range && d.range.to ? d.range.to.slice(0, 10) : null, o = { end: end, fine: true, at: d.generatedAtKst };
+    var keys = { earn: 'earn', use: 'use', cancel: 'cancel', expire: 'expire' };
+    Object.keys(keys).forEach(function (k) { o[k] = rSrc(end); });
+    o.bal = rSrc(end);
+    var put = function (g, s, e, src, i) {
+      Object.keys(keys).forEach(function (k) { if (src[k] && src[k].amt) rPush(o[k], g, s, e, Math.abs(src[k].amt[i] || 0)); });
+      var bl = src.balanceTotal || src.balance; if (bl) rPush(o.bal, g, s, e, bl[i]);
+    };
+    d.months.forEach(function (m, i) { put('m', m + '-01', rMonthEnd(m), d, i); });
+    if (d.weekly && d.weekly.weeks) d.weekly.weeks.forEach(function (w, i) { var s = w.slice(0, 10); put('w', s, rds(rdn(s) + 6), d.weekly, i); });
+    return o;
+  }
+  function rActDv() {
+    if (!A.data || !A.data.weekly) return null;
+    var end = rKstDay(A.data.fetchedAt, -1) || rds(Math.floor((Date.now() + KST_MS) / DAY_MS) - 1);
+    var o = { end: end, fine: true, at: A.data.fetchedAt ? new Date(A.data.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : '' };
+    ['dau', 'wau', 'mau', 'views', 'newU'].forEach(function (k) { o[k] = rSrc(end); });
+    var tot = function (rows) { var t = rows.filter(function (r) { return r.dev === '전체'; }); return t.length ? t : rows.filter(function (r) { return r.dev == null || r.dev === ''; }); };
+    tot(aTable(A.data.weekly)).forEach(function (r) {
+      var p = String(r.period || ''); if (!/^\d{4}-\d{2}-\d{2}/.test(p)) return;
+      var s = rWeekStart(rWeekOf(p.slice(0, 10))), e = rds(rdn(s) + 6);
+      ['dau', 'wau', 'mau', 'views'].forEach(function (k) { rPush(o[k], 'w', s, e, r[k]); });
+    });
+    if (A.data.monthly) tot(aTable(A.data.monthly)).forEach(function (r) {
+      var p = String(r.period || ''); if (!/^\d{4}-\d{2}/.test(p)) return;
+      var m = p.slice(0, 7);
+      ['dau', 'mau', 'views', 'newU'].forEach(function (k) { rPush(o[k], 'm', m + '-01', rMonthEnd(m), r[k]); });
+    });
+    return o;
+  }
+  function rActPv() {
+    if (!PA.data || !PA.data.weekly) return null;
+    var daily = paRows(PA.data.daily).filter(function (r) { return /^\d{4}-\d{2}-\d{2}$/.test(String(r['날짜'])); });
+    var lastD = daily.reduce(function (m, r) { return r['날짜'] > m ? r['날짜'] : m; }, '');
+    var end = rKstDay(PA.data.fetchedAt, -1); if (lastD && (!end || lastD < end)) end = lastD;
+    var o = { end: end, fine: true, at: new Date(PA.data.fetchedAt).toLocaleString('ko-KR', { hour12: false }) };
+    ['dau', 'wau', 'mau', 'visits', 'newU', 'views', 'members'].forEach(function (k) { o[k] = rSrc(end); });
+    var K = { dau: 'DAU', wau: 'WAU', mau: 'MAU', visits: '방문수', newU: '신규', views: '조회수' };
+    paRows(PA.data.weekly).forEach(function (r) {
+      if (r['구분'] !== '전체' || r['상태'] === '진행중') return;
+      var s = rWeekStart(String(r['주차'] || '')); if (!s) return;
+      var e = rds(rdn(s) + 6);
+      Object.keys(K).forEach(function (k) { rPush(o[k], 'w', s, e, r[K[k]]); });
+    });
+    paRows(PA.data.monthly).forEach(function (r) {
+      if (r['구분'] !== '전체' || r['상태'] === '진행중') return;
+      var m = String(r['월'] || ''); if (!/^\d{4}-\d{2}$/.test(m)) return;
+      Object.keys(K).forEach(function (k) { if (k !== 'wau') rPush(o[k], 'm', m + '-01', rMonthEnd(m), r[K[k]]); });
+      rPush(o.members, 'm', m + '-01', rMonthEnd(m), r['회원수']);
+    });
+    daily.forEach(function (r) { rPush(o.dau, 'd', r['날짜'], r['날짜'], r['전체']); });
+    return o;
+  }
+  function rSales() {
+    if (!SL.data || !SL.data.years) return null;
+    var now = slNow(), ny = now.slice(0, 4), dn = slDone(ny);
+    var end = dn > 0 ? rMonthEnd(ny + '-' + rPad(dn)) : (+ny - 1) + '-12-31';
+    var o = { end: end, fine: false, at: SL.data.fetchedAt ? new Date(SL.data.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : '', all: rSrc(end), io: {}, cat: {}, cust: {} };
+    var get = function (map, k) { return map[k] || (map[k] = rSrc(end)); };
+    Object.keys(SL.data.years).forEach(function (y) {
+      var add = function (src, r) { r.m.forEach(function (v, i) { if (v) rPush(src, 'm', y + '-' + rPad(i + 1) + '-01', rMonthEnd(y + '-' + rPad(i + 1)), v); }); };
+      SL.data.years[y].rows.forEach(function (r) {
+        add(o.all, r); if (r.io) add(get(o.io, r.io), r); if (r.cat) add(get(o.cat, r.cat), r); if (r.c) { add(get(o.cust, r.c), r); o.cust[r.c].meta = r; }
+      });
+    });
+    // 같은 달 여러 행 → 월별 합계로 합침 (합계형 덮어쓰기 방지)
+    var merge = function (src) {
+      var by = {}; src.m.forEach(function (it) { (by[it.s] || (by[it.s] = { s: it.s, e: it.e, a: it.a, b: it.b, v: 0 })).v += it.v; });
+      src.m = Object.keys(by).sort().map(function (k) { return by[k]; });
+    };
+    merge(o.all); [o.io, o.cat, o.cust].forEach(function (mp) { Object.keys(mp).forEach(function (k) { merge(mp[k]); }); });
+    // 실적 월만 있는 달은 0원으로 채움(빈 달이 '미집계'로 보이지 않게)
+    var fill = function (src) {
+      var have = {}; src.m.forEach(function (it) { have[it.s] = 1; });
+      Object.keys(SL.data.years).forEach(function (y) { for (var i = 1; i <= 12; i++) { var s = y + '-' + rPad(i) + '-01'; if (!have[s] && rdn(rMonthEnd(s.slice(0, 7))) <= src.en) rPush(src, 'm', s, rMonthEnd(s.slice(0, 7)), 0); } });
+    };
+    fill(o.all); [o.io, o.cat, o.cust].forEach(function (mp) { Object.keys(mp).forEach(function (k) { fill(mp[k]); }); });
+    return o;
+  }
+  function rSem() {
+    var d = SEM.data; if (!d || !d.months || !d.total) return null;
+    var n = semNow(), py = +n.slice(0, 4), pm = +n.slice(5, 7) - 1; if (pm === 0) { py--; pm = 12; }
+    var end = rMonthEnd(py + '-' + rPad(pm)), o = { end: end, fine: false, at: d.fetchedAt ? new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : '', total: rSrc(end) };
+    d.months.forEach(function (m, i) { rPush(o.total, 'm', m + '-01', rMonthEnd(m), d.total[i] || 0); });
+    return o;
+  }
+
+  // 플랫폼별 지표 정의
+  function rBuild(svc) {
+    var mem = rMembers(svc), pts = rPoints(svc), act = svc === 'dv' ? rActDv() : rActPv(), sl = svc === 'dv' && INTERNAL ? rSales() : null, sem = svc === 'dv' ? rSem() : null;
+    var M = function (label, src, kind, unit, how, note) { return { label: label, src: src || null, kind: kind, unit: unit, how: how, note: note || '' }; };
+    var B = { mem: mem, pts: pts, act: act, sl: sl, sem: sem, src: [] };
+    B.src.push({ k: '회원', o: mem, err: svc === 'pv' ? (HOME.pvErr || '') : RP.dvErr });
+    B.src.push({ k: '포인트', o: pts, err: HOME.pts[svc] === false ? '포인트 집계 저장본이 없습니다.' : '' });
+    B.src.push({ k: '활동성', o: act, err: svc === 'dv' ? (HOME.aErr || A.err || '') : (HOME.paErr || PA.err || '') });
+    if (svc === 'dv') { B.src.push({ k: '매출', o: sl, err: HOME.slErr || SL.err || '' }); B.src.push({ k: '세미나', o: sem, err: HOME.semErr || SEM.err || '' }); }
+    B.m = {
+      newM: M('신규 가입', mem && mem.newM, 'sum', '명'), total: M('전체 회원 (가입 누적)', mem && mem.total, 'level', '명'),
+      earn: M('포인트 적립', pts && pts.earn, 'sum', 'P'), use: M('포인트 사용', pts && pts.use, 'sum', 'P'),
+      cancel: M('적립 취소', pts && pts.cancel, 'sum', 'P'), expire: M('포인트 소멸', pts && pts.expire, 'sum', 'P'), bal: M('잔여 포인트', pts && pts.bal, 'level', 'P'),
+      dau: M('DAU (일 평균)', act && act.dau, 'avg', '명', 'dau'), wau: M('WAU (주 평균)', act && act.wau, 'avg', '명', 'wau'),
+      mau: M('MAU', act && act.mau, 'avg', '명', 'mau', '주 단위 선택이면 그 주의 MAU(최근 30일)'), views: M('조회수', act && act.views, 'sum', '회'),
+      newU: M(svc === 'pv' ? '신규 방문자' : '신규 사용자', act && act.newU, 'sum', '명')
+    };
+    if (svc === 'pv') { B.m.visits = M('방문수', act && act.visits, 'sum', '회'); B.m.gaMem = M('회원수 (활동성 시트)', act && act.members, 'level', '명'); }
+    if (svc === 'dv') {
+      B.m.sales = M('매출 (실적)', sl && sl.all, 'sum', '원'); B.m.sem = M('세미나 진행', sem && sem.total, 'sum', '건');
+    }
+    // 기준일: 주·일 단위 원천(회원·포인트·활동성)이 모두 집계된 마지막 날
+    var ends = [mem, pts, act].filter(Boolean).map(function (o) { return o.end; }).filter(Boolean).sort();
+    B.anchor = ends[0] || rds(Math.floor((Date.now() + KST_MS) / DAY_MS) - 1);
+    return B;
+  }
+
+  // ---- 기간 ----
+  function rDefaults(anc) {
+    var me = rMonthEnd(anc.slice(0, 7)), wk = rWeekOf(anc), ws = rWeekStart(wk);
+    var dm = anc === me ? anc.slice(0, 7) : rds(rdn(anc.slice(0, 7) + '-01') - 1).slice(0, 7);
+    var dw = rds(rdn(ws) + 6) === anc ? wk : rWeekOf(rds(rdn(ws) - 1));
+    return { month: dm, week: dw, from: anc.slice(0, 4) + '-01-01', to: anc };
+  }
+  function rPeriod(anc) {
+    var k = RP.kind, a, b, lbl;
+    if (k === 'ytd') { a = anc.slice(0, 4) + '-01-01'; b = anc; lbl = anc.slice(0, 4) + '년 누적 (YTD · 1/1~' + rMd(anc) + ')'; }
+    else if (k === 'month') { a = RP.month + '-01'; b = rMonthEnd(RP.month); lbl = RP.month.slice(0, 4) + '년 ' + (+RP.month.slice(5, 7)) + '월' + (b > anc ? ' (~' + rMd(anc) + ', 진행 중)' : ''); }
+    else if (k === 'week') { a = rWeekStart(RP.week); b = rds(rdn(a) + 6); lbl = RP.week + ' (' + rMd(a) + '~' + rMd(b) + ')'; }
+    else { a = RP.from; b = RP.to; lbl = a + ' ~ ' + b; }
+    var shift = k === 'week' ? function (n) { return n - 364; } : function (n) { return rdn(rShiftY(rds(n), -1)); };
+    var pa = shift(rdn(a)), pb = shift(Math.min(rdn(b), rdn(anc)));
+    return { a: rdn(a), b: Math.min(rdn(b), rdn(anc)), as: a, bs: b, label: lbl, shift: shift, prevLabel: (k === 'week' ? rWeekOf(rds(pa)) + ' (' + rSpan(pa, pa + 6) + ')' : rds(pa) + ' ~ ' + rds(pb)) };
+  }
+  function rWins(P, anc) {
+    var aY = +anc.slice(0, 4), Y = Math.min(+P.bs.slice(0, 4), aY), an = rdn(anc), out = [], hi = -1;
+    if (RP.kind === 'week') {
+      for (var n = 1; n <= 53; n++) {
+        var w = Y + '-W' + rPad(n), s = rWeekStart(w); if (!s || rWeekOf(s) !== w) break;
+        var a = rdn(s), b = a + 6; if (b > an) break;
+        if (w === RP.week) hi = out.length;
+        out.push({ lab: 'W' + rPad(n), title: w + ' (' + rSpan(a, b) + ')', a: a, b: b, pa: a - 364, pb: b - 364 });
+      }
+    } else {
+      var lastM = Y === aY ? +anc.slice(5, 7) : 12;
+      for (var m = 1; m <= lastM; m++) {
+        var ym = Y + '-' + rPad(m), s2 = ym + '-01', e2 = rMonthEnd(ym), part = rdn(e2) > an; if (part) e2 = anc;
+        if (RP.kind === 'month' && RP.month === ym) hi = out.length;
+        out.push({ lab: m + '월' + (part ? '*' : ''), title: Y + '년 ' + m + '월' + (part ? ' (1~' + (+anc.slice(8, 10)) + '일)' : ''), a: rdn(s2), b: rdn(e2), pa: rdn(rShiftY(s2, -1)), pb: rdn(rShiftY(e2, -1)), part: part });
+      }
+    }
+    return { Y: Y, list: out, hi: hi, wk: RP.kind === 'week' };
+  }
+  function rSeries(mt, W) {
+    var half = function (r, a, b) { return !r || r.val == null || (mt.kind === 'sum' && r.miss > (b - a + 1) / 2) ? null : r.val; };
+    var isE = function (r, a, b) { return !!(r && r.est && r.est * 2 >= (b - a + 1)); };
+    var o = { cur: [], prev: [], curE: [], prevE: [] };
+    W.list.forEach(function (w) {
+      var c = rEval(mt, w.a, w.b), p = rEval(mt, w.pa, w.pb);
+      o.cur.push(half(c, w.a, w.b)); o.prev.push(half(p, w.pa, w.pb)); o.curE.push(isE(c, w.a, w.b)); o.prevE.push(isE(p, w.pa, w.pb));
+    });
+    return o;
+  }
+
+  // ---- 화면 ----
+  function rpLoad() {
+    if (!AUTHED || !INTERNAL) return;
+    loadHome();
+    if (!STATES.dv.snap && !STATES.dv.started && !RP.dvSnap && !RP.dvBusy && !RP.dvErr) {
+      RP.dvBusy = true;
+      getJson('data/index.enc.json').then(function (idx) {
+        var l = idx.snapshots; return getJson('data/snapshots/' + l[l.length - 1].week + '.enc.json').then(function (sn) { RP.dvSnap = sn; });
+      }).catch(function () { RP.dvErr = '닥터빌 회원 집계를 불러오지 못했습니다. 닥터빌 회원 정보 메뉴에서 확인해 주세요.'; })
+        .then(function () { RP.dvBusy = false; renderReport(); });
+    }
+  }
+  function rKpi(mt, P) {
+    var r = rCmp(mt, P);
+    if (!mt.src || !r) return '<div class="card kpi"><div class="label">' + mt.label + '</div><div class="value">–</div><div class="meta">데이터 없음</div></div>';
+    var rt = rRate(r.cur, r.prev);
+    var meta = (rt != null ? deltaHtml(rt, '%', 1) + ' 전년 동기 대비 · ' : '') + '전년 ' + rFmt(mt, r.prev && r.prev.val) + (rOk(r.cur, r.prev) || !r.prev || r.prev.val == null ? '' : ' (일부 기간)');
+    return '<div class="card kpi"><div class="label">' + mt.label + '</div><div class="value">' + rFmt(mt, r.cur.val) + '</div><div class="meta">' + meta + '</div><div class="rp-cov">' + esc(rCov(mt, r.cur)) + '</div></div>';
+  }
+  function rSumTable(rows, P) {
+    var body = rows.map(function (mt) {
+      if (!mt) return '';
+      if (mt.group) return '<tr class="rp-grp"><th class="rowh" colspan="6">' + esc(mt.group) + '</th></tr>';
+      var r = rCmp(mt, P), c = r && r.cur, p = r && r.prev, ok = rOk(c, p), rt = rRate(c, p);
+      var diff = ok ? c.val - p.val : null;
+      return '<tr><th class="rowh' + (mt.sub ? ' sub' : '') + '" title="' + esc(mt.note || mt.label) + '">' + esc(mt.label) + '</th><td><b>' + rFmt(mt, c && c.val) + '</b></td><td>' + rFmt(mt, p && p.val) + '</td>' +
+        '<td>' + (diff == null ? '<span class="z">–</span>' : '<span class="delta ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat') + '">' + (diff > 0 ? '+' : '') + rFmt(mt, diff) + '</span>') + '</td>' +
+        '<td>' + (rt == null ? '<span class="z">' + (c && c.val != null && p && p.val != null ? '비교 불가' : '–') + '</span>' : deltaHtml(rt, '%', 1)) + '</td><td class="rp-c">' + esc(rCov(mt, c)) + '</td></tr>';
+    }).join('');
+    return '<div class="yoy-wrap"><table class="semtbl rp-tbl"><thead><tr><th class="rowh">지표</th><th>선택 기간</th><th>전년 동기</th><th>증감</th><th>증감률</th><th>집계 범위 (선택 기간)</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+  }
+  function rYoyTable(mts, W) {
+    var Y = W.Y, py = Y - 1, rows = '', anyE = false;
+    var tot = function (mt, prev) {
+      if (!W.list.length) return null;
+      var a = W.list[0].a, b = W.list[W.list.length - 1].b;
+      var r = prev ? rEval(mt, W.list[0].pa, W.list[W.list.length - 1].pb) : rEval(mt, a, b);
+      return r ? r.val : null;
+    };
+    mts.forEach(function (mt) {
+      if (!mt.src) return;
+      var S = rSeries(mt, W), tc = tot(mt), tp = tot(mt, true);
+      var cellE = function (E) { return function (v, i) { var cl = (i === W.hi ? 'rp-hi ' : '') + (E[i] ? 'est' : ''); if (E[i]) anyE = true; return '<td' + (cl.trim() ? ' class="' + cl.trim() + '"' : '') + (E[i] ? ' title="상위 단위(주·월) 값을 일할 추정"' : '') + '>' + (v == null ? '<span class="z">–</span>' : rFmt(mt, v)) + '</td>'; }; };
+      var rate = function (a, b) { if (a == null || !b) return '<td class="na">–</td>'; var x = (a - b) / Math.abs(b) * 100; return '<td><span class="delta ' + (x > 0.05 ? 'up' : x < -0.05 ? 'down' : 'flat') + '">' + (x > 0.05 ? '▲' : x < -0.05 ? '▼' : '–') + ' ' + Math.abs(x).toFixed(1) + '%</span></td>'; };
+      var lab = mts.length > 1 ? '<span class="rp-ml">' + esc(mt.label) + '</span>' : '';
+      var tl = mt.kind === 'sum' ? '누계' : mt.kind === 'level' ? '기말' : '평균';
+      rows += '<tr><th class="rowh">' + lab + py + '년</th>' + S.prev.map(cellE(S.prevE)).join('') + '<td class="sum">' + rFmt(mt, tp) + '</td></tr>' +
+        '<tr><th class="rowh">' + lab + Y + '년</th>' + S.cur.map(cellE(S.curE)).join('') + '<td class="sum">' + rFmt(mt, tc) + '</td></tr>' +
+        '<tr class="diff"><th class="rowh">' + lab + '증감률</th>' + S.cur.map(function (v, i) { return rate(v, S.prev[i]); }).join('') + rate(tc, tp) + '</tr>';
+      mt._tl = tl;
+    });
+    if (!rows) return '<p class="empty">데이터가 없습니다.</p>';
+    var mw = Math.max(720, 96 + W.list.length * (W.wk ? 64 : 78) + 100);
+    return '<div class="yoy-wrap"><table class="semtbl rp-yoy" style="min-width:' + mw + 'px"><thead><tr><th class="rowh"></th>' +
+      W.list.map(function (w, i) { return '<th' + (i === W.hi ? ' class="cur"' : '') + ' title="' + esc(w.title) + '">' + w.lab + '</th>'; }).join('') +
+      '<th>' + (W.wk ? 'W01~' + W.list[W.list.length - 1].lab.slice(1) : '1~' + W.list.length + '월') + ' ' + (mts[0]._tl || '') + '</th></tr></thead><tbody>' + rows + '</tbody></table></div>' + (anyE ? '<p class="yoy-note">기울임 값은 해당 기간 단위 집계가 없어 주·월 값을 일수로 나눠 추정한 값입니다.</p>' : '');
+  }
+  var RP_CH = [];
+  function rChart(mt, W, title) {
+    if (!mt.src) return '';
+    var id = 'rpCh' + RP_CH.length;
+    RP_CH.push({ id: id, mt: mt, W: W });
+    return '<div class="card"><h3 class="rp-h3">' + esc(title || mt.label) + '</h3><ul class="legend" id="' + id + 'Lg"></ul><div class="chart" id="' + id + '"></div></div>';
+  }
+  function rDrawCharts() {
+    RP_CH.forEach(function (c) {
+      var host = document.getElementById(c.id); if (!host) return;
+      var S = rSeries(c.mt, c.W), mt = c.mt;
+      var ser = [{ name: (c.W.Y - 1) + '년', color: css('--s2'), dash: '5 4', vals: S.prev }, { name: c.W.Y + '년', color: css('--s1'), vals: S.cur }];
+      aLegend('#' + c.id + 'Lg', ser);
+      aLineChart(host, c.W.list.map(function (w) { return w.lab; }), ser, { zero: true, hi: c.W.hi, ml: mt.unit === '원' || mt.unit === 'P' ? 56 : 48,
+        fmtY: mt.unit === '원' ? function (v) { return won(v); } : mt.unit === 'P' ? function (v) { return bigP(v); } : undefined,
+        title: function (i) { return c.W.list[i].title; }, fmtV: function (v) { return rFmt(mt, v); }, label: mt.label + ' 추이' });
+    });
+  }
+  function rSec(title, desc, inner) {
+    return '<section><div class="sec-head"><div><h2>' + title + '</h2>' + (desc ? '<p>' + desc + '</p>' : '') + '</div></div>' + inner + '</section>';
+  }
+  function rMsg(o, err, what) { return o ? '' : '<div class="card"><p class="empty">' + esc(err || (what + ' 데이터를 불러오는 중…')) + '</p></div>'; }
+
+  function renderReport() {
+    if (VIEW !== 'report') return;
+    $('#subtitle').textContent = '기간을 선택해 전년 동기와 비교합니다';
+    var body = $('#rpBody');
+    if (!AUTHED) { body.innerHTML = ''; return; }
+    if (!INTERNAL) { body.innerHTML = '<div class="card"><p class="empty">분석 리포트는 내부 담당자만 볼 수 있습니다.</p></div>'; return; }
+    var svc = RP.svc, B = rBuild(svc), anc = B.anchor, D = rDefaults(anc);
+    document.querySelectorAll('#rpTabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.svc === svc ? 'true' : 'false'); });
+    // 선택값 보정
+    if (!RP.month || RP.month > anc.slice(0, 7)) RP.month = D.month;
+    if (!RP.week || rds(rdn(rWeekStart(RP.week)) + 6) > anc) RP.week = D.week;
+    if (!RP.from || !RP.to) { RP.from = D.from; RP.to = D.to; }
+    if (RP.to > anc) RP.to = anc;
+    if (RP.from > RP.to) RP.from = RP.to;
+    var aY = +anc.slice(0, 4);
+    $('#rpMonth').innerHTML = (function () { var o = []; for (var y = aY; y >= aY - 1; y--) for (var m = 12; m >= 1; m--) { var ym = y + '-' + rPad(m); if (ym > anc.slice(0, 7)) continue; o.push('<option value="' + ym + '">' + y + '년 ' + m + '월' + (rMonthEnd(ym) > anc ? ' (진행 중)' : '') + '</option>'); } return o.join(''); })();
+    $('#rpWeek').innerHTML = (function () {
+      var o = [], n = rdn(rWeekStart(D.week)), stop = rdn((aY - 1) + '-01-01') - 6;
+      for (; n >= stop; n -= 7) { var s = rds(n); o.push('<option value="' + rWeekOf(s) + '">' + rWeekOf(s) + ' (' + rMd(s) + '~' + rMd(rds(n + 6)) + ')</option>'); }
+      return o.join('');
+    })();
+    $('#rpMonth').value = RP.month; $('#rpWeek').value = RP.week; $('#rpFrom').value = RP.from; $('#rpTo').value = RP.to; $('#rpFrom').max = anc; $('#rpTo').max = anc;
+    document.querySelectorAll('#rpKind button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.kind === RP.kind ? 'true' : 'false'); });
+    $('#rpMonthWrap').hidden = RP.kind !== 'month'; $('#rpWeekWrap').hidden = RP.kind !== 'week'; $('#rpRangeWrap').hidden = RP.kind !== 'range';
+
+    var P = rPeriod(anc), W = rWins(P, anc), m = B.m;
+    $('#rpMeta').innerHTML = '<span><b>기준일 ' + anc + '</b> (회원·포인트·활동성이 모두 집계된 마지막 날)</span><span>선택 기간 <b>' + esc(P.label) + '</b></span><span>전년 동기 ' + esc(P.prevLabel) + '</span>' +
+      '<span class="rp-srcs">' + B.src.map(function (s) {
+        return '<i class="' + (s.o ? 'ok' : s.err ? 'bad' : 'wait') + '">' + s.k + ' ' + (s.o ? (s.o.fine ? '~' + rMd(s.o.end) : '~' + (+s.o.end.slice(5, 7)) + '월') : s.err ? '없음' : '불러오는 중') + '</i>';
+      }).join('') + '</span>';
+
+    RP_CH = [];
+    var h = '', kpis = svc === 'dv' ? [m.sales, m.sem, m.newM, m.total, m.earn, m.use, m.mau, m.dau] : [m.newM, m.total, m.earn, m.use, m.mau, m.dau, m.visits, m.views];
+    h += rSec('핵심 요약', '선택 기간 값 · 증감률은 전년 같은 기간(올해 집계가 끝난 날까지) 대비', '<div class="kpis">' + kpis.map(function (x) { return rKpi(x, P); }).join('') + '</div>');
+    var chartDesc = (W.wk ? W.Y + '년 W01부터 주 단위' : W.Y + '년 1월부터 월 단위') + ' · 점선은 전년 · 음영은 선택한 ' + (W.wk ? '주' : '달') + (W.wk ? '' : ' · *표시는 기준일까지 집계된 진행 중인 달');
+
+    if (svc === 'dv') {
+      var sl = B.sl, slRowsM = [m.sales];
+      if (sl) {
+        slRowsM.push({ group: '내부 / 외부' });
+        ['내부', '외부'].forEach(function (k) { if (sl.io[k]) slRowsM.push({ label: k, src: sl.io[k], kind: 'sum', unit: '원', sub: 1 }); });
+        slRowsM.push({ group: '사업내용' });
+        Object.keys(sl.cat).sort(function (a, b) { var i = SL_CATS.indexOf(a), j = SL_CATS.indexOf(b); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j) || (a < b ? -1 : 1); })
+          .forEach(function (k) { slRowsM.push({ label: k, src: sl.cat[k], kind: 'sum', unit: '원', sub: 1 }); });
+      }
+      var custH = '';
+      if (sl) {
+        var cl = Object.keys(sl.cust).map(function (k) { var mt = { label: k, src: sl.cust[k], kind: 'sum', unit: '원' }; var r = rCmp(mt, P); return { k: k, mt: mt, r: r, v: r && r.cur.val || 0 }; })
+          .filter(function (x) { return x.v > 0; }).sort(function (a, b) { return b.v - a.v; }).slice(0, 10);
+        custH = cl.length ? '<div class="card" style="margin-top:12px"><h3 class="rp-h3">고객사 상위 10 (선택 기간 매출)</h3><div class="yoy-wrap"><table class="semtbl rp-tbl"><thead><tr><th class="rowh">고객사</th><th>구분</th><th>선택 기간</th><th>전년 동기</th><th>증감률</th><th>비중</th></tr></thead><tbody>' +
+          cl.map(function (x) {
+            var tot = rCmp(m.sales, P), share = tot && tot.cur.val ? x.v / tot.cur.val * 100 : null, rt = rRate(x.r.cur, x.r.prev), meta = sl.cust[x.k].meta || {};
+            return '<tr><th class="rowh">' + esc(x.k) + '</th><td>' + esc([meta.io, meta.cat].filter(Boolean).join(' · ')) + '</td><td><b>' + rFmt(x.mt, x.v) + '</b></td><td>' + rFmt(x.mt, x.r.prev && x.r.prev.val) + '</td><td>' + (rt == null ? '<span class="z">' + (x.r.prev && x.r.prev.val ? '–' : '신규') + '</span>' : deltaHtml(rt, '%', 1)) + '</td><td>' + (share == null ? '–' : share.toFixed(1) + '%') + '</td></tr>';
+          }).join('') + '</tbody></table></div><p class="yoy-note">고객사명이 전년 시트와 다르게 적힌 경우 전년 값이 비어 「신규」로 보일 수 있습니다.</p></div>' : '';
+      }
+      h += rSec('매출', '매출관리 시트 · 계산서 발행일 기준, VAT 제외 · 실적 월만 집계(이번 달부터는 예정이라 제외)',
+        rMsg(sl, B.src[3].err, '매출') + (sl ? rSumTable(slRowsM, P) + '<div class="grid2" style="margin-top:12px">' + rChart(m.sales, W, '월별 매출 — 전년 대비') + '<div class="card"><h3 class="rp-h3">월별 매출 표</h3>' + rYoyTable([m.sales], W) + '</div></div>' + custH : ''));
+      h += rSec('세미나', '편성표 집계 · 진행 건수(사전녹화 제외) · 완료된 달까지',
+        rMsg(B.sem, B.src[4].err, '세미나') + (B.sem ? rSumTable([m.sem], P) + '<div class="grid2" style="margin-top:12px">' + rChart(m.sem, W, '월별 세미나 진행 — 전년 대비') + '<div class="card"><h3 class="rp-h3">월별 세미나 표</h3>' + rYoyTable([m.sem], W) + '</div></div>' : ''));
+    }
+    h += rSec('회원', '회원 시트 집계 · 신규 가입은 가입일 기준, 전체 회원은 기간 끝 시점 누적',
+      rMsg(B.mem, B.src[0].err, '회원') + (B.mem ? rSumTable([m.newM, m.total], P) + '<div class="grid2" style="margin-top:12px">' + rChart(m.newM, W, '신규 가입 — 전년 대비') + rChart(m.total, W, '전체 회원 추이') + '</div><div class="card" style="margin-top:12px"><h3 class="rp-h3">신규 가입 표</h3>' + rYoyTable([m.newM], W) + '</div>' : ''));
+    h += rSec('포인트', '포인트 갱신 서버 집계 · 적립·사용·취소·소멸은 기간 합계, 잔여는 기간 끝 시점' + (svc === 'pv' ? ' · 팜빌 포인트 원천은 2025-02-24부터' : ''),
+      rMsg(B.pts, B.src[1].err, '포인트') + (B.pts ? rSumTable([m.earn, m.use, m.cancel, m.expire, m.bal], P) + '<div class="grid2" style="margin-top:12px">' + rChart(m.earn, W, '적립 — 전년 대비') + rChart(m.use, W, '사용 — 전년 대비') + '</div><div class="card" style="margin-top:12px"><h3 class="rp-h3">적립 · 사용 표</h3>' + rYoyTable([m.earn, m.use], W) + '</div>' : ''));
+    var actRows = svc === 'dv' ? [m.dau, m.wau, m.mau, m.views, m.newU] : [m.dau, m.wau, m.mau, m.visits, m.newU, m.views, m.gaMem];
+    h += rSec('활동성', (svc === 'dv' ? '닥터빌 활동성 시트(GA)' : '팜빌 주간/월간 자동 시트(GA, 일별 활성 사용자 포함)') + ' · DAU는 일 평균, WAU·MAU는 해당 주·월 값의 평균' + (svc === 'pv' ? ' · 주간지표는 2026-W01부터라 주 단위 전년 비교는 일별 값으로만 가능' : ''),
+      rMsg(B.act, B.src[2].err, '활동성') + (B.act ? rSumTable(actRows, P) + '<div class="grid2" style="margin-top:12px">' + rChart(m.mau, W, 'MAU — 전년 대비') + rChart(svc === 'pv' ? m.visits : m.views, W, (svc === 'pv' ? '방문수' : '조회수') + ' — 전년 대비') + '</div><div class="card" style="margin-top:12px"><h3 class="rp-h3">' + (W.wk ? 'DAU · WAU' : 'DAU · MAU') + ' 표</h3>' + rYoyTable(W.wk ? [m.dau, m.wau] : [m.dau, m.mau], W) + '</div>' : ''));
+    body.innerHTML = '<p class="rp-cdesc">그래프·표: ' + esc(chartDesc) + '</p>' + h;
+    rDrawCharts();
+  }
+  $('#rpTabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-svc]'); if (!b || b.dataset.svc === RP.svc) return; RP.svc = b.dataset.svc; RP.month = RP.week = RP.from = RP.to = null; renderReport(); });
+  $('#rpKind').addEventListener('click', function (e) { var b = e.target.closest('button[data-kind]'); if (!b) return; RP.kind = b.dataset.kind; renderReport(); });
+  $('#rpMonth').addEventListener('change', function () { RP.month = this.value; renderReport(); });
+  $('#rpWeek').addEventListener('change', function () { RP.week = this.value; renderReport(); });
+  ['#rpFrom', '#rpTo'].forEach(function (id) {
+    $(id).addEventListener('change', function () {
+      var f = $('#rpFrom').value, t = $('#rpTo').value;
+      if (!f || !t) return;
+      if (f > t) { toast('시작일이 종료일보다 늦습니다.', true); return; }
+      RP.from = f; RP.to = t; renderReport();
+    });
+  });
+  $('#rpPrint').addEventListener('click', function () { window.print(); });
 
   function viewFromHash() { var h = (location.hash || '').slice(1); return VIEWS.indexOf(h) >= 0 ? h : 'home'; }
   addEventListener('hashchange', function () { var v = viewFromHash(); if (v !== VIEW) setView(v, true); });
@@ -4101,7 +4591,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 
   // ---- 렌더링 ------------------------------------------------------------
   function renderPoints() {
-    if (!isPts()) { if (VIEW === 'home') renderHome(); return; }
+    if (!isPts()) { if (VIEW === 'home' || VIEW === 'report') renderHome(); return; }
     var has = !!P.data;
     $('#pEmpty').hidden = has;
     document.querySelectorAll('#pointApp .pdata, #pKpis').forEach(function (e) { e.style.display = has ? '' : 'none'; });
