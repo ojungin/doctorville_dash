@@ -250,6 +250,12 @@ body.pdf-mode { padding-left: 0; }
 .rp-range { display: inline-flex; align-items: center; gap: 6px; }
 .rp-range input[type=date] { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); }
 .rp-print { margin-left: auto; }
+.rp-gen { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; }
+.rp-gen label { color: var(--ink-2); font-size: 12.5px; margin-left: 6px; }
+.rp-gen select { max-width: 320px; }
+.rp-genst { font-size: 12.5px; color: var(--ink-2); }
+.rp-genst .new { color: var(--accent); font-weight: 600; }
+@media print { body.view-report .rp-gen { display: none !important; } }
 .rp-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--ink-2); margin-top: 12px; }
 .rp-srcs { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .rp-srcs i { font-style: normal; font-size: 11.5px; padding: 1px 8px; border-radius: 18px; border: 1px solid var(--border); color: var(--ink-2); }
@@ -739,6 +745,12 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
           <span id="rpWeekWrap" hidden><select id="rpWeek" aria-label="리포트 주차"></select></span>
           <span id="rpRangeWrap" class="rp-range" hidden><input type="date" id="rpFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="rpTo" aria-label="종료일"></span>
           <button type="button" class="btn rp-print" id="rpPrint" title="브라우저 인쇄 창에서 PDF로 저장할 수 있습니다">인쇄 · PDF</button>
+        </div>
+        <div class="rp-gen">
+          <button type="button" class="btn accent" id="rpGenBtn" title="지금 불러온 데이터로 리포트를 새로 만들어 DB에 저장합니다">리포트 생성</button>
+          <label for="rpHist">생성 이력</label>
+          <select id="rpHist" aria-label="생성된 리포트 선택"></select>
+          <span class="rp-genst" id="rpGenSt"></span>
         </div>
         <div class="rp-meta" id="rpMeta"></div>
       </div>
@@ -1933,7 +1945,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (VIEW === 'activity') loadActivity(false);
     if (VIEW === 'pactivity') loadPvActivity(false);
     if (VIEW === 'home') loadHome();
-    if (VIEW === 'report') rpLoad();
+    if (VIEW === 'report') { RP.enterAt = Date.now(); rpLoad(); }
     if (VIEW === 'seminar') loadSeminar(false);
     $('#weekSel').addEventListener('change', function () { if (state.mode === 'month') loadMonth(this.value); else load(this.value); });
     startMembers();
@@ -3797,7 +3809,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (!fromHash) { try { history.replaceState(null, '', VIEW === 'home' ? location.pathname + location.search : '#' + VIEW); } catch (e) {} }
     if (stat) {
       if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
-      else if (VIEW === 'report') { renderReport(); if (started) rpLoad(); }
+      else if (VIEW === 'report') { RP.enterAt = Date.now(); RP.autoDone = {}; renderReport(); if (started) rpLoad(); }
       else if (VIEW === 'accounts') { renderAccounts(); if (started && !ACCV.dir && !ACCV.loading) loadDir(); }
       else $('#subtitle').textContent = '준비 중인 메뉴입니다';
       return;
@@ -4311,14 +4323,121 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   }
   function rMsg(o, err, what) { return o ? '' : '<div class="card"><p class="empty">' + esc(err || (what + ' 데이터를 불러오는 중…')) + '</p></div>'; }
 
+  // ---- 리포트 생성 · 저장 (DB datasets, key report|svc|생성시각) ----
+  // 리포트 = 생성 시점 원천 집계의 고정본. 원천(집계 완료일·갱신 시각)이 바뀌면 리포트 화면에 들어올 때 자동으로 새로 생성
+  RP.list = {}; RP.listBusy = {}; RP.sel = {}; RP.cache = {}; RP.autoDone = {}; RP.enterAt = 0; RP.genBusy = false; RP.timer = null;
+  function rPackSrc(src) {
+    if (!src) return null;
+    return { end: src.end, m: src.m.map(function (it) { return [it.s.slice(0, 7), it.v]; }), w: src.w.map(function (it) { return [it.s, it.v]; }), d: src.d.map(function (it) { return [it.s, it.v]; }) };
+  }
+  function rUnpackSrc(p) {
+    if (!p) return null;
+    var src = rSrc(p.end);
+    (p.m || []).forEach(function (x) { rPush(src, 'm', x[0] + '-01', rMonthEnd(x[0]), x[1]); });
+    (p.w || []).forEach(function (x) { rPush(src, 'w', x[0], rds(rdn(x[0]) + 6), x[1]); });
+    (p.d || []).forEach(function (x) { rPush(src, 'd', x[0], x[0], x[1]); });
+    return src;
+  }
+  function rFp(B) { var o = {}; B.src.forEach(function (s) { if (s.o) o[s.k] = s.o.end + '|' + (s.o.at || ''); }); return o; }
+  function rPack(B, svc) {
+    var m = {}; Object.keys(B.m).forEach(function (k) { var x = B.m[k]; m[k] = { label: x.label, kind: x.kind, unit: x.unit, how: x.how || null, note: x.note || '', src: rPackSrc(x.src) }; });
+    var sl = null;
+    if (B.sl) {
+      var mp = function (o, meta) { var r = {}; Object.keys(o).forEach(function (k) { r[k] = { p: rPackSrc(o[k]) }; if (meta && o[k].meta) { r[k].io = o[k].meta.io || ''; r[k].cat = o[k].meta.cat || ''; } }); return r; };
+      sl = { io: mp(B.sl.io), cat: mp(B.sl.cat), cust: mp(B.sl.cust, true) };
+    }
+    return { v: 1, svc: svc, generatedAt: new Date().toISOString(), by: cfUser(), anchor: B.anchor, fp: rFp(B),
+      srcs: B.src.map(function (s) { return { k: s.k, o: s.o ? { end: s.o.end, fine: !!s.o.fine, at: s.o.at || '' } : null, err: s.err || '' }; }), m: m, sl: sl };
+  }
+  function rUnpack(d) {
+    var B = { anchor: d.anchor, m: {}, src: d.srcs.map(function (s) { return { k: s.k, o: s.o, err: s.o ? '' : (s.err || '생성 당시 데이터 없음') }; }), saved: d };
+    Object.keys(d.m).forEach(function (k) { var x = d.m[k]; B.m[k] = { label: x.label, kind: x.kind, unit: x.unit, how: x.how || undefined, note: x.note, src: rUnpackSrc(x.src) }; });
+    var byK = {}; B.src.forEach(function (s) { byK[s.k] = s.o; });
+    B.mem = byK['회원']; B.pts = byK['포인트']; B.act = byK['활동성']; B.sem = byK['세미나'];
+    if (d.sl && byK['매출']) {
+      var un = function (o) { var r = {}; Object.keys(o).forEach(function (k) { r[k] = rUnpackSrc(o[k].p); if (o[k].io != null) r[k].meta = { io: o[k].io, cat: o[k].cat }; }); return r; };
+      B.sl = { io: un(d.sl.io), cat: un(d.sl.cat), cust: un(d.sl.cust) };
+    } else B.sl = null;
+    return B;
+  }
+  function rChanged(live, fp) {
+    return live.src.some(function (s) { return s.o && (!fp || fp[s.k] !== s.o.end + '|' + (s.o.at || '')); });
+  }
+  function rSettled(live) { return live.src.every(function (s) { return s.o || s.err; }); }
+  function rpLoadList(svc) {
+    RP.listBusy[svc] = true;
+    return sbq(SB.from('datasets').select('key,fetched_at,source').like('key', 'report|' + svc + '|%').order('fetched_at', { ascending: false }).limit(30))
+      .then(function (rows) {
+        RP.list[svc] = rows.map(function (r) { var meta = {}; try { meta = JSON.parse(String(r.source || '').replace(/^report:/, '')); } catch (e) {} return { key: r.key, at: r.fetched_at, meta: meta }; });
+      }).catch(function (e) { console.warn('리포트 목록', e); RP.list[svc] = []; RP.listErr = '생성된 리포트 목록을 불러오지 못했습니다: ' + (e.message || e); })
+      .then(function () { RP.listBusy[svc] = false; if (!RP.sel[svc] && RP.list[svc].length) return rpSelect(svc, RP.list[svc][0].key); }).then(function () { renderReport(); });
+  }
+  function rpSelect(svc, key) {
+    RP.sel[svc] = key;
+    if (RP.cache[key]) { renderReport(); return Promise.resolve(); }
+    return dbGet(key).then(function (r) { if (!r || !r.data || !r.data.m) throw new Error('내용 없음'); RP.cache[key] = rUnpack(r.data); })
+      .catch(function (e) { toast('리포트를 불러오지 못했습니다: ' + (e.message || e), true); RP.sel[svc] = null; })
+      .then(function () { renderReport(); });
+  }
+  function rpGenerate(svc, live, auto) {
+    if (RP.genBusy) return;
+    RP.genBusy = true; $('#rpGenBtn').disabled = true; $('#rpGenBtn').textContent = '생성 중…';
+    var pack = rPack(live, svc), key = 'report|' + svc + '|' + pack.generatedAt;
+    var meta = { anchor: pack.anchor, fp: pack.fp, by: pack.by, auto: !!auto };
+    dbPut(key, pack, 'internal', 'report:' + JSON.stringify(meta)).then(function (ok) {
+      RP.cache[key] = rUnpack(pack); RP.sel[svc] = key;
+      if (ok) { (RP.list[svc] = RP.list[svc] || []).unshift({ key: key, at: pack.generatedAt, meta: meta }); toast(auto ? (SVC_NAME[svc] + ' 데이터가 갱신되어 리포트를 새로 생성했습니다.') : '리포트를 생성했습니다.'); }
+      else toast('리포트를 만들었지만 DB에 저장하지 못했습니다. 이 화면에서만 볼 수 있습니다.', true, 10000);
+    }).then(function () { RP.genBusy = false; $('#rpGenBtn').disabled = false; $('#rpGenBtn').textContent = '리포트 생성'; renderReport(); });
+  }
+  // 원천이 모두 불러와졌을 때(또는 25초 뒤) 마지막 생성본과 비교해 바뀌었으면 자동 생성
+  function rpAuto(svc, live) {
+    if (!DB.on || !SB) return;
+    if (!RP.list[svc]) { if (!RP.listBusy[svc]) rpLoadList(svc); return; }
+    if (RP.autoDone[svc] || RP.genBusy) return;
+    if (!rSettled(live) && Date.now() - RP.enterAt < 25000) {
+      clearTimeout(RP.timer); RP.timer = setTimeout(renderReport, Math.max(1000, 25000 - (Date.now() - RP.enterAt)));
+      return;
+    }
+    if (!live.src.some(function (s) { return s.o; })) return;
+    RP.autoDone[svc] = true;
+    var latest = RP.list[svc][0];
+    if (!latest || rChanged(live, latest.meta && latest.meta.fp)) rpGenerate(svc, live, true);
+  }
+  function rpFmtAt(iso) { var d = new Date(Date.parse(iso) + KST_MS).toISOString(); return d.slice(0, 10) + ' ' + d.slice(11, 16); }
+  function rpGenUi(svc, live, B) {
+    var L = RP.list[svc] || [];
+    $('#rpHist').innerHTML = L.length ? L.map(function (x) { return '<option value="' + esc(x.key) + '">' + rpFmtAt(x.at) + ' 생성' + (x.meta && x.meta.anchor ? ' · 기준일 ' + rMd(x.meta.anchor) : '') + (x.meta && x.meta.auto ? ' (자동)' : '') + '</option>'; }).join('') : '<option value="">아직 생성된 리포트 없음</option>';
+    $('#rpHist').disabled = !L.length; if (RP.sel[svc]) $('#rpHist').value = RP.sel[svc];
+    var st = '';
+    if (!DB.on) st = 'DB에 연결되지 않아 저장 없이 현재 데이터로 표시합니다.';
+    else if (RP.listBusy[svc] && !L.length) st = '생성된 리포트를 확인하는 중…';
+    else if (RP.genBusy) st = '리포트를 생성하는 중…';
+    else if (B && B.saved) {
+      var isLatest = RP.sel[svc] === (L[0] && L[0].key), stale = isLatest && rSettled(live) && rChanged(live, B.saved.fp);
+      st = '<b>' + rpFmtAt(B.saved.generatedAt) + '</b> 생성' + (B.saved.by ? ' · ' + esc(B.saved.by) : '') + ' · 데이터 기준일 ' + esc(B.saved.anchor) +
+        (stale ? ' · <span class="new">그 뒤로 갱신된 데이터가 있습니다 — [리포트 생성]을 누르면 최신 데이터로 다시 만듭니다</span>' : (isLatest ? ' · 최신 생성본' : ' · 이전 생성본 (최신본은 생성 이력 맨 위)'));
+    } else if (!rSettled(live)) st = '데이터를 불러오는 중입니다. 다 불러오면 리포트를 자동으로 생성합니다.';
+    $('#rpGenSt').innerHTML = st;
+  }
+
   function renderReport() {
     if (VIEW !== 'report') return;
     $('#subtitle').textContent = '기간을 선택해 전년 동기와 비교합니다';
     var body = $('#rpBody');
     if (!AUTHED) { body.innerHTML = ''; return; }
     if (!INTERNAL) { body.innerHTML = '<div class="card"><p class="empty">분석 리포트는 내부 담당자만 볼 수 있습니다.</p></div>'; return; }
-    var svc = RP.svc, B = rBuild(svc), anc = B.anchor, D = rDefaults(anc);
+    var svc = RP.svc, live = rBuild(svc);
     document.querySelectorAll('#rpTabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.svc === svc ? 'true' : 'false'); });
+    rpAuto(svc, live);
+    var B = !DB.on ? live : (RP.sel[svc] && RP.cache[RP.sel[svc]]) || null;
+    rpGenUi(svc, live, B);
+    if (!B) {
+      $('#rpMeta').innerHTML = '';
+      body.innerHTML = '<div class="card"><p class="empty">' + esc(RP.listErr || (RP.genBusy ? '리포트를 생성하는 중…' : RP.sel[svc] ? '리포트를 불러오는 중…' : '데이터를 불러오는 중입니다. 다 불러오면 리포트를 자동으로 생성합니다.')) + '</p></div>';
+      return;
+    }
+    var anc = B.anchor, D = rDefaults(anc);
     // 선택값 보정
     if (!RP.month || RP.month > anc.slice(0, 7)) RP.month = D.month;
     if (!RP.week || rds(rdn(rWeekStart(RP.week)) + 6) > anc) RP.week = D.week;
@@ -4337,7 +4456,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     $('#rpMonthWrap').hidden = RP.kind !== 'month'; $('#rpWeekWrap').hidden = RP.kind !== 'week'; $('#rpRangeWrap').hidden = RP.kind !== 'range';
 
     var P = rPeriod(anc), W = rWins(P, anc), m = B.m;
-    $('#rpMeta').innerHTML = '<span><b>기준일 ' + anc + '</b> (회원·포인트·활동성이 모두 집계된 마지막 날)</span><span>선택 기간 <b>' + esc(P.label) + '</b></span><span>전년 동기 ' + esc(P.prevLabel) + '</span>' +
+    $('#rpMeta').innerHTML = '<span><b>기준일 ' + anc + '</b> (생성 당시 회원·포인트·활동성이 모두 집계된 마지막 날)</span><span>선택 기간 <b>' + esc(P.label) + '</b></span><span>전년 동기 ' + esc(P.prevLabel) + '</span>' +
       '<span class="rp-srcs">' + B.src.map(function (s) {
         return '<i class="' + (s.o ? 'ok' : s.err ? 'bad' : 'wait') + '">' + s.k + ' ' + (s.o ? (s.o.fine ? '~' + rMd(s.o.end) : '~' + (+s.o.end.slice(5, 7)) + '월') : s.err ? '없음' : '불러오는 중') + '</i>';
       }).join('') + '</span>';
@@ -4381,7 +4500,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     body.innerHTML = '<p class="rp-cdesc">그래프·표: ' + esc(chartDesc) + '</p>' + h;
     rDrawCharts();
   }
-  $('#rpTabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-svc]'); if (!b || b.dataset.svc === RP.svc) return; RP.svc = b.dataset.svc; RP.month = RP.week = RP.from = RP.to = null; renderReport(); });
+  $('#rpTabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-svc]'); if (!b || b.dataset.svc === RP.svc) return; RP.svc = b.dataset.svc; RP.month = RP.week = RP.from = RP.to = null; if (!RP.autoDone[RP.svc]) RP.enterAt = Date.now(); renderReport(); });
   $('#rpKind').addEventListener('click', function (e) { var b = e.target.closest('button[data-kind]'); if (!b) return; RP.kind = b.dataset.kind; renderReport(); });
   $('#rpMonth').addEventListener('change', function () { RP.month = this.value; renderReport(); });
   $('#rpWeek').addEventListener('change', function () { RP.week = this.value; renderReport(); });
@@ -4394,6 +4513,13 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     });
   });
   $('#rpPrint').addEventListener('click', function () { window.print(); });
+  $('#rpHist').addEventListener('change', function () { if (this.value) rpSelect(RP.svc, this.value); });
+  $('#rpGenBtn').addEventListener('click', function () {
+    var svc = RP.svc, live = rBuild(svc);
+    if (!live.src.some(function (s) { return s.o; })) { toast('아직 불러온 데이터가 없습니다. 잠시 후 다시 눌러 주세요.', true); return; }
+    if (!rSettled(live)) { var wait = live.src.filter(function (s) { return !s.o && !s.err; }).map(function (s) { return s.k; }); if (!confirm(wait.join('·') + ' 데이터를 아직 불러오는 중입니다. 지금 있는 데이터로 생성할까요?')) return; }
+    if (DB.on) rpGenerate(svc, live, false); else renderReport();
+  });
 
   function viewFromHash() { var h = (location.hash || '').slice(1); return VIEWS.indexOf(h) >= 0 ? h : 'home'; }
   addEventListener('hashchange', function () { var v = viewFromHash(); if (v !== VIEW) setView(v, true); });
