@@ -598,6 +598,19 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 .cf-ev { display: block; width: 100%; font: inherit; font-size: 11px; line-height: 16px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 0; border-left: 3px solid var(--s4); border-radius: 3px; background: color-mix(in srgb, var(--s4) 13%, var(--surface)); color: var(--ink); padding: 1px 5px; cursor: pointer; }
 .cf-ev:hover { background: color-mix(in srgb, var(--s4) 24%, var(--surface)); }
 .cf-ev b { font-weight: 600; margin-right: 3px; }
+.cf-ev.gc { border-left-color: var(--s3); background: color-mix(in srgb, var(--s3) 13%, var(--surface)); }
+.cf-ev.gc:hover { background: color-mix(in srgb, var(--s3) 24%, var(--surface)); }
+.cf-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cf-legend { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--ink-2); flex-wrap: wrap; }
+.cf-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; background: var(--s4); }
+.cf-legend i.gc { background: var(--s3); }
+.cf-gcnote { font-size: 12px; color: var(--ink-2); margin: -4px 0 10px; }
+.cf-gcnote.err { color: var(--down); }
+.cf-src { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; white-space: nowrap; background: color-mix(in srgb, var(--s4) 16%, transparent); color: var(--ink); }
+.cf-src.gc { background: color-mix(in srgb, var(--s3) 16%, transparent); }
+.cgm dl { display: grid; grid-template-columns: 56px 1fr; gap: 7px 10px; margin: 0; font-size: 13px; }
+.cgm dt { color: var(--muted); font-size: 12px; }
+.cgm dd { margin: 0; color: var(--ink); white-space: pre-wrap; word-break: break-word; }
 .cal-dn .add { margin-left: auto; font-size: 14px; font-weight: 400; color: var(--muted); opacity: 0; }
 .cal-day.cf:hover .add, .cal-day.cf:focus-visible .add { opacity: 1; }
 .modal.cfm { max-width: 540px; max-height: calc(100vh - 32px); overflow-y: auto; }
@@ -791,12 +804,21 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <section>
       <div class="sec-head">
         <div class="cal-head"><button type="button" class="btn" id="cfPrev" aria-label="이전 달">‹</button><h2 id="cfMonth"></h2><button type="button" class="btn" id="cfNext" aria-label="다음 달">›</button><button type="button" class="btn" id="cfToday">오늘</button></div>
-        <p class="cal-tip">날짜를 누르면 행사 등록 · 등록된 행사를 누르면 수정</p>
+        <div class="cf-tools">
+          <div class="seg" id="cfSrcSeg" role="group" aria-label="표시할 일정">
+            <button type="button" data-src="all" aria-pressed="true">전체</button>
+            <button type="button" data-src="db">등록 행사</button>
+            <button type="button" data-src="gc">마케팅팀 캘린더</button>
+          </div>
+          <span class="cf-legend"><span><i></i>등록 행사</span><span><i class="gc"></i>마케팅팀 캘린더</span></span>
+        </div>
       </div>
+      <p class="cf-gcnote" id="cfGcNote" hidden></p>
+      <p class="cal-tip">날짜를 누르면 행사 등록 · 등록 행사를 누르면 수정 · 캘린더 일정은 구글 캘린더에서 수정(대시보드에서는 보기만)</p>
       <div class="cal" id="cfCal" aria-label="컨퍼런스 달력"></div>
     </section>
     <section>
-      <div class="sec-head"><div><h2>이번 달 행사</h2><p>행을 누르면 수정·삭제할 수 있습니다 · 회원 시트의 숨김 탭(_conferences)에 저장됩니다</p></div></div>
+      <div class="sec-head"><div><h2>이번 달 일정</h2><p>등록 행사는 행을 누르면 수정·삭제 · 마케팅팀 캘린더는 구글 캘린더 「닥터빌 마케팅팀」 일정(휴가·연차·반차 제외)</p></div></div>
       <div class="card"><div id="cfList"></div></div>
     </section>
   </div>
@@ -1291,6 +1313,14 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <div class="row"><button type="button" id="cfDel" class="danger-btn" hidden>삭제</button><span style="flex:1"></span><button type="button" id="cfCancel">취소</button><button type="submit" class="ok" id="cfOk">저장</button></div>
   </form>
 </div>
+<div class="modal-bg" id="cgModal">
+  <div class="modal wide cfm cgm" role="dialog" aria-modal="true" aria-labelledby="cgTitle">
+    <h3 id="cgTitle"></h3>
+    <p>구글 캘린더 「닥터빌 마케팅팀」 일정 · 수정은 구글 캘린더에서 해 주세요</p>
+    <dl id="cgBody"></dl>
+    <div class="row"><button type="button" id="cgClose">닫기</button></div>
+  </div>
+</div>
 <div class="modal-bg" id="pwModal">
   <form class="modal" id="pwForm">
     <h3>비밀번호 확인</h3>
@@ -1719,7 +1749,8 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   // 구글시트 응답을 DB 저장본으로 캐시: get(회원 집계)·activity·sales·schedule
   //   refresh(회원 [갱신]) = 원본 재집계 → 'get' 저장본을 덮어쓰고, 주차·월별 저장본은 비움
   //   fresh:true = 원본 다시 읽기 → 저장본 덮어씀
-  var API_DB = { get: function (r) { return !!r.snap; }, activity: function (r) { return !!r.activity; }, activityPv: function (r) { return !!r.activity; }, sales: function (r) { return !!(r.sales && r.sales.years); }, schedule: function (r) { return !!r.schedule; } };
+  var API_DB = { get: function (r) { return !!r.snap; }, activity: function (r) { return !!r.activity; }, activityPv: function (r) { return !!r.activity; }, sales: function (r) { return !!(r.sales && r.sales.years); }, schedule: function (r) { return !!r.schedule; }, calendar: function (r) { return !!(r.calendar && r.calendar.events); } };
+  var API_TTL = { calendar: 30 * 60 * 1000 };   // 캘린더는 30분 지나면 원본 재확인 (실패 시 저장본 표시)
   function stableStr(o) { return JSON.stringify(Object.keys(o).sort().reduce(function (a, k) { a[k] = o[k]; return a; }, {})); }
   function apiKey(action, extra, svc) {
     var ex = {}; for (var k in (extra || {})) if (k !== 'fresh') ex[k] = extra[k];
@@ -1733,7 +1764,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       if (!PW) { var e = new Error('nopw'); e.code = 'nopw'; return Promise.reject(e); }
       return apiRaw(action, extra);
     };
-    return dbCached(key, fetcher, { fresh: fresh, source: 'apps-script:' + action, valid: valid }).then(function (res) {
+    return dbCached(key, fetcher, { fresh: fresh, source: 'apps-script:' + action, valid: valid, ttl: API_TTL[keyAction] }).then(function (res) {
       if (action === 'refresh') dbPurge('api|get|' + svcAt + '|');
       if (member && svcAt !== SVC) { var st = new Error('stale'); st.code = 'stale'; throw st; }
       return res;
@@ -3432,7 +3463,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 
   // ---- 현황 > 세미나 (편성표 달력) · 현황 > 컨퍼런스 ------------------------------
   // 세미나: Apps Script action:'schedule' {month} → 편성표 (2026) RAW 탭의 해당 월 행 (저장소에 저장 안 함)
-  // 컨퍼런스: action:'confList' / 'confSave' / 'confDelete' → 회원 시트의 숨김 탭 _conferences
+  // 컨퍼런스: Supabase conferences 표(등록 행사) + Apps Script action:'calendar'(구글 캘린더 「닥터빌 마케팅팀」, 휴가·연차·반차 제외)
   var WD = ['일', '월', '화', '수', '목', '금', '토'];
   function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function todayYmd() { return new Date(Date.now() + KST_MS).toISOString().slice(0, 10); }
@@ -3660,7 +3691,37 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   function seFieldsOf(r) { var f = {}; SE_FIELDS.concat(['cid', 'no']).forEach(function (k) { if (r[k]) f[k] = r[k]; }); return f; }
 
   // ===== 컨퍼런스 달력 =====
-  var CF = { month: null, events: null, loading: false, err: '' };
+  var CF = { month: null, events: null, loading: false, err: '', src: 'all', gc: {}, gcErr: {}, gcLoading: {}, view: [] };
+  // 구글 캘린더 「닥터빌 마케팅팀」: Apps Script action:'calendar' {month} (calendar.gs) — 제목에 휴가·연차·반차가 있으면 시트 쪽에서 제외
+  var CAL_OLD_GS = '시트 Apps Script에 캘린더 기능이 아직 없습니다. calendar.gs 파일을 추가하고 Code.gs doPost에 calendar 한 줄을 넣은 뒤 [배포 → 배포 관리 → 편집 → 새 버전]으로 배포해 주세요.';
+  function loadGc(m, fresh) {
+    if (!INTERNAL || CF.gcLoading[m]) return Promise.resolve();
+    if (CF.gc[m] && !fresh) return Promise.resolve();
+    if (!CONFIG.appsScriptUrl) { CF.gcErr[m] = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않아 캘린더를 불러올 수 없습니다.'; renderConf(); return Promise.resolve(); }
+    CF.gcLoading[m] = true; CF.gcErr[m] = ''; renderConf();
+    return needPw('마케팅팀 캘린더를 불러오려면 구글시트 연동 비밀번호를 입력해 주세요.', fresh).then(function (pw) {
+      if (!pw) { CF.gcErr[m] = '비밀번호를 입력하지 않아 캘린더 일정을 표시하지 않았습니다.'; return; }
+      return api('calendar', { month: m, fresh: !!fresh }).then(function (res) {
+        if (!res.calendar || !res.calendar.events) throw new Error('old_gs_cal');
+        CF.gc[m] = res.calendar;
+      }).catch(function (e) {
+        if (e.code === 'unauthorized') PW = null;
+        CF.gcErr[m] = e.message === 'old_gs_cal' ? CAL_OLD_GS : statusApiErr(e, '마케팅팀 캘린더를 불러오지 못했습니다');
+      });
+    }).then(function () { CF.gcLoading[m] = false; renderConf(); });
+  }
+  // 캘린더 일정 → 달력 표시용 (등록 행사와 같은 모양, gc 표시)
+  function gcEvents(m) {
+    return ((CF.gc[m] && CF.gc[m].events) || []).map(function (g) {
+      return { id: 'gc:' + g.id, gc: true, date: g.date, endDate: g.endDate || '', name: g.title, start: g.start || '', end: g.end || '', allDay: !!g.allDay, place: g.location || '', note: g.desc || '', host: '', hostType: '', scale: '', pm: '' };
+    });
+  }
+  // 이 달 + 앞뒤 달(달력 바깥 칸) 캘린더 일정, 같은 일정은 한 번만
+  function gcAll(m) {
+    var seen = {}, out = [];
+    [monthAdd(m, -1), m, monthAdd(m, 1)].forEach(function (k) { gcEvents(k).forEach(function (e) { if (!seen[e.id]) { seen[e.id] = 1; out.push(e); } }); });
+    return out;
+  }
   // 행사는 Supabase public.conferences 표에 바로 저장 (기존 회원 시트 _conferences 탭은 표가 비어 있을 때 한 번 가져옴)
   function cfFromDb(r) {
     return { id: r.id, date: r.date || '', endDate: r.end_date || '', name: r.name || '', hostType: r.host_type || '', host: r.host || '', start: r.start_time || '', end: r.end_time || '',
@@ -3685,7 +3746,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   function loadConf(fresh, btn) {
     if (!INTERNAL) return Promise.resolve();
     if (!CF.month) CF.month = todayYmd().slice(0, 7);
-    if (CF.events && !fresh) { renderConf(); return Promise.resolve(); }
+    if (CF.events && !fresh) { renderConf(); return loadGc(CF.month, false); }
     CF.loading = true; CF.err = ''; renderConf();
     if (btn) { btn.disabled = true; btn.textContent = '불러오는 중…'; }
     return sbq(SB.from('conferences').select('*').order('date')).then(function (rows) {
@@ -3693,47 +3754,70 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     }).then(function (rows) {
       CF.events = rows.map(cfFromDb);
       dbNote('conferences', new Date().toISOString(), 'db');
-      if (fresh) toast('컨퍼런스 일정을 DB에서 다시 불러왔습니다.');
     }).catch(function (e) { CF.err = '컨퍼런스 일정을 불러오지 못했습니다: ' + (e.message || e); if (VIEW === 'conf') toast(CF.err, true, 12000); })
-      .then(function () { CF.loading = false; if (btn) { btn.disabled = false; btn.textContent = '갱신'; } renderConf(); });
+      .then(function () { CF.loading = false; renderConf(); return loadGc(CF.month, fresh); })
+      .then(function () { if (btn) { btn.disabled = false; btn.textContent = '갱신'; } if (fresh && CF.gc[CF.month] && !CF.gcErr[CF.month]) toast('컨퍼런스 일정과 마케팅팀 캘린더를 다시 불러왔습니다.'); });
   }
   function cfOn(e, day) { return e.date && day >= e.date && day <= (e.endDate || e.date); }
   function cfTime(e) { return e.start ? e.start + (e.end ? '~' + e.end : '') : ''; }
   function renderConf() {
     if (VIEW !== 'conf') return;
     if (!CF.month) CF.month = todayYmd().slice(0, 7);
-    var m = CF.month, ev = CF.events || [], t = todayYmd();
+    var m = CF.month, t = todayYmd(), dbEv = CF.events || [], gcEv = gcAll(m);
+    var ev = (CF.src === 'gc' ? [] : dbEv).concat(CF.src === 'db' ? [] : gcEv);
+    CF.view = dbEv.concat(gcEv);
     $('#cfMonth').textContent = monthLabel(m);
     var inMonth = ev.filter(function (e) { return e.date && (e.date.slice(0, 7) === m || (e.endDate || e.date).slice(0, 7) === m || (e.date < m && (e.endDate || '') > m)); })
       .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.start || '') < (b.start || '') ? -1 : 1; });
-    $('#subtitle').textContent = CF.events ? '컨퍼런스 · ' + monthLabel(m) + ' 행사 ' + inMonth.length + '건 · 날짜를 누르면 행사를 등록합니다' : (CF.loading ? '컨퍼런스 일정을 불러오는 중…' : (CF.err || '컨퍼런스'));
-    $('#srcLabel').textContent = CF.events ? '데이터: DB(컨퍼런스 표)' : '';
+    var nGc = inMonth.filter(function (e) { return e.gc; }).length, g = CF.gc[m], gErr = CF.gcErr[m];
+    $('#subtitle').textContent = CF.events || g ? '컨퍼런스 · ' + monthLabel(m) + ' 등록 행사 ' + (inMonth.length - nGc) + '건 · 마케팅팀 캘린더 ' + (g ? nGc + '건' : '–') + ' · 날짜를 누르면 행사를 등록합니다' : (CF.loading ? '컨퍼런스 일정을 불러오는 중…' : (CF.err || '컨퍼런스'));
+    $('#srcLabel').textContent = CF.events ? '데이터: DB(컨퍼런스 표) + 구글 캘린더(닥터빌 마케팅팀)' : '';
+    var gn = $('#cfGcNote');
+    gn.hidden = !(gErr || CF.gcLoading[m] || g);
+    gn.className = 'cf-gcnote' + (gErr ? ' err' : '');
+    gn.textContent = gErr ? '마케팅팀 캘린더: ' + gErr : CF.gcLoading[m] ? '마케팅팀 캘린더 일정을 불러오는 중…' : g ? '마케팅팀 캘린더 「' + (g.source || '닥터빌 마케팅팀') + '」 ' + new Date(g.fetchedAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) + ' 기준' + (g.excluded ? ' · 휴가·연차·반차 ' + g.excluded + '건 제외' : '') + ' · [갱신]으로 최신 일정 반영' : '';
     var html = WD.map(function (w, i) { return '<div class="cal-wd' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '') + '">' + w + '</div>'; }).join('');
     calDays(m).forEach(function (day) {
       var list = ev.filter(function (e) { return cfOn(e, day); }), out = day.slice(0, 7) !== m, dow = new Date(day + 'T00:00:00').getDay();
       html += '<div class="cal-day cf' + (out ? ' out' : '') + (day === t ? ' today' : '') + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '') + '" data-day="' + day + '" role="button" tabindex="0" aria-label="' + dayLabel(day) + ' 행사 등록">' +
         '<span class="cal-dn">' + (+day.slice(8)) + '<span class="add" aria-hidden="true">+</span></span><span class="cf-list">' +
-        list.slice(0, 4).map(function (e) { return '<button type="button" class="cf-ev" data-id="' + esc(e.id) + '" title="' + esc(e.name + (e.host ? ' · ' + e.host : '') + (cfTime(e) ? ' · ' + cfTime(e) : '')) + '">' + (e.start && e.date === day ? '<b>' + esc(e.start) + '</b>' : '') + esc(e.name) + '</button>'; }).join('') +
+        list.slice(0, 4).map(function (e) { return '<button type="button" class="cf-ev' + (e.gc ? ' gc' : '') + '" data-id="' + esc(e.id) + '" title="' + esc((e.gc ? '[캘린더] ' : '') + e.name + (e.host ? ' · ' + e.host : '') + (cfTime(e) ? ' · ' + cfTime(e) : '')) + '">' + (e.start && e.date === day ? '<b>' + esc(e.start) + '</b>' : '') + esc(e.name) + '</button>'; }).join('') +
         (list.length > 4 ? '<span class="slot more">+' + (list.length - 4) + '건</span>' : '') + '</span></div>';
     });
     $('#cfCal').innerHTML = html;
     $('#cfCal').classList.toggle('loading', CF.loading);
-    $('#cfList').innerHTML = !CF.events ? '<div class="empty">' + esc(CF.err || (CF.loading ? '불러오는 중…' : '일정을 불러오지 못했습니다.')) + '</div>' : !inMonth.length ? '<div class="empty">' + monthLabel(m) + '에 등록된 행사가 없습니다. 달력에서 날짜를 눌러 등록해 주세요.</div>' :
-      '<div class="yoy-wrap"><table class="schtbl"><thead><tr><th>날짜</th><th>시간</th><th>행사명</th><th>주최</th><th>장소</th><th>규모</th><th>담당 PM</th><th>특이사항</th></tr></thead><tbody>' +
+    $('#cfList').innerHTML = !CF.events && !g ? '<div class="empty">' + esc(CF.err || (CF.loading ? '불러오는 중…' : '일정을 불러오지 못했습니다.')) + '</div>' : !inMonth.length ? '<div class="empty">' + monthLabel(m) + '에 표시할 일정이 없습니다. 달력에서 날짜를 눌러 행사를 등록할 수 있습니다.</div>' :
+      '<div class="yoy-wrap"><table class="schtbl"><thead><tr><th>구분</th><th>날짜</th><th>시간</th><th>행사명</th><th>주최</th><th>장소</th><th>규모</th><th>담당 PM</th><th>특이사항</th></tr></thead><tbody>' +
       inMonth.map(function (e) {
-        return '<tr class="click" data-id="' + esc(e.id) + '"><td class="tm">' + esc(e.date.slice(5).replace('-', '/')) + (e.endDate && e.endDate !== e.date ? '~' + esc(e.endDate.slice(5).replace('-', '/')) : '') + '</td><td>' + esc(cfTime(e) || '–') + '</td><td class="ttl"><b>' + esc(e.name) + '</b></td><td>' + (e.hostType ? '<small class="ht">' + esc(e.hostType) + '</small>' : '') + esc(e.host || '–') + '</td><td class="wrapc">' + esc(e.place || '–') + '</td><td>' + esc(e.scale || '–') + '</td><td>' + esc(e.pm || '–') + '</td><td class="wrapc">' + esc(e.note || '') + '</td></tr>';
+        return '<tr class="click" data-id="' + esc(e.id) + '"><td>' + (e.gc ? '<span class="cf-src gc">캘린더</span>' : '<span class="cf-src">등록</span>') + '</td><td class="tm">' + esc(e.date.slice(5).replace('-', '/')) + (e.endDate && e.endDate !== e.date ? '~' + esc(e.endDate.slice(5).replace('-', '/')) : '') + '</td><td>' + esc(cfTime(e) || (e.allDay ? '종일' : '–')) + '</td><td class="ttl"><b>' + esc(e.name) + '</b></td><td>' + (e.hostType ? '<small class="ht">' + esc(e.hostType) + '</small>' : '') + esc(e.host || '–') + '</td><td class="wrapc">' + esc(e.place || '–') + '</td><td>' + esc(e.scale || '–') + '</td><td>' + esc(e.pm || '–') + '</td><td class="wrapc">' + esc(e.note || '') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
   }
-  function cfFind(id) { return (CF.events || []).find(function (e) { return e.id === id; }); }
+  function cfFind(id) { return (CF.view || []).find(function (e) { return e.id === id; }); }
+  function cfOpen(e) { if (e.gc) cgShow(e); else cfForm(e); }
+  function cgShow(e) {
+    var rows = [['날짜', dayLabel(e.date) + (e.endDate && e.endDate !== e.date ? ' ~ ' + dayLabel(e.endDate) : '')], ['시간', cfTime(e) || (e.allDay ? '종일' : '')], ['장소', e.place], ['내용', e.note]];
+    $('#cgTitle').textContent = e.name;
+    $('#cgBody').innerHTML = rows.filter(function (r) { return r[1]; }).map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join('');
+    $('#cgModal').classList.add('show'); $('#cgClose').focus();
+  }
+  $('#cgClose').addEventListener('click', function () { $('#cgModal').classList.remove('show'); });
+  $('#cgModal').addEventListener('click', function (ev) { if (ev.target === this) this.classList.remove('show'); });
+  document.querySelectorAll('#cfSrcSeg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      CF.src = b.dataset.src;
+      document.querySelectorAll('#cfSrcSeg button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      renderConf();
+    });
+  });
   $('#cfCal').addEventListener('click', function (ev) {
-    var b = ev.target.closest('.cf-ev'); if (b) { ev.stopPropagation(); var e = cfFind(b.dataset.id); if (e) cfForm(e); return; }
+    var b = ev.target.closest('.cf-ev'); if (b) { ev.stopPropagation(); var e = cfFind(b.dataset.id); if (e) cfOpen(e); return; }
     var d = ev.target.closest('.cal-day'); if (d && CF.events) cfForm(null, d.dataset.day);
   });
   $('#cfCal').addEventListener('keydown', function (ev) { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList.contains('cal-day')) { ev.preventDefault(); if (CF.events) cfForm(null, ev.target.dataset.day); } });
-  $('#cfList').addEventListener('click', function (ev) { var tr = ev.target.closest('tr[data-id]'); if (tr) { var e = cfFind(tr.dataset.id); if (e) cfForm(e); } });
-  $('#cfPrev').addEventListener('click', function () { CF.month = monthAdd(CF.month, -1); renderConf(); });
-  $('#cfNext').addEventListener('click', function () { CF.month = monthAdd(CF.month, 1); renderConf(); });
-  $('#cfToday').addEventListener('click', function () { CF.month = todayYmd().slice(0, 7); renderConf(); });
+  $('#cfList').addEventListener('click', function (ev) { var tr = ev.target.closest('tr[data-id]'); if (tr) { var e = cfFind(tr.dataset.id); if (e) cfOpen(e); } });
+  $('#cfPrev').addEventListener('click', function () { CF.month = monthAdd(CF.month, -1); renderConf(); loadGc(CF.month, false); });
+  $('#cfNext').addEventListener('click', function () { CF.month = monthAdd(CF.month, 1); renderConf(); loadGc(CF.month, false); });
+  $('#cfToday').addEventListener('click', function () { CF.month = todayYmd().slice(0, 7); renderConf(); loadGc(CF.month, false); });
   function cfForm(e, day) {
     var m = $('#cfModal'), edit = !!e; e = e || {};
     $('#cfTitle').textContent = edit ? '행사 수정' : '행사 등록';
@@ -3805,7 +3889,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       } else b.removeAttribute('aria-current');
     });
     setNav(false); dbBadge();
-    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 파일을 다시 읽어 DB에 저장합니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '매출 시트의 최신 값을 다시 불러옵니다' : VIEW === 'sched' ? '편성표에서 이번 달 세미나를 다시 불러옵니다 (대시보드에서 수정한 건은 유지)' : VIEW === 'conf' ? 'DB에서 컨퍼런스 일정을 다시 불러옵니다' : VIEW === 'seminar' ? '저장소의 세미나 편성 파일을 다시 읽어 DB에 저장합니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
+    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 파일을 다시 읽어 DB에 저장합니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '매출 시트의 최신 값을 다시 불러옵니다' : VIEW === 'sched' ? '편성표에서 이번 달 세미나를 다시 불러옵니다 (대시보드에서 수정한 건은 유지)' : VIEW === 'conf' ? 'DB의 등록 행사와 구글 캘린더(닥터빌 마케팅팀) 일정을 다시 불러옵니다' : VIEW === 'seminar' ? '저장소의 세미나 편성 파일을 다시 읽어 DB에 저장합니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
     if (!fromHash) { try { history.replaceState(null, '', VIEW === 'home' ? location.pathname + location.search : '#' + VIEW); } catch (e) {} }
     if (stat) {
       if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
