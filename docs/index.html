@@ -312,6 +312,29 @@ a.hcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #sideNav [hidden] { display: none !important; }
 .modal-bg { z-index: 60; }
 #adsMain, #accMain { display: none; }
+body.view-ads #memberMain, body.view-ads .member-only, body.view-ads #pdfBtn { display: none !important; }
+/* 매출 > 닥터빌 > 광고 */
+.ad-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+.ad-ctl label { display: inline-flex; gap: 6px; align-items: center; }
+.ad-wk { display: none; } #adsApp.weekly .ad-wk { display: block; } #adsApp.weekly .ad-mo { display: none; }
+#adsApp:not(.weekly) .ad-wk, #adsApp.weekly .ad-mo { display: none !important; }
+.ad-tbl { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.ad-tbl th { font-weight: 500; color: var(--muted); text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.ad-tbl td { padding: 7px 8px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ad-tbl th:first-child, .ad-tbl td:first-child, .ad-tbl .l { text-align: left; }
+.ad-tbl tr.sum td { font-weight: 700; background: var(--surface-2); }
+.ad-tbl tr.grp td { font-weight: 700; background: var(--surface-2); }
+.ad-tbl .cur { background: var(--accent-soft); }
+.ad-tbl td.c { font-size: 11.5px; line-height: 1.35; text-align: left; min-width: 90px; vertical-align: top; white-space: normal; }
+.ad-chip { display: block; border-left: 3px solid var(--s1); background: color-mix(in srgb, var(--s1) 12%, transparent); padding: 1px 4px; margin: 1px 0; border-radius: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+.ad-chip.ex { border-left-color: var(--s3); background: color-mix(in srgb, var(--s3) 12%, transparent); }
+.ad-chip.rs { background: transparent; border-left-style: dashed; }
+.ad-chip.fc { border-left-color: var(--s5); border-left-style: dotted; background: transparent; color: var(--ink-2); }
+.ad-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+.ad-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.ad-bar { height: 6px; background: var(--grid); border-radius: 3px; margin-top: 8px; overflow: hidden; } .ad-bar i { display: block; height: 100%; background: var(--accent); }
+#adsApp .up { color: var(--up); } #adsApp .down { color: var(--down); }
+.ad-pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
 body.view-ads #adsMain, body.view-accounts #accMain { display: block; }
 #userBadge { color: var(--header-ink); font-weight: 600; }
 body.role-partner #homeMemGrp, body.role-partner #homeMembers { display: none; }
@@ -672,7 +695,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       <a class="nav-item" href="#sales" data-view="sales">매출</a>
       <a class="nav-item" href="#points" data-view="points">포인트</a>
       <a class="nav-item" href="#seminar" data-view="seminar">세미나</a>
-      <a class="nav-item" href="#ads" data-view="ads">광고<span class="nav-soon">준비 중</span></a>
+      <a class="nav-item" href="#ads" data-view="ads">광고</a>
       <div class="nav-svc nav-cat"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17"/><path d="M8 3v4M16 3v4"/></svg><span>현황</span></div>
       <a class="nav-item" href="#sched" data-view="sched">세미나</a>
       <a class="nav-item" href="#sads" data-view="sads">광고<span class="nav-soon">준비 중</span></a>
@@ -870,7 +893,37 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 </main>
 
 <main id="adsMain">
-  <div class="wrap"><section><div class="card soon"><h2>광고</h2><p>준비 중인 메뉴입니다.</p></div></section></div>
+  <div class="wrap" id="adsApp">
+    <section>
+      <div class="sec-head">
+        <div><h2>닥터빌 광고</h2><p id="adSrc">2026 닥터빌 광고 운영 현황판 · 통합_Raw 집계</p></div>
+        <div class="ad-ctl">
+          <div class="seg" id="adMode" role="group" aria-label="분석 단위"><button type="button" data-v="month" aria-pressed="true">월간</button><button type="button" data-v="week">주간</button></div>
+          <div class="seg" id="adBasis" role="group" aria-label="집계 기준"><button type="button" data-v="exec" aria-pressed="true">실행월</button><button type="button" data-v="settle">정산월</button></div>
+          <label>연도 <select id="adYear" aria-label="기준 연도"></select></label>
+          <label class="ad-mo">기준 월 <select id="adMonth" aria-label="기준 월"></select></label>
+          <label class="ad-wk">기준 주 <select id="adWeek" aria-label="기준 주"></select></label>
+        </div>
+      </div>
+      <div id="adEmpty" class="empty" hidden></div>
+      <div class="kpis addata" id="adKpis"></div>
+    </section>
+    <div class="ad-mo addata">
+      <section><div class="sec-head"><div><h2>월별 확정·예측 매출</h2><p>막대: 확정(내부·외부) + 예측 · 점선: 월 목표 · 단위 억원</p></div></div>
+        <div class="card"><div id="adChMonth"></div><div class="ad-legend"><span><i style="background:var(--s1)"></i>내부 확정</span><span><i style="background:var(--s3)"></i>외부 확정</span><span><i style="background:var(--s5)"></i>예측(제안·협의중)</span><span><i style="background:var(--down);height:2px"></i>목표</span></div></div></section>
+      <section><div class="sec-head"><div><h2>① 확정·예측 금액</h2><p>단위 억원 · 강조 열이 기준 월</p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adAmt"></table></div></div></section>
+      <section><div class="sec-head"><div><h2>② 광고 가동률</h2><p id="adUtilSub"></p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adUtil"></table></div></div></section>
+      <section><div class="sec-head"><div><h2>③ 월별 운영 현황</h2><p>위치·슬롯 × 월 · 회사 금액(만원) · 실선 확정 · 점선 예약 · 점 예측 · 파랑 내부 · 초록 외부</p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adGrid"></table></div></div></section>
+      <section><div class="sec-head"><div><h2>④ 예측 금액 근거</h2><p>상태 제안·협의중 · 단위 만원</p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adFc"></table></div></div></section>
+      <section><div class="sec-head"><div><h2>⑤ 고객사 현황 (외부)</h2><p>연간 확정·예측 금액(만원)과 최근 상태 · 진행 메모는 가져오지 않습니다</p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adCrm"></table></div></div></section>
+    </div>
+    <div class="ad-wk addata">
+      <section><div class="sec-head"><div><h2>주별 광고 매출(일할)·게시 광고 수</h2><p>확정 건의 시작일~마감일을 날짜 수로 나눠 주별로 배분 · 날짜가 실행월과 맞지 않는 건은 실행월 전체로 처리 · 최근 26주</p></div></div>
+        <div class="card"><div id="adChWeek"></div><div class="ad-legend"><span><i style="background:var(--s1)"></i>내부</span><span><i style="background:var(--s3)"></i>외부</span><span><i style="background:var(--ink-2);height:2px"></i>게시 중 광고 수</span></div></div></section>
+      <section><div class="sec-head"><div><h2>주별 상세</h2><p id="adWeekSub"></p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adWeekTbl"></table></div></div></section>
+    </div>
+    <footer>통합_Raw를 구글시트 Apps Script(ads.gs)에서 집계해 집계 결과만 DB에 저장합니다. 컨텍 담당자·기안서 번호·진행 메모·광고 내용은 가져오지 않습니다. 협력사 계정은 볼 수 없습니다. 외부 공유 전 사전 승인이 필요합니다.</footer>
+  </div>
 </main>
 
 <main id="accMain">
@@ -1549,6 +1602,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (/^api\|activity/.test(key)) return 'activity';
     if (/^api\|sales/.test(key)) return 'sales';
     if (/^api\|schedule/.test(key)) return 'sched';
+    if (/^api\|ads/.test(key)) return 'ads';
     if (/seminar/.test(key)) return 'seminar';
     if (/pv_points/.test(key)) return 'ppoints';
     if (/points/.test(key)) return 'points';
@@ -1749,7 +1803,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   // 구글시트 응답을 DB 저장본으로 캐시: get(회원 집계)·activity·sales·schedule
   //   refresh(회원 [갱신]) = 원본 재집계 → 'get' 저장본을 덮어쓰고, 주차·월별 저장본은 비움
   //   fresh:true = 원본 다시 읽기 → 저장본 덮어씀
-  var API_DB = { get: function (r) { return !!r.snap; }, activity: function (r) { return !!r.activity; }, activityPv: function (r) { return !!r.activity; }, sales: function (r) { return !!(r.sales && r.sales.years); }, schedule: function (r) { return !!r.schedule; }, calendar: function (r) { return !!(r.calendar && r.calendar.events); } };
+  var API_DB = { get: function (r) { return !!r.snap; }, activity: function (r) { return !!r.activity; }, activityPv: function (r) { return !!r.activity; }, sales: function (r) { return !!(r.sales && r.sales.years); }, schedule: function (r) { return !!r.schedule; }, calendar: function (r) { return !!(r.calendar && r.calendar.events); }, ads: function (r) { return !!(r.ads && r.ads.agg); } };
   var API_TTL = { calendar: 30 * 60 * 1000 };   // 캘린더는 30분 지나면 원본 재확인 (실패 시 저장본 표시)
   function stableStr(o) { return JSON.stringify(Object.keys(o).sort().reduce(function (a, k) { a[k] = o[k]; return a; }, {})); }
   function apiKey(action, extra, svc) {
@@ -1812,6 +1866,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (VIEW === 'pactivity') return loadPvActivity(true, btn);
     if (VIEW === 'seminar') return loadSeminar(true, btn);
     if (VIEW === 'sales') return loadSales(true, btn);
+    if (VIEW === 'ads') return loadAds(true, btn);
     if (VIEW === 'sched') return loadSchedule(true, btn);
     if (VIEW === 'conf') return loadConf(true, btn);
     if (!CONFIG.appsScriptUrl) { toast('구글시트 연동 주소(docs/data/config.json)가 아직 설정되지 않았습니다.', true); return; }
@@ -1966,10 +2021,12 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (!INTERNAL) {   // 협력사 담당자: 세미나 요약만
       if (VIEW === 'home') loadHome();
       if (VIEW === 'seminar') loadSeminar(false);
+      if (VIEW === 'ads') renderAds();
       return;
     }
     if (VIEW === 'accounts') loadDir();
     if (VIEW === 'sales') loadSales(false);
+    if (VIEW === 'ads') loadAds(false);
     if (VIEW === 'sched') loadSchedule(false);
     if (VIEW === 'conf') loadConf(false);
     if (isPts()) loadPoints();
@@ -2056,7 +2113,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   });
   buildRangeSeg();
   $('#modeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.mode === state.mode ? 'true' : 'false'); });
-  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); renderPWTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'pactivity' && PA.data) renderPvActivity(); if (VIEW === 'seminar' && SEM.data) renderSemChart(); if (VIEW === 'sales' && SL.data) renderSlChart(); if (isPts() && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
+  var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); renderPWTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'pactivity' && PA.data) renderPvActivity(); if (VIEW === 'seminar' && SEM.data) renderSemChart(); if (VIEW === 'sales' && SL.data) renderSlChart(); if (VIEW === 'ads' && AD.data) renderAds(); if (isPts() && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
 
   function renderAll() {
     if (!state.snap) return;
@@ -2077,6 +2134,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (VIEW === 'pactivity') setPActHeader();
     if (VIEW === 'seminar') setSemHeader();
     if (VIEW === 'sales') setSalesHeader();
+    if (VIEW === 'ads') renderAds();
     if (VIEW === 'sched') renderSchedule();
     if (VIEW === 'conf') renderConf();
     if (VIEW === 'home' || VIEW === 'report') renderHome();
@@ -3852,11 +3910,177 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     };
   }
 
+  // ---- 매출 > 닥터빌 > 광고 -------------------------------------------------
+  // 데이터: Apps Script action:'ads'(ads.gs)가 「2026 닥터빌 광고 운영 현황판」 통합_Raw를 집계해 집계 결과만 돌려줌 → DB(api|ads) 저장
+  //   첫 진입: DB 저장본 → 없으면 시트 집계 후 저장 / [갱신]: 시트 재집계 → 이전 저장본과 비교해 추가·변경·삭제 건수 안내
+  //   집계 단위 만원 · 확정 = 예약·진행중·완료, 예측 = 제안·협의중 (현황판 Setting 기준)
+  var AD = { data: null, loading: false, err: '', mode: 'month', basis: 'exec', year: null, month: null, week: null };
+  var ADS_OLD_GS = '시트 Apps Script에 광고 기능(ads.gs)이 아직 없습니다. ads.gs 파일을 추가하고 Code.gs doPost에 ads 한 줄을 넣은 뒤 [배포 → 배포 관리 → 편집 → 새 버전]으로 배포해 주세요.';
+  function adEok(v) { return (Math.round(v / 100) / 100).toFixed(2); }
+  function adMan(v) { return Math.round(v).toLocaleString('ko-KR'); }
+  function adPct(a, b) { return b ? Math.round(a / b * 100) + '%' : '–'; }
+  function adIsoWeek(d) {
+    var t = new Date(d); t.setUTCDate(t.getUTCDate() + 3 - (t.getUTCDay() + 6) % 7);
+    var y = t.getUTCFullYear(), j = new Date(Date.UTC(y, 0, 4));
+    return y + '-W' + String(1 + Math.round(((t - j) / 864e5 - 3 + (j.getUTCDay() + 6) % 7) / 7)).padStart(2, '0');
+  }
+  function adDiff(oldSig, newSig) {   // 이전 저장본과 비교: 추가·삭제(변경은 삭제+추가로 잡힘)
+    var cnt = {}, add = 0, del = 0;
+    (oldSig || []).forEach(function (s) { cnt[s] = (cnt[s] || 0) + 1; });
+    (newSig || []).forEach(function (s) { if (cnt[s]) cnt[s]--; else add++; });
+    Object.keys(cnt).forEach(function (k) { del += cnt[k]; });
+    return { add: add, del: del };
+  }
+  function loadAds(fresh, btn) {
+    if (!INTERNAL) { renderAds(); return Promise.resolve(); }
+    if (!CONFIG.appsScriptUrl) { AD.err = '구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.'; renderAds(); return Promise.resolve(); }
+    var prev = AD.data;
+    return needPw('광고 현황판을 불러오려면 구글시트 연동 비밀번호를 입력해 주세요.', fresh).then(function (pw) {
+      if (!pw) return;
+      AD.loading = true; AD.err = ''; renderAds();
+      if (btn) { btn.disabled = true; btn.textContent = '집계 중…'; }
+      $('#adsApp').classList.add('loading');
+      var before = prev || null;
+      var getPrev = fresh && !before && DB.on ? dbGet('api|ads').then(function (r) { return r && r.data && r.data.ads; }, function () { return null; }) : Promise.resolve(before);
+      return getPrev.then(function (old) {
+        return api('ads', fresh ? { fresh: true } : {}).then(function (res) {
+          if (!res.ads || !res.ads.agg) throw new Error('no_ads');
+          AD.data = res.ads;
+          if (fresh) {
+            var df = adDiff(old && old.sig, res.ads.sig);
+            toast(!old ? '광고 현황판을 집계해 DB에 저장했습니다 (Raw ' + res.ads.rows + '행).' : (df.add || df.del) ? 'Raw 변경 반영: 추가·수정 ' + df.add + '건 · 삭제·수정 전 ' + df.del + '건 (Raw ' + res.ads.rows + '행)' : 'Raw에 바뀐 내용이 없습니다 (Raw ' + res.ads.rows + '행).', false, 8000);
+          }
+        });
+      }).catch(function (e) {
+        if (e.code === 'unauthorized') PW = null;
+        AD.err = e.message === 'no_ads' ? ADS_OLD_GS : statusApiErr(e, '광고 현황판을 불러오지 못했습니다');
+        if (VIEW === 'ads') toast(AD.err, true, 12000);
+      }).then(function () {
+        AD.loading = false; $('#adsApp').classList.remove('loading');
+        if (btn) { btn.disabled = false; btn.textContent = '갱신'; }
+        renderAds();
+      });
+    });
+  }
+  function adKpi(label, value, unit, meta, bar) {
+    return '<div class="card kpi"><div class="label">' + label + '</div><div class="value">' + value + '<small>' + unit + '</small></div><div class="meta">' + meta + '</div>' + (bar != null ? '<div class="ad-bar"><i style="width:' + Math.max(0, Math.min(100, bar)) + '%"></i></div>' : '') + '</div>';
+  }
+  function renderAds() {
+    if (VIEW !== 'ads') return;
+    var d = AD.data;
+    $('#subtitle').textContent = !INTERNAL ? '협력사 계정에서는 광고 매출을 볼 수 없습니다' : d ? '닥터빌 광고 · ' + (AD.basis === 'exec' ? '실행월' : '정산월') + ' 기준 · 시트 집계 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : (AD.loading ? '광고 현황판을 집계하는 중…' : '광고 데이터를 불러오지 못했습니다');
+    $('#srcLabel').textContent = d ? '데이터: 광고 현황판 통합_Raw (' + d.rows + '행)' : '';
+    $('#adEmpty').hidden = !!d; document.querySelectorAll('#adsApp .addata').forEach(function (s) { s.hidden = !d; });
+    if (!d) { $('#adEmpty').textContent = !INTERNAL ? '광고 매출은 내부 담당자만 볼 수 있습니다.' : AD.err || (AD.loading ? '불러오는 중…' : '데이터가 없습니다. 상단 [갱신]을 눌러 주세요.'); return; }
+    var nowK = new Date(Date.now() + KST_MS), years = Object.keys(d.agg).sort();
+    if (!AD.year || !d.agg[AD.year]) AD.year = years.indexOf(String(nowK.getUTCFullYear())) >= 0 ? String(nowK.getUTCFullYear()) : years[0];
+    if (!AD.month) AD.month = AD.year === String(nowK.getUTCFullYear()) ? nowK.getUTCMonth() + 1 : 12;
+    $('#adYear').innerHTML = years.map(function (y) { return '<option value="' + y + '">' + y + '년</option>'; }).join(''); $('#adYear').value = AD.year;
+    $('#adMonth').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { return '<option value="' + m + '">' + m + '월</option>'; }).join(''); $('#adMonth').value = AD.month;
+    document.querySelectorAll('#adMode button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === AD.mode ? 'true' : 'false'); });
+    document.querySelectorAll('#adBasis button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === AD.basis ? 'true' : 'false'); b.disabled = AD.mode === 'week'; });
+    $('#adsApp').classList.toggle('weekly', AD.mode === 'week');
+    $('#adSrc').textContent = d.source + ' · ' + d.rule;
+    if (AD.mode === 'week') renderAdWeeks(d); else renderAdMonths(d);
+  }
+  function renderAdMonths(d) {
+    var A = d.agg[AD.year][AD.basis], M = A.months, T = d.targets || [], mi = AD.month - 1, cap = d.cap, TT = T.reduce(function (a, b) { return a + b; }, 0);
+    var ytd = 0, ytdT = 0, yr = 0, yrF = 0;
+    M.forEach(function (o, i) { yr += o.conf; yrF += o.fc; if (i <= mi) { ytd += o.conf; ytdT += T[i] || 0; } });
+    var o = M[mi], p = M[mi - 1];
+    $('#adKpis').innerHTML =
+      adKpi(AD.month + '월 확정 매출', adEok(o.conf), '억', '목표 ' + adEok(T[mi] || 0) + '억 · 달성 ' + adPct(o.conf, T[mi]) + (p ? ' · 전월 ' + (o.conf >= p.conf ? '<span class="up">▲' : '<span class="down">▼') + adMan(Math.abs(o.conf - p.conf)) + '만</span>' : ''), T[mi] ? o.conf / T[mi] * 100 : null) +
+      adKpi('1~' + AD.month + '월 누계 확정', adEok(ytd), '억', '누계 목표 ' + adEok(ytdT) + '억 · 달성 ' + adPct(ytd, ytdT), ytdT ? ytd / ytdT * 100 : null) +
+      adKpi('연간 확정 + 예측', adEok(yr + yrF), '억', '확정 ' + adEok(yr) + '억 · 예측 ' + adEok(yrF) + '억 · 연 목표 ' + adEok(TT) + '억 대비 ' + adPct(yr + yrF, TT)) +
+      adKpi(AD.month + '월 슬롯 가동률', adPct(o.n, cap.all.n).replace('%', ''), '%', '확정 ' + o.n + '칸 / 유상 ' + cap.all.n + '칸 · 내부 ' + adPct(o.cIn, o.conf) + ' · 외부 ' + adPct(o.cEx, o.conf), o.n / cap.all.n * 100);
+    // 막대 그래프
+    var el = $('#adChMonth'), W = Math.max(320, el.clientWidth || 900), H = 240, L = 40, R = 10, Tp = 12, B = 24;
+    var max = Math.max.apply(null, M.map(function (x, i) { return Math.max(x.conf + x.fc, T[i] || 0); }).concat([1])) * 1.1, bw = (W - L - R) / 12, y = function (v) { return Tp + (H - Tp - B) * (1 - v / max); };
+    var s = '<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="월별 확정·예측 광고 매출">';
+    for (var g = 0; g <= 4; g++) { var gv = max / 4 * g; s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(gv) + '" y2="' + y(gv) + '" stroke="var(--grid)"/><text x="' + (L - 6) + '" y="' + (y(gv) + 4) + '" font-size="10.5" fill="var(--muted)" text-anchor="end">' + (gv / 10000).toFixed(1) + '</text>'; }
+    M.forEach(function (x, i) {
+      var bx = L + i * bw + bw * .2, w = bw * .6, h2 = y(0) - y(x.cEx), h3 = y(0) - y(x.fc), cur = i === mi;
+      s += '<rect x="' + bx + '" y="' + y(x.cIn) + '" width="' + w + '" height="' + (y(0) - y(x.cIn)) + '" fill="var(--s1)"><title>' + (i + 1) + '월 내부 확정 ' + adMan(x.cIn) + '만원</title></rect>';
+      s += '<rect x="' + bx + '" y="' + (y(x.cIn) - h2) + '" width="' + w + '" height="' + h2 + '" fill="var(--s3)"><title>' + (i + 1) + '월 외부 확정 ' + adMan(x.cEx) + '만원</title></rect>';
+      if (x.fc) s += '<rect x="' + bx + '" y="' + (y(x.cIn) - h2 - h3) + '" width="' + w + '" height="' + h3 + '" fill="var(--s5)" opacity=".8"><title>' + (i + 1) + '월 예측 ' + adMan(x.fc) + '만원</title></rect>';
+      s += '<text x="' + (bx + w / 2) + '" y="' + (H - 6) + '" font-size="11" text-anchor="middle" fill="' + (cur ? 'var(--ink)' : 'var(--muted)') + '" font-weight="' + (cur ? 700 : 400) + '">' + (i + 1) + '월</text>';
+    });
+    if (TT) s += '<polyline fill="none" stroke="var(--down)" stroke-width="1.5" stroke-dasharray="4 3" points="' + T.map(function (t, i) { return (L + i * bw + bw / 2) + ',' + y(t); }).join(' ') + '"/>';
+    el.innerHTML = s + '</svg>';
+    // 표
+    var f = function (k) { return M.map(function (x) { return x[k]; }); };
+    var head = function (first, last) { return '<thead><tr><th class="l">' + first + '</th>' + M.map(function (x, i) { return '<th class="' + (i === mi ? 'cur' : '') + '">' + (i + 1) + '월</th>'; }).join('') + '<th>' + (last || '누계') + '</th></tr></thead>'; };
+    var row = function (lbl, arr, fm, cls, totFn) { var t = 0; arr.forEach(function (v) { t += v || 0; }); return '<tr class="' + (cls || '') + '"><td>' + lbl + '</td>' + arr.map(function (v, i) { return '<td class="' + (i === mi ? 'cur' : '') + '">' + (v ? fm(v) : '–') + '</td>'; }).join('') + '<td><b>' + (totFn ? totFn(t) : t ? fm(t) : '–') + '</b></td></tr>'; };
+    var rate = function (lbl, arr, den, totDen) { var t = 0; arr.forEach(function (v) { t += v || 0; }); return '<tr><td>' + lbl + '</td>' + arr.map(function (v, i) { return '<td class="' + (i === mi ? 'cur' : '') + '">' + adPct(v, typeof den === 'number' ? den : den[i]) + '</td>'; }).join('') + '<td>' + adPct(t, totDen) + '</td></tr>'; };
+    $('#adAmt').innerHTML = head('구분') + '<tbody>' + row('총 금액 (확정+예측)', M.map(function (x) { return x.conf + x.fc; }), adEok, 'sum') + row('확정 금액', f('conf'), adEok) + row('　내부 매출', f('cIn'), adEok) + row('　외부 매출', f('cEx'), adEok) +
+      row('예측 금액', f('fc'), adEok) + row('　내부 매출', f('fIn'), adEok) + row('　외부 매출', f('fEx'), adEok) + (TT ? row('목표', T, adEok) + rate('목표 달성률(확정)', f('conf'), T, TT) : '') + '</tbody>';
+    $('#adUtilSub').textContent = '달성률 = 확정 금액 ÷ 월 최대 매출 · 슬롯 가동률 = 확정 칸 ÷ 유상 광고칸 (전체 ' + cap.all.n + ' · 메인 ' + cap.main.n + ' · 서브 ' + cap.sub.n + ') · 현황판은 슬롯별 표시 행수로 잘라 계산해 일부 월이 다를 수 있음';
+    var u = '';
+    [['전체', 'all', 'conf', 'n'], ['메인', 'main', 'aMain', 'nMain'], ['서브', 'sub', 'aSub', 'nSub']].forEach(function (g2) {
+      var c = cap[g2[1]];
+      u += '<tr class="grp"><td colspan="14">' + g2[0] + ' · 최대 ' + adEok(c.max) + '억 / ' + c.n + '칸</td></tr>' + row('금액(억)', f(g2[2]), adEok) + rate('매출 달성률', f(g2[2]), c.max, c.max * 12) +
+        row('칸(건)', f(g2[3]), function (v) { return v + '건'; }) + rate('슬롯 가동률', f(g2[3]), c.n, c.n * 12);
+    });
+    $('#adUtil').innerHTML = head('구분') + '<tbody>' + u + '</tbody>';
+    var keys = Object.keys(A.grid).sort(function (a, b) { var od = ['메인', '서브']; return od.indexOf(a.split('/')[0]) - od.indexOf(b.split('/')[0]) || a.localeCompare(b, 'ko'); });
+    $('#adGrid').innerHTML = !keys.length ? '<tbody><tr><td>등록된 광고가 없습니다.</td></tr></tbody>' : head('위치 · 슬롯', '연간 확정(만원)') + '<tbody>' + keys.map(function (k) {
+      var tot = 0;
+      return '<tr><td class="l"><b>' + esc(k.replace('/', ' · ')) + '</b></td>' + A.grid[k].map(function (cell, i) {
+        return '<td class="c ' + (i === mi ? 'cur' : '') + '">' + cell.map(function (x) {
+          if (x.k === 'conf') tot += x.a;
+          return '<span class="ad-chip' + (x.io === '외부' ? ' ex' : '') + (x.k === 'fc' ? ' fc' : x.st === '예약' ? ' rs' : '') + '" title="' + esc(x.co + ' ' + adMan(x.a) + '만원 · ' + x.io + ' · ' + x.st) + '">' + esc(x.co) + ' ' + adMan(x.a) + '</span>';
+        }).join('') + '</td>';
+      }).join('') + '<td>' + (tot ? adMan(tot) : '–') + '</td></tr>';
+    }).join('') + '</tbody>';
+    var fk = Object.keys(A.forecast).sort(function (a, b) { var s1 = function (k) { return A.forecast[k].m.reduce(function (x, y2) { return x + y2; }, 0); }; return s1(b) - s1(a); });
+    $('#adFc').innerHTML = fk.length ? head('회사') + '<tbody>' + fk.map(function (k) { return row(esc(k) + ' <small class="ad-pill">' + esc(A.forecast[k].gu) + '</small>', A.forecast[k].m, adMan); }).join('') + row('합계', f('fc'), adMan, 'sum') + '</tbody>' : '<tbody><tr><td>예측(제안·협의중) 건이 없습니다.</td></tr></tbody>';
+    var ck = Object.keys(A.crm).sort(function (a, b) { return (A.crm[b].conf + A.crm[b].fc) - (A.crm[a].conf + A.crm[a].fc); });
+    $('#adCrm').innerHTML = ck.length ? '<thead><tr><th class="l">회사</th><th>확정 금액</th><th>예측 금액</th><th class="l">최근 상태</th><th>최근 월</th></tr></thead><tbody>' + ck.map(function (k) {
+      var c = A.crm[k]; return '<tr><td>' + esc(k) + '</td><td>' + (c.conf ? adMan(c.conf) : '–') + '</td><td>' + (c.fc ? adMan(c.fc) : '–') + '</td><td class="l"><span class="ad-pill">' + esc(c.st) + '</span></td><td>' + c.last + '월</td></tr>';
+    }).join('') + '</tbody>' : '<tbody><tr><td>외부 고객사 광고가 없습니다.</td></tr></tbody>';
+  }
+  function renderAdWeeks(d) {
+    var cap = d.cap.all.n, W = d.weeks.filter(function (w) { return w.week.slice(0, 4) === AD.year; }), now = adIsoWeek(Date.now() + KST_MS);
+    if (!W.length) { $('#adKpis').innerHTML = ''; $('#adChWeek').innerHTML = '<div class="empty">' + AD.year + '년 주간 데이터가 없습니다.</div>'; $('#adWeekTbl').innerHTML = ''; return; }
+    var done = W.filter(function (w) { return w.week < now; });
+    if (!AD.week || !W.some(function (w) { return w.week === AD.week; })) AD.week = (done.length ? done[done.length - 1] : W[0]).week;
+    $('#adWeek').innerHTML = W.slice().reverse().map(function (w) { return '<option value="' + w.week + '">' + w.week + (w.week >= now ? ' (진행·예정)' : '') + '</option>'; }).join(''); $('#adWeek').value = AD.week;
+    var i = W.findIndex(function (w) { return w.week === AD.week; }), w = W[i], p = W[i - 1] || { aIn: 0, aEx: 0, live: 0 }, amt = w.aIn + w.aEx, pa = p.aIn + p.aEx;
+    $('#adKpis').innerHTML =
+      adKpi(w.week + ' 광고 매출(일할)', adMan(amt), '만원', '전주 ' + (amt >= pa ? '<span class="up">▲' : '<span class="down">▼') + adMan(Math.abs(amt - pa)) + '만</span> · 내부 ' + adPct(w.aIn, amt) + ' · 외부 ' + adPct(w.aEx, amt)) +
+      adKpi('게시 중 광고', w.live, '건', '전주 ' + p.live + '건') +
+      adKpi('신규 게시 시작', w.start, '건', '계약 금액 ' + adMan(w.startAmt) + '만원') +
+      adKpi('주간 슬롯 가동률', adPct(w.live, cap).replace('%', ''), '%', '게시 중 ' + w.live + '칸 / 유상 ' + cap + '칸', w.live / cap * 100);
+    var V = W.slice(Math.max(0, i - 25), i + 1), el = $('#adChWeek'), Wd = Math.max(320, el.clientWidth || 900), H = 240, L = 46, R = 30, Tp = 12, B = 26;
+    var max = Math.max.apply(null, V.map(function (x) { return x.aIn + x.aEx; }).concat([1])) * 1.15, mx2 = Math.max.apply(null, V.map(function (x) { return x.live; }).concat([1])) * 1.15, bw = (Wd - L - R) / V.length;
+    var y = function (v) { return Tp + (H - Tp - B) * (1 - v / max); }, y2 = function (v) { return Tp + (H - Tp - B) * (1 - v / mx2); };
+    var s = '<svg width="100%" viewBox="0 0 ' + Wd + ' ' + H + '" role="img" aria-label="주별 광고 매출과 게시 광고 수">';
+    for (var g = 0; g <= 4; g++) { var gv = max / 4 * g; s += '<line x1="' + L + '" x2="' + (Wd - R) + '" y1="' + y(gv) + '" y2="' + y(gv) + '" stroke="var(--grid)"/><text x="' + (L - 6) + '" y="' + (y(gv) + 4) + '" font-size="10.5" fill="var(--muted)" text-anchor="end">' + adMan(gv) + '</text>'; }
+    V.forEach(function (x, k) {
+      var bx = L + k * bw + bw * .15, bwi = bw * .7;
+      s += '<rect x="' + bx + '" y="' + y(x.aIn) + '" width="' + bwi + '" height="' + (y(0) - y(x.aIn)) + '" fill="var(--s1)"><title>' + x.week + ' 내부 ' + adMan(x.aIn) + '만원</title></rect>';
+      s += '<rect x="' + bx + '" y="' + y(x.aIn + x.aEx) + '" width="' + bwi + '" height="' + (y(x.aIn) - y(x.aIn + x.aEx)) + '" fill="var(--s3)"><title>' + x.week + ' 외부 ' + adMan(x.aEx) + '만원</title></rect>';
+      if ((V.length - 1 - k) % 3 === 0) s += '<text x="' + (bx + bwi / 2) + '" y="' + (H - 8) + '" font-size="10.5" text-anchor="middle" fill="var(--muted)">' + x.week.slice(5) + '</text>';
+    });
+    s += '<polyline fill="none" stroke="var(--ink-2)" stroke-width="1.5" points="' + V.map(function (x, k) { return (L + k * bw + bw / 2) + ',' + y2(x.live); }).join(' ') + '"/><text x="' + (Wd - R + 4) + '" y="' + (Tp + 8) + '" font-size="10.5" fill="var(--muted)">건</text>';
+    el.innerHTML = s + '</svg>';
+    $('#adWeekSub').textContent = '신규 = 그 주에 게시를 시작한 확정 건 · 가동률 = 게시 중 칸 ÷ 유상 ' + cap + '칸 · 최근 26주';
+    $('#adWeekTbl').innerHTML = '<thead><tr><th class="l">주차</th><th>매출(일할, 만원)</th><th>내부</th><th>외부</th><th>게시 중</th><th>가동률</th><th>신규 시작</th><th>신규 계약 금액</th></tr></thead><tbody>' +
+      W.slice(0, i + 1).reverse().slice(0, 26).map(function (x) {
+        return '<tr class="' + (x.week === AD.week ? 'sum' : '') + '"><td>' + x.week + '</td><td>' + adMan(x.aIn + x.aEx) + '</td><td>' + adMan(x.aIn) + '</td><td>' + adMan(x.aEx) + '</td><td>' + x.live + '건</td><td>' + adPct(x.live, cap) + '</td><td>' + x.start + '건</td><td>' + (x.startAmt ? adMan(x.startAmt) : '–') + '</td></tr>';
+      }).join('') + '</tbody>';
+  }
+  document.querySelectorAll('#adMode button').forEach(function (b) { b.addEventListener('click', function () { AD.mode = b.dataset.v; renderAds(); }); });
+  document.querySelectorAll('#adBasis button').forEach(function (b) { b.addEventListener('click', function () { AD.basis = b.dataset.v; renderAds(); }); });
+  $('#adYear').addEventListener('change', function () { AD.year = this.value; AD.week = null; renderAds(); });
+  $('#adMonth').addEventListener('change', function () { AD.month = +this.value; renderAds(); });
+  $('#adWeek').addEventListener('change', function () { AD.week = this.value; renderAds(); });
+
   // ---- 좌측 메뉴 · 화면 전환 ------------------------------------------------
   // 홈 / 매출(닥터빌·팜빌 포인트) / 회원 지표(닥터빌·팜빌 회원 정보·활동성) / 분석 리포트·LLM(준비 중)
   var VIEWS = ['home', 'members', 'pharm', 'sales', 'points', 'ppoints', 'seminar', 'ads', 'sched', 'sads', 'conf', 'activity', 'pactivity', 'report', 'llm', 'accounts'];
-  var STATIC_VIEWS = { home: 1, report: 1, llm: 1, ads: 1, sads: 1, accounts: 1 };
-  var VIEW_TITLE = { home: '닥터빌 · 팜빌 운영 대시보드', report: '분석 리포트', llm: 'LLM', ads: '닥터빌 광고', accounts: '계정 관리', sched: '세미나 현황', sads: '광고 현황', conf: '컨퍼런스 현황',
+  var STATIC_VIEWS = { home: 1, report: 1, llm: 1, sads: 1, accounts: 1 };
+  var VIEW_TITLE = { home: '닥터빌 · 팜빌 운영 대시보드', report: '분석 리포트', llm: 'LLM', ads: '닥터빌 광고 대시보드', accounts: '계정 관리', sched: '세미나 현황', sads: '광고 현황', conf: '컨퍼런스 현황',
     points: '닥터빌 포인트 대시보드', seminar: '닥터빌 세미나 대시보드', sales: '닥터빌 매출 대시보드', ppoints: '팜빌 포인트 대시보드', activity: '닥터빌 활동성 대시보드', pactivity: '팜빌 활동성 대시보드' };
   function setNav(open) {
     document.body.classList.toggle('nav-open', open);
@@ -3889,7 +4113,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       } else b.removeAttribute('aria-current');
     });
     setNav(false); dbBadge();
-    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 파일을 다시 읽어 DB에 저장합니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '매출 시트의 최신 값을 다시 불러옵니다' : VIEW === 'sched' ? '편성표에서 이번 달 세미나를 다시 불러옵니다 (대시보드에서 수정한 건은 유지)' : VIEW === 'conf' ? 'DB의 등록 행사와 구글 캘린더(닥터빌 마케팅팀) 일정을 다시 불러옵니다' : VIEW === 'seminar' ? '저장소의 세미나 편성 파일을 다시 읽어 DB에 저장합니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
+    $('#refreshBtn').title = isPts() ? '담당 PC의 포인트 갱신 서버에서 닥터빌·팜빌 신규 CSV만 적재·집계합니다' : VIEW === 'activity' ? '활동성 시트의 최신 값을 다시 불러옵니다' : VIEW === 'pactivity' ? '저장소의 팜빌 활동성 파일을 다시 읽어 DB에 저장합니다 (시트 최신화는 Claude에 요청)' : VIEW === 'sales' ? '매출 시트의 최신 값을 다시 불러옵니다' : VIEW === 'ads' ? '광고 현황판 통합_Raw를 다시 집계해 DB에 저장합니다 (추가·변경 건수 안내)' : VIEW === 'sched' ? '편성표에서 이번 달 세미나를 다시 불러옵니다 (대시보드에서 수정한 건은 유지)' : VIEW === 'conf' ? 'DB의 등록 행사와 구글 캘린더(닥터빌 마케팅팀) 일정을 다시 불러옵니다' : VIEW === 'seminar' ? '저장소의 세미나 편성 파일을 다시 읽어 DB에 저장합니다 (편성표 최신화는 Claude에 「세미나 편성 갱신」 요청)' : '구글시트의 최신 값을 불러와 다시 집계합니다';
     if (!fromHash) { try { history.replaceState(null, '', VIEW === 'home' ? location.pathname + location.search : '#' + VIEW); } catch (e) {} }
     if (stat) {
       if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
@@ -3904,6 +4128,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     else if (VIEW === 'sched') { renderSchedule(); if (started) loadSchedule(false); }
     else if (VIEW === 'conf') { renderConf(); if (started) loadConf(false); }
     else if (VIEW === 'sales') { if (!SL.data && !SL.loading && started) loadSales(false); else renderSales(); }
+    else if (VIEW === 'ads') { if (!AD.data && !AD.loading && started) loadAds(false); else renderAds(); }
     else if (VIEW === 'seminar') { if (!SEM.data && !SEM.loading && started) loadSeminar(false); else renderSeminar(); }
     else { setSource(!!state.remote); if (state.snap) renderAll(); else { $('#subtitle').textContent = '데이터를 불러오는 중…'; if (started) startMembers(); } }
   }
