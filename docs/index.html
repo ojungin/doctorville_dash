@@ -278,6 +278,32 @@ body.pdf-mode { padding-left: 0; }
 }
 /* 홈·준비 중 화면 */
 #homeMain, #reportMain, #llmMain { display: none; }
+/* LLM */
+.llm-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.llm-top .seg button { white-space: nowrap; }
+#llmEx { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+.llm-ex { font: inherit; font-size: 12.5px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.llm-ex:hover { border-color: var(--accent); color: var(--accent); }
+#llmLog { display: flex; flex-direction: column; gap: 12px; max-height: 62vh; min-height: 220px; overflow-y: auto; padding: 4px 2px; }
+.llm-q { display: flex; justify-content: flex-end; }
+.llm-q span { max-width: 80%; background: var(--accent); color: #fff; border-radius: 14px 14px 2px 14px; padding: 9px 13px; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+.llm-a { max-width: 92%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px 14px 14px 2px; padding: 12px 14px; font-size: 14px; line-height: 1.6; }
+.llm-a.err { border-color: var(--down); color: var(--down); }
+.llm-a p { margin: 0 0 6px; } .llm-a h4 { margin: 8px 0 4px; font-size: 14.5px; } .llm-a ul, .llm-a ol { margin: 0 0 6px; padding-left: 20px; }
+.llm-a code { font-size: 12.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+.llm-tbl { border-collapse: collapse; font-size: 12.5px; margin: 6px 0; min-width: 320px; }
+.llm-tbl th, .llm-tbl td { border: 1px solid var(--border); padding: 5px 8px; text-align: left; font-variant-numeric: tabular-nums; }
+.llm-tbl th { background: var(--surface); color: var(--ink-2); font-weight: 600; }
+.llm-meta { font-size: 11.5px; color: var(--muted); margin-top: 6px; word-break: break-all; }
+.llm-a.pending .llm-meta { margin: 0 0 6px; }
+.llm-dots i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin-right: 4px; animation: llmb 1.2s infinite; }
+.llm-dots i:nth-child(2) { animation-delay: .2s; } .llm-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes llmb { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+#llmForm { display: flex; gap: 8px; align-items: flex-end; margin-top: 12px; }
+#llmQ { flex: 1; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid var(--axis); border-radius: 10px; background: var(--surface); color: var(--ink); resize: vertical; min-height: 46px; max-height: 200px; }
+#llmSend { font: inherit; font-weight: 600; padding: 11px 16px; border-radius: 10px; border: 0; background: var(--accent); color: #fff; cursor: pointer; white-space: nowrap; }
+#llmSend:disabled { opacity: .6; cursor: progress; }
+.llm-hint { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
 body.view-home #homeMain, body.view-report #reportMain, body.view-llm #llmMain { display: block; }
 body.view-static #memberMain, body.view-static #pointMain, body.view-static #actMain, body.view-static #pactMain,
 body.view-static .member-only, body.view-static #refreshBtn, body.view-static #pdfBtn, body.view-static #srcLabel, body.view-static #dbBadge { display: none !important; }
@@ -742,7 +768,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     </div>
     <div class="nav-sep" role="separator"></div>
     <a class="nav-item" href="#report" data-view="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 12h6"/><path d="M9 16h6"/></svg><span>분석 리포트</span></a>
-    <a class="nav-item" href="#llm" data-view="llm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg><span>LLM</span><span class="nav-soon">준비 중</span></a>
+    <a class="nav-item" href="#llm" data-view="llm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg><span>LLM</span></a>
     <a class="nav-item" href="#accounts" data-view="accounts"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.6-3.6 3.2-5.5 6.5-5.5 1.2 0 2.3.2 3.2.7"/><path d="M18 14v6M15 17h6"/></svg><span>계정 관리</span></a>
   </nav>
   <div class="side-foot">닥터빌사업부 내부용 · 대외비</div>
@@ -825,7 +851,29 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 </main>
 
 <main id="llmMain">
-  <div class="wrap"><section><div class="card soon"><h2>LLM</h2><p>준비 중인 메뉴입니다.</p></div></section></div>
+  <div class="wrap" id="llmApp">
+    <section>
+      <div class="llm-top">
+        <div><h2 style="margin:0">데이터 질의</h2><p style="margin:2px 0 0;font-size:12.5px;color:var(--muted)">대시보드 DB의 저장본(회원·활동성·매출·포인트·세미나·광고·컨퍼런스)을 조회해 답합니다</p></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="seg" id="llmModel" role="group" aria-label="분석 모델"><button type="button" data-m="haiku" aria-pressed="true" title="빠르고 저렴 (기본)">Haiku 5.5 · 기본</button><button type="button" data-m="sonnet" title="복잡한 비교·추이 분석에 적합 (느리고 비용 큼)">Sonnet 5.5 · 정밀</button></div>
+          <button type="button" class="btn" id="llmNew">새 대화</button>
+        </div>
+      </div>
+      <div id="llmEx"></div>
+    </section>
+    <section>
+      <div class="card">
+        <div id="llmLog" aria-live="polite"></div>
+        <form id="llmForm" autocomplete="off">
+          <textarea id="llmQ" rows="2" maxlength="2000" placeholder="예: 10월 광고 매출을 내부/외부로 나눠 목표 대비로 알려줘" aria-label="질문"></textarea>
+          <button type="submit" id="llmSend">질문하기</button>
+        </form>
+        <div class="llm-hint">Ctrl+Enter로 보내기 · 대화 내용은 이 화면에만 남고 새로고침하면 사라집니다</div>
+      </div>
+    </section>
+    <footer>질문과 조회한 DB 데이터(집계값·고객사별 금액 포함)는 답변 생성을 위해 Anthropic Claude API로 전송됩니다. 계정 정보·담당자 이름·진행 메모는 조회 대상에서 제외됩니다. 답변은 저장본 기준이므로 최신 값이 필요하면 각 메뉴에서 [갱신] 후 질문해 주세요. 외부 공유 전 사전 승인이 필요합니다.</footer>
+  </div>
 </main>
 
 <main id="schedMain">
@@ -4265,6 +4313,84 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     $('#adEmptyChk').addEventListener('change', function () { AD.showEmpty = this.checked; renderAds(); });
   })();
 
+  // ---- LLM (데이터 질의) -----------------------------------------------------
+  // Supabase Edge Function llm-ask 가 DB 저장본을 도구로 조회해 Claude로 답함 (API 키는 함수 Secret에만 있음)
+  var LLM = { model: 'haiku', turns: [], busy: false };
+  var LLM_NAME = { haiku: 'Haiku 5.5', sonnet: 'Sonnet 5.5' };
+  var LLM_EX = ['이번 달 광고 확정 매출과 목표 달성률을 알려줘', '닥터빌 최근 4주 신규 가입 추이를 요약해줘', '2026년 매출을 내부/외부로 나눠 작년과 비교해줘', '닥터빌과 팜빌의 최근 MAU를 비교해줘', '외부 광고 고객사 중 예측 금액이 큰 곳은?', '이번 달 세미나 편성 건수는 작년보다 얼마나 늘었어?'];
+  function llmInline(s) {
+    return s.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  }
+  // 간단한 마크다운 (제목·목록·표·굵게·코드) — 먼저 escape 후 변환
+  function llmMd(src) {
+    var lines = esc(src).split('\n'), html = '', i = 0, list = null;
+    var close = function () { if (list) { html += '</' + list + '>'; list = null; } };
+    while (i < lines.length) {
+      var L = lines[i], t = L.trim();
+      if (/^\|.*\|$/.test(t) && i + 1 < lines.length && /^\|[\s:|-]+\|$/.test(lines[i + 1].trim())) {
+        close();
+        var row = function (x) { return x.trim().replace(/^\||\|$/g, '').split('|').map(function (c) { return c.trim(); }); };
+        var hd = row(t); i += 2; var body = '';
+        while (i < lines.length && /^\|.*\|$/.test(lines[i].trim())) { body += '<tr>' + row(lines[i]).map(function (c) { return '<td>' + llmInline(c) + '</td>'; }).join('') + '</tr>'; i++; }
+        html += '<div class="yoy-wrap"><table class="llm-tbl"><thead><tr>' + hd.map(function (c) { return '<th>' + llmInline(c) + '</th>'; }).join('') + '</tr></thead><tbody>' + body + '</tbody></table></div>';
+        continue;
+      }
+      var m;
+      if ((m = /^(#{1,4})\s+(.*)$/.exec(t))) { close(); html += '<h4>' + llmInline(m[2]) + '</h4>'; }
+      else if ((m = /^[-*•]\s+(.*)$/.exec(t))) { if (list !== 'ul') { close(); html += '<ul>'; list = 'ul'; } html += '<li>' + llmInline(m[1]) + '</li>'; }
+      else if ((m = /^\d+[.)]\s+(.*)$/.exec(t))) { if (list !== 'ol') { close(); html += '<ol>'; list = 'ol'; } html += '<li>' + llmInline(m[1]) + '</li>'; }
+      else if (!t) { close(); }
+      else { close(); html += '<p>' + llmInline(t) + '</p>'; }
+      i++;
+    }
+    close();
+    return html;
+  }
+  function renderLlm() {
+    if (VIEW !== 'llm') return;
+    $('#subtitle').textContent = 'DB에 저장된 대시보드 데이터를 근거로 질문에 답합니다 · 모델 ' + LLM_NAME[LLM.model];
+    document.querySelectorAll('#llmModel button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.m === LLM.model ? 'true' : 'false'); });
+    $('#llmEx').innerHTML = LLM_EX.map(function (q) { return '<button type="button" class="llm-ex">' + esc(q) + '</button>'; }).join('');
+    $('#llmEx').hidden = LLM.turns.length > 0;
+    $('#llmLog').innerHTML = !LLM.turns.length ? '<div class="empty">데이터에 대해 궁금한 점을 물어보세요. 예: 「이번 달 광고 확정 매출과 목표 대비 달성률」</div>' : LLM.turns.map(function (t) {
+      if (t.role === 'user') return '<div class="llm-q"><span>' + esc(t.text) + '</span></div>';
+      if (t.pending) return '<div class="llm-a pending"><div class="llm-meta">' + LLM_NAME[t.model] + ' · 데이터를 조회하며 분석하는 중…</div><div class="llm-dots"><i></i><i></i><i></i></div></div>';
+      if (t.error) return '<div class="llm-a err"><div class="llm-meta">' + LLM_NAME[t.model] + ' · 오류</div><p>' + esc(t.error) + '</p></div>';
+      return '<div class="llm-a"><div class="llm-body">' + llmMd(t.text) + '</div><div class="llm-meta">' + esc(LLM_NAME[t.modelKey] || t.model) + ' · ' + (t.ms / 1000).toFixed(1) + '초 · 토큰 입력 ' + fmt(t.usage.input) + ' / 출력 ' + fmt(t.usage.output) +
+        (t.used && t.used.length ? ' · 조회한 데이터: ' + t.used.map(function (u) { return esc(u.key); }).join(', ') : '') + '</div></div>';
+    }).join('');
+    $('#llmSend').disabled = LLM.busy; $('#llmQ').disabled = LLM.busy;
+    $('#llmSend').textContent = LLM.busy ? '분석 중…' : '질문하기';
+    var log = $('#llmLog'); log.scrollTop = log.scrollHeight;
+  }
+  function llmAsk(q) {
+    q = String(q || '').trim();
+    if (!q || LLM.busy) return;
+    if (!SB || !INTERNAL) { toast('LLM 메뉴는 내부 담당자만 사용할 수 있습니다.', true); return; }
+    var history = LLM.turns.filter(function (t) { return !t.pending && !t.error; }).slice(-6).map(function (t) { return { role: t.role, text: t.text }; });
+    LLM.turns.push({ role: 'user', text: q });
+    var pend = { role: 'assistant', pending: true, model: LLM.model }; LLM.turns.push(pend);
+    LLM.busy = true; $('#llmQ').value = ''; renderLlm();
+    SB.functions.invoke('llm-ask', { body: { question: q, model: LLM.model, history: history } }).then(function (r) {
+      if (r.error) {
+        var ctx = r.error.context;
+        return (ctx && ctx.json ? ctx.json().catch(function () { return null; }) : Promise.resolve(null)).then(function (j) {
+          throw new Error(j && j.error ? j.error : /Failed to send|fetch|not found|404/i.test(r.error.message || '') ? 'LLM 함수(llm-ask)에 연결하지 못했습니다. Supabase Edge Function 배포 상태를 확인해 주세요.' : (r.error.message || '요청 실패'));
+        });
+      }
+      if (!r.data || !r.data.ok) throw new Error((r.data && r.data.error) || '요청 실패');
+      var d = r.data, i = LLM.turns.indexOf(pend);
+      LLM.turns[i] = { role: 'assistant', text: d.answer, model: d.model, modelKey: d.modelKey, usage: d.usage || { input: 0, output: 0 }, used: d.used || [], ms: d.ms || 0 };
+    }).catch(function (e) {
+      var i = LLM.turns.indexOf(pend); LLM.turns[i] = { role: 'assistant', error: e.message || String(e), model: LLM.model };
+    }).then(function () { LLM.busy = false; renderLlm(); $('#llmQ').focus(); });
+  }
+  document.querySelectorAll('#llmModel button').forEach(function (b) { b.addEventListener('click', function () { LLM.model = b.dataset.m; renderLlm(); }); });
+  $('#llmEx').addEventListener('click', function (ev) { var b = ev.target.closest('.llm-ex'); if (b) llmAsk(b.textContent); });
+  $('#llmForm').addEventListener('submit', function (ev) { ev.preventDefault(); llmAsk($('#llmQ').value); });
+  $('#llmQ').addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); llmAsk(this.value); } });
+  $('#llmNew').addEventListener('click', function () { if (LLM.busy) return; LLM.turns = []; renderLlm(); $('#llmQ').focus(); });
+
   // ---- 좌측 메뉴 · 화면 전환 ------------------------------------------------
   // 홈 / 매출(닥터빌·팜빌 포인트) / 회원 지표(닥터빌·팜빌 회원 정보·활동성) / 분석 리포트·LLM(준비 중)
   var VIEWS = ['home', 'members', 'pharm', 'sales', 'points', 'ppoints', 'seminar', 'ads', 'sched', 'sads', 'conf', 'activity', 'pactivity', 'report', 'llm', 'accounts'];
@@ -4308,6 +4434,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       if (VIEW === 'home') { renderHome(); if (started) loadHome(); }
       else if (VIEW === 'report') { RP.enterAt = Date.now(); RP.autoDone = {}; renderReport(); if (started) rpLoad(); }
       else if (VIEW === 'accounts') { renderAccounts(); if (started && !ACCV.dir && !ACCV.loading) loadDir(); }
+      else if (VIEW === 'llm') renderLlm();
       else $('#subtitle').textContent = '준비 중인 메뉴입니다';
       return;
     }
