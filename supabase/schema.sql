@@ -186,6 +186,49 @@ revoke all on public.seminar_entries from anon;
 grant select, insert, update, delete on public.seminar_entries to authenticated;
 
 -- =====================================================================
+-- 4-2) 광고 대시보드 등록 (매출 > 닥터빌 > 광고 · ③ 월별 운영 현황의 빈 칸에서 등록)
+--   통합_Raw와 같은 항목을 DB에만 저장 (광고 현황판 시트에는 쓰지 않음) → 화면에서 시트 집계와 합쳐 표시
+--   금액은 원 단위, 상태: 제안·협의중=예측 / 예약·진행중·완료=확정 / 실패=제외
+--   내부 담당자(최고 관리자·관리자·닥터빌 담당자)만 읽기·쓰기
+-- =====================================================================
+create table if not exists public.ad_entries (
+  id           uuid primary key default gen_random_uuid(),
+  year         int  not null check (year between 2020 and 2100),
+  month        int  not null check (month between 1 and 12),
+  settle_year  int  not null check (settle_year between 2020 and 2100),
+  settle_month int  not null check (settle_month between 1 and 12),
+  pos          text not null default '',
+  slot         text not null default '',
+  gu           text not null default '외부' check (gu in ('내부', '외부', '공지')),
+  company      text not null,
+  content      text not null default '',
+  dw           text not null default '',
+  contact      text not null default '',
+  doc_no       text not null default '',
+  start_date   date,
+  end_date     date,
+  amount       bigint not null default 0,
+  status       text not null default '예약' check (status in ('제안', '협의중', '예약', '진행중', '완료', '실패')),
+  note         text not null default '',
+  issue        text not null default '',
+  created_by   text,
+  created_at   timestamptz not null default now(),
+  updated_by   text,
+  updated_at   timestamptz not null default now()
+);
+create index if not exists ad_entries_ym_idx on public.ad_entries (year, month);
+
+drop trigger if exists ad_entries_touch on public.ad_entries;
+create trigger ad_entries_touch before update on public.ad_entries for each row execute function public.touch_conf();
+
+alter table public.ad_entries enable row level security;
+drop policy if exists ad_entries_all on public.ad_entries;
+create policy ad_entries_all on public.ad_entries for all to authenticated
+  using (public.is_internal()) with check (public.is_internal());
+revoke all on public.ad_entries from anon;
+grant select, insert, update, delete on public.ad_entries to authenticated;
+
+-- =====================================================================
 -- 5) 최초 최고 관리자 등록 (한 번만)
 --    ① Authentication → Users → [Add user] → Create new user
 --       이메일 ojungin@mcircle.biz · 비밀번호 입력 · Auto Confirm User 체크
