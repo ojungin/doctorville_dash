@@ -333,6 +333,23 @@ body.view-ads #memberMain, body.view-ads .member-only, body.view-ads #pdfBtn { d
 .ad-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 8px; }
 .ad-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
 .ad-bar { height: 6px; background: var(--grid); border-radius: 3px; margin-top: 8px; overflow: hidden; } .ad-bar i { display: block; height: 100%; background: var(--accent); }
+.ad-box { display: block; width: 100%; height: 18px; margin: 2px 0; padding: 0; border: 1px dashed var(--axis); background: var(--surface-2); border-radius: 3px; cursor: pointer; font: inherit; font-size: 11px; color: transparent; }
+.ad-box:hover, .ad-box:focus-visible { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); outline: none; }
+.ad-box:hover::before, .ad-box:focus-visible::before { content: "+ 등록"; }
+.ad-chip.db { outline: 1.5px dashed var(--accent); outline-offset: -1px; cursor: pointer; }
+.ad-chip.db::after { content: " 등록"; color: var(--accent); font-weight: 700; font-size: 10.5px; }
+.ad-over { display: block; font-size: 10.5px; color: var(--down); font-weight: 700; }
+.ad-tbl td.ad-slot small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.ad-gridbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+.ad-gridbar .err { color: var(--down); }
+.modal.adm { max-width: 640px; max-height: calc(100vh - 32px); overflow-y: auto; }
+.adfg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.adfg label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); }
+.adfg .w2 { grid-column: span 2; } .adfg .w3 { grid-column: 1 / -1; }
+.adfg input, .adfg select, .adfg textarea { font: inherit; font-size: 14px; padding: 7px 9px; border: 1px solid var(--axis); border-radius: 8px; background: var(--surface); color: var(--ink); width: 100%; }
+.adfg .ro { background: var(--surface-2); color: var(--ink-2); }
+.adfg .req { color: var(--down); }
+@media (max-width: 640px) { .adfg { grid-template-columns: 1fr 1fr; } .adfg .w2 { grid-column: 1 / -1; } }
 #adsApp .up { color: var(--up); } #adsApp .down { color: var(--down); }
 .ad-pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
 body.view-ads #adsMain, body.view-accounts #accMain { display: block; }
@@ -627,6 +644,17 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 .cf-legend { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--ink-2); flex-wrap: wrap; }
 .cf-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; background: var(--s4); }
 .cf-legend i.gc { background: var(--s3); }
+.cf-ev.k-meet { border-left-color: var(--s1); background: color-mix(in srgb, var(--s1) 13%, var(--surface)); }
+.cf-ev.k-meet:hover { background: color-mix(in srgb, var(--s1) 24%, var(--surface)); }
+.cf-ev.k-event { border-left-color: var(--s2); background: color-mix(in srgb, var(--s2) 14%, var(--surface)); }
+.cf-ev.k-event:hover { background: color-mix(in srgb, var(--s2) 26%, var(--surface)); }
+.cf-ev.k-etc { border-left-color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, var(--surface)); }
+.cf-ev.k-etc:hover { background: color-mix(in srgb, var(--muted) 26%, var(--surface)); }
+.cf-ev.gc { border-left-style: dashed; }
+.cf-legend i.k-meet { background: var(--s1); } .cf-legend i.k-event { background: var(--s2); } .cf-legend i.k-etc { background: var(--muted); }
+.cf-legend i.src-gc { background: transparent; border: 1px dashed var(--ink-2); }
+.cf-kind { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin-left: 4px; white-space: nowrap; }
+.cf-kind.k-meet { background: color-mix(in srgb, var(--s1) 16%, transparent); } .cf-kind.k-event { background: color-mix(in srgb, var(--s2) 18%, transparent); } .cf-kind.k-etc { background: color-mix(in srgb, var(--muted) 18%, transparent); }
 .cf-gcnote { font-size: 12px; color: var(--ink-2); margin: -4px 0 10px; }
 .cf-gcnote.err { color: var(--down); }
 .cf-src { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; white-space: nowrap; background: color-mix(in srgb, var(--s4) 16%, transparent); color: var(--ink); }
@@ -833,7 +861,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
             <button type="button" data-src="db">등록 행사</button>
             <button type="button" data-src="gc">마케팅팀 캘린더</button>
           </div>
-          <span class="cf-legend"><span><i></i>등록 행사</span><span><i class="gc"></i>마케팅팀 캘린더</span></span>
+          <span class="cf-legend"><span><i class="k-meet"></i>미팅</span><span><i class="k-event"></i>행사</span><span><i class="k-etc"></i>그 외</span><span><i class="src-gc"></i>점선 = 마케팅팀 캘린더</span></span>
         </div>
       </div>
       <p class="cf-gcnote" id="cfGcNote" hidden></p>
@@ -913,7 +941,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
         <div class="card"><div id="adChMonth"></div><div class="ad-legend"><span><i style="background:var(--s1)"></i>내부 확정</span><span><i style="background:var(--s3)"></i>외부 확정</span><span><i style="background:var(--s5)"></i>예측(제안·협의중)</span><span><i style="background:var(--down);height:2px"></i>목표</span></div></div></section>
       <section><div class="sec-head"><div><h2>① 확정·예측 금액</h2><p>단위 억원 · 강조 열이 기준 월</p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adAmt"></table></div></div></section>
       <section><div class="sec-head"><div><h2>② 광고 가동률</h2><p id="adUtilSub"></p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adUtil"></table></div></div></section>
-      <section><div class="sec-head"><div><h2>③ 월별 운영 현황</h2><p>위치·슬롯 × 월 · 회사 금액(만원) · 실선 확정 · 점선 예약 · 점 예측 · 파랑 내부 · 초록 외부</p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adGrid"></table></div></div></section>
+      <section><div class="sec-head"><div><h2>③ 월별 운영 현황</h2><p>위치·슬롯 × 월 · 회사 금액(만원) · 실선 확정 · 점선 예약 · 점 예측 · 파랑 내부 · 초록 외부 · 회색 빈 칸 = 진행 가능(눌러서 등록)</p></div></div><div class="card"><div class="ad-gridbar"><span id="adGridNote"></span><label><input type="checkbox" id="adEmptyChk" checked> 빈 칸 표시</label></div><div class="yoy-wrap"><table class="ad-tbl" id="adGrid"></table></div></div></section>
       <section><div class="sec-head"><div><h2>④ 예측 금액 근거</h2><p>상태 제안·협의중 · 단위 만원</p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adFc"></table></div></div></section>
       <section><div class="sec-head"><div><h2>⑤ 고객사 현황 (외부)</h2><p>연간 확정·예측 금액(만원)과 최근 상태 · 진행 메모는 가져오지 않습니다</p></div></div><div class="card"><div class="yoy-wrap"><table class="ad-tbl" id="adCrm"></table></div></div></section>
     </div>
@@ -1373,6 +1401,35 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <dl id="cgBody"></dl>
     <div class="row"><button type="button" id="cgClose">닫기</button></div>
   </div>
+</div>
+<div class="modal-bg" id="adModal">
+  <form class="modal wide adm" id="adForm" autocomplete="off">
+    <h3 id="afTitle">광고 등록</h3>
+    <p id="afDesc"></p>
+    <div class="adfg">
+      <label>연도<input id="afY" type="number" min="2020" max="2100" required></label>
+      <label>실행월<select id="afM"></select></label>
+      <label>정산월<select id="afSM"></select></label>
+      <label>위치<select id="afPos"><option>메인</option><option>서브</option></select></label>
+      <label>슬롯<select id="afSlot"></select></label>
+      <label>구분<select id="afGu"><option>내부</option><option>외부</option><option>공지</option></select></label>
+      <label class="w2"><span>회사 <b class="req">*</b></span><input id="afCo" maxlength="80" placeholder="예: 대웅제약"></label>
+      <label>금액(원)<input id="afAmt" inputmode="numeric" placeholder="4,000,000"></label>
+      <label class="w3">광고 내용<input id="afDescIn" maxlength="200" placeholder="예: [고정] 펙수클루 20mg 홍보"></label>
+      <label>시작일<input id="afS" type="date"></label>
+      <label>마감일<input id="afE" type="date"></label>
+      <label><span>상태 <b class="req">*</b></span><select id="afSt"><option>제안</option><option>협의중</option><option selected>예약</option><option>진행중</option><option>완료</option><option>실패</option></select></label>
+      <label>확정구분<input id="afCf" class="ro" readonly></label>
+      <label>DW(소개해준 사람)<input id="afDw" maxlength="40"></label>
+      <label>컨텍 담당자<input id="afPm" maxlength="40"></label>
+      <label>기안서 번호<input id="afDoc" maxlength="40" placeholder="202610-0001"></label>
+      <label class="w2">같은 내용으로 연속 등록<select id="afRep"></select></label>
+      <label class="w3">(PM 공유용) 컨텍 진행 상황<textarea id="afNote" rows="2" maxlength="1000"></textarea></label>
+      <label class="w3">(메모용) 이슈 사항<textarea id="afIssue" rows="2" maxlength="1000"></textarea></label>
+    </div>
+    <div class="err" id="afErr"></div>
+    <div class="row"><button type="button" id="afDel" class="danger-btn" hidden>삭제</button><span style="flex:1"></span><button type="button" id="afCancel">취소</button><button type="submit" class="ok" id="afOk">등록</button></div>
+  </form>
 </div>
 <div class="modal-bg" id="pwModal">
   <form class="modal" id="pwForm">
@@ -3818,6 +3875,15 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   }
   function cfOn(e, day) { return e.date && day >= e.date && day <= (e.endDate || e.date); }
   function cfTime(e) { return e.start ? e.start + (e.end ? '~' + e.end : '') : ''; }
+  // 일정 유형: 대시보드에 등록한 컨퍼런스 = 행사 / 캘린더 일정은 제목으로 분류 (미팅 → 행사 → 그 외 순)
+  var CF_KIND = { meet: '미팅', event: '행사', etc: '그 외' };
+  function cfKind(e) {
+    if (!e.gc) return 'event';
+    var t = e.name || '';
+    if (/미팅|회의|면담|미팅콜|화상콜|MTG|meeting|call|킥오프|kick-?off|리뷰|보고|워크숍|워크샵|인터뷰|1:1|1on1|방문|협의|논의|싱크|sync/i.test(t)) return 'meet';
+    if (/행사|학회|학술|컨퍼런스|conference|심포지엄|symposium|세미나|seminar|포럼|forum|박람회|전시|부스|웨비나|webinar|웹심|congress|대회|설명회|론칭|런칭|launch|촬영|라이브|live|강연|교육|expo|summit/i.test(t)) return 'event';
+    return 'etc';
+  }
   function renderConf() {
     if (VIEW !== 'conf') return;
     if (!CF.month) CF.month = todayYmd().slice(0, 7);
@@ -3839,7 +3905,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       var list = ev.filter(function (e) { return cfOn(e, day); }), out = day.slice(0, 7) !== m, dow = new Date(day + 'T00:00:00').getDay();
       html += '<div class="cal-day cf' + (out ? ' out' : '') + (day === t ? ' today' : '') + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '') + '" data-day="' + day + '" role="button" tabindex="0" aria-label="' + dayLabel(day) + ' 행사 등록">' +
         '<span class="cal-dn">' + (+day.slice(8)) + '<span class="add" aria-hidden="true">+</span></span><span class="cf-list">' +
-        list.slice(0, 4).map(function (e) { return '<button type="button" class="cf-ev' + (e.gc ? ' gc' : '') + '" data-id="' + esc(e.id) + '" title="' + esc((e.gc ? '[캘린더] ' : '') + e.name + (e.host ? ' · ' + e.host : '') + (cfTime(e) ? ' · ' + cfTime(e) : '')) + '">' + (e.start && e.date === day ? '<b>' + esc(e.start) + '</b>' : '') + esc(e.name) + '</button>'; }).join('') +
+        list.slice(0, 4).map(function (e) { return '<button type="button" class="cf-ev' + (e.gc ? ' gc' : '') + ' k-' + cfKind(e) + '" data-id="' + esc(e.id) + '" title="' + esc('[' + CF_KIND[cfKind(e)] + (e.gc ? ' · 캘린더' : '') + '] ' + e.name + (e.host ? ' · ' + e.host : '') + (cfTime(e) ? ' · ' + cfTime(e) : '')) + '">' + (e.start && e.date === day ? '<b>' + esc(e.start) + '</b>' : '') + esc(e.name) + '</button>'; }).join('') +
         (list.length > 4 ? '<span class="slot more">+' + (list.length - 4) + '건</span>' : '') + '</span></div>';
     });
     $('#cfCal').innerHTML = html;
@@ -3847,7 +3913,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     $('#cfList').innerHTML = !CF.events && !g ? '<div class="empty">' + esc(CF.err || (CF.loading ? '불러오는 중…' : '일정을 불러오지 못했습니다.')) + '</div>' : !inMonth.length ? '<div class="empty">' + monthLabel(m) + '에 표시할 일정이 없습니다. 달력에서 날짜를 눌러 행사를 등록할 수 있습니다.</div>' :
       '<div class="yoy-wrap"><table class="schtbl"><thead><tr><th>구분</th><th>날짜</th><th>시간</th><th>행사명</th><th>주최</th><th>장소</th><th>규모</th><th>담당 PM</th><th>특이사항</th></tr></thead><tbody>' +
       inMonth.map(function (e) {
-        return '<tr class="click" data-id="' + esc(e.id) + '"><td>' + (e.gc ? '<span class="cf-src gc">캘린더</span>' : '<span class="cf-src">등록</span>') + '</td><td class="tm">' + esc(e.date.slice(5).replace('-', '/')) + (e.endDate && e.endDate !== e.date ? '~' + esc(e.endDate.slice(5).replace('-', '/')) : '') + '</td><td>' + esc(cfTime(e) || (e.allDay ? '종일' : '–')) + '</td><td class="ttl"><b>' + esc(e.name) + '</b></td><td>' + (e.hostType ? '<small class="ht">' + esc(e.hostType) + '</small>' : '') + esc(e.host || '–') + '</td><td class="wrapc">' + esc(e.place || '–') + '</td><td>' + esc(e.scale || '–') + '</td><td>' + esc(e.pm || '–') + '</td><td class="wrapc">' + esc(e.note || '') + '</td></tr>';
+        return '<tr class="click" data-id="' + esc(e.id) + '"><td>' + (e.gc ? '<span class="cf-src gc">캘린더</span>' : '<span class="cf-src">등록</span>') + '<span class="cf-kind k-' + cfKind(e) + '">' + CF_KIND[cfKind(e)] + '</span></td><td class="tm">' + esc(e.date.slice(5).replace('-', '/')) + (e.endDate && e.endDate !== e.date ? '~' + esc(e.endDate.slice(5).replace('-', '/')) : '') + '</td><td>' + esc(cfTime(e) || (e.allDay ? '종일' : '–')) + '</td><td class="ttl"><b>' + esc(e.name) + '</b></td><td>' + (e.hostType ? '<small class="ht">' + esc(e.hostType) + '</small>' : '') + esc(e.host || '–') + '</td><td class="wrapc">' + esc(e.place || '–') + '</td><td>' + esc(e.scale || '–') + '</td><td>' + esc(e.pm || '–') + '</td><td class="wrapc">' + esc(e.note || '') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
   }
   function cfFind(id) { return (CF.view || []).find(function (e) { return e.id === id; }); }
@@ -3955,7 +4021,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
         if (e.code === 'unauthorized') PW = null;
         AD.err = e.message === 'no_ads' ? ADS_OLD_GS : statusApiErr(e, '광고 현황판을 불러오지 못했습니다');
         if (VIEW === 'ads') toast(AD.err, true, 12000);
-      }).then(function () {
+      }).then(function () { return loadAdEntries(); }).then(function () {
         AD.loading = false; $('#adsApp').classList.remove('loading');
         if (btn) { btn.disabled = false; btn.textContent = '갱신'; }
         renderAds();
@@ -3967,7 +4033,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   }
   function renderAds() {
     if (VIEW !== 'ads') return;
-    var d = AD.data;
+    var d = AD.data && adMerge(AD.data);
     $('#subtitle').textContent = !INTERNAL ? '협력사 계정에서는 광고 매출을 볼 수 없습니다' : d ? '닥터빌 광고 · ' + (AD.basis === 'exec' ? '실행월' : '정산월') + ' 기준 · 시트 집계 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false }) : (AD.loading ? '광고 현황판을 집계하는 중…' : '광고 데이터를 불러오지 못했습니다');
     $('#srcLabel').textContent = d ? '데이터: 광고 현황판 통합_Raw (' + d.rows + '행)' : '';
     $('#adEmpty').hidden = !!d; document.querySelectorAll('#adsApp .addata').forEach(function (s) { s.hidden = !d; });
@@ -4022,16 +4088,8 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
         row('칸(건)', f(g2[3]), function (v) { return v + '건'; }) + rate('슬롯 가동률', f(g2[3]), c.n, c.n * 12);
     });
     $('#adUtil').innerHTML = head('구분') + '<tbody>' + u + '</tbody>';
-    var keys = Object.keys(A.grid).sort(function (a, b) { var od = ['메인', '서브']; return od.indexOf(a.split('/')[0]) - od.indexOf(b.split('/')[0]) || a.localeCompare(b, 'ko'); });
-    $('#adGrid').innerHTML = !keys.length ? '<tbody><tr><td>등록된 광고가 없습니다.</td></tr></tbody>' : head('위치 · 슬롯', '연간 확정(만원)') + '<tbody>' + keys.map(function (k) {
-      var tot = 0;
-      return '<tr><td class="l"><b>' + esc(k.replace('/', ' · ')) + '</b></td>' + A.grid[k].map(function (cell, i) {
-        return '<td class="c ' + (i === mi ? 'cur' : '') + '">' + cell.map(function (x) {
-          if (x.k === 'conf') tot += x.a;
-          return '<span class="ad-chip' + (x.io === '외부' ? ' ex' : '') + (x.k === 'fc' ? ' fc' : x.st === '예약' ? ' rs' : '') + '" title="' + esc(x.co + ' ' + adMan(x.a) + '만원 · ' + x.io + ' · ' + x.st) + '">' + esc(x.co) + ' ' + adMan(x.a) + '</span>';
-        }).join('') + '</td>';
-      }).join('') + '<td>' + (tot ? adMan(tot) : '–') + '</td></tr>';
-    }).join('') + '</tbody>';
+    $('#adGrid').innerHTML = adGridHtml(d, A, mi, head);
+    $('#adGridNote').innerHTML = AD.entErr ? '<span class="err">' + esc(AD.entErr) + '</span>' : (d.entN ? '대시보드 등록 ' + d.entN + '건 포함(파란 점선 · 눌러서 수정) · ' : '') + (AD.basis === 'exec' ? '빈 칸 = 슬롯별 표시 행수 − 등록 건(실패 제외)' : '빈 칸 등록은 실행월 기준 화면에서 할 수 있습니다');
     var fk = Object.keys(A.forecast).sort(function (a, b) { var s1 = function (k) { return A.forecast[k].m.reduce(function (x, y2) { return x + y2; }, 0); }; return s1(b) - s1(a); });
     $('#adFc').innerHTML = fk.length ? head('회사') + '<tbody>' + fk.map(function (k) { return row(esc(k) + ' <small class="ad-pill">' + esc(A.forecast[k].gu) + '</small>', A.forecast[k].m, adMan); }).join('') + row('합계', f('fc'), adMan, 'sum') + '</tbody>' : '<tbody><tr><td>예측(제안·협의중) 건이 없습니다.</td></tr></tbody>';
     var ck = Object.keys(A.crm).sort(function (a, b) { return (A.crm[b].conf + A.crm[b].fc) - (A.crm[a].conf + A.crm[a].fc); });
@@ -4075,6 +4133,137 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   $('#adYear').addEventListener('change', function () { AD.year = this.value; AD.week = null; renderAds(); });
   $('#adMonth').addEventListener('change', function () { AD.month = +this.value; renderAds(); });
   $('#adWeek').addEventListener('change', function () { AD.week = this.value; renderAds(); });
+
+  // ---- 광고 ③ 빈 칸 등록 (DB public.ad_entries · 시트에는 쓰지 않음) ----------------
+  // 빈 칸 = 슬롯별 표시 행수(Setting) − 그 달 등록 건(실패 제외) · 실행월 기준 화면에서만 표시
+  var AD_SLOTS = [['메인', 'A', 6, '메인 롤링 배너'], ['메인', 'B', 6, '우측 상단 1번째'], ['메인', 'C', 6, '우측 상단 2번째'], ['메인', 'D', 6, '우측 상단 3번째 · 무상'], ['메인', 'E', 6, '우측 하단 1번째'], ['메인', 'F', 6, '우측 하단 2번째'], ['메인', 'G', 6, '우측 하단 3번째'], ['메인', '팝업', 4, ''], ['메인', 'SMS 광고', 2, ''],
+    ['서브', '상세 A', 3, ''], ['서브', '상세 B', 4, ''], ['서브', '목록 A', 6, ''], ['서브', '목록 B', 5, ''], ['서브', '목록 C', 3, ''], ['서브', '목록 D', 3, ''], ['서브', '출첵 A', 3, ''], ['서브', '출첵 B', 3, ''], ['서브', '출첵 C', 3, ''], ['서브', '출첵 D', 3, ''], ['서브', '브랜드존 메인 A', 3, ''], ['서브', '브랜드존 퀴즈', 3, '']];
+  AD.ent = null; AD.entErr = '';
+  function adSlotList(d) { return d && d.slots && d.slots.length ? d.slots : AD_SLOTS; }   // [위치, 슬롯, 표시 행수, 설명]
+  function adKindSt(st) { return /예약|진행중|완료/.test(st) ? 'conf' : /제안|협의중/.test(st) ? 'fc' : 'x'; }
+  function loadAdEntries() {
+    if (!SB || !INTERNAL) return Promise.resolve();
+    return sbq(SB.from('ad_entries').select('*').order('year').order('month')).then(function (rows) { AD.ent = rows || []; AD.entErr = ''; })
+      .catch(function (e) {
+        AD.ent = [];
+        AD.entErr = /ad_entries|does not exist|schema cache/i.test(e.message || '') ? 'DB에 광고 등록 표(ad_entries)가 아직 없습니다. supabase/schema.sql 의 「4-2) 광고 대시보드 등록」 부분을 Supabase SQL Editor에서 실행해 주세요.' : 'DB 광고 등록 건을 불러오지 못했습니다: ' + (e.message || e);
+      });
+  }
+  function adEmptyBasis() { var mo = []; for (var i = 0; i < 12; i++) mo.push({ conf: 0, cIn: 0, cEx: 0, fc: 0, fIn: 0, fEx: 0, n: 0, nMain: 0, nSub: 0, aMain: 0, aSub: 0 }); return { months: mo, grid: {}, forecast: {}, crm: {} }; }
+  // 시트 집계(AD.data) + DB 등록 건 → 화면용 사본
+  function adMerge(d) {
+    var ents = (AD.ent || []).filter(function (e) { return e.gu !== '공지' && adKindSt(e.status) !== 'x'; });
+    if (!ents.length) return d;
+    var c = JSON.parse(JSON.stringify(d)), W = {}, DAY = 864e5;
+    c.weeks.forEach(function (w) { W[w.week] = w; });
+    ents.forEach(function (e) {
+      var a = Math.round((+e.amount || 0) / 10000), k = adKindSt(e.status), inn = e.gu === '내부', main = String(e.pos).indexOf('메인') === 0, key = (e.pos || '') + '/' + (e.slot || '');
+      [['exec', e.year, e.month], ['settle', e.settle_year, e.settle_month]].forEach(function (b) {
+        var Y = c.agg[b[1]] || (c.agg[b[1]] = { exec: adEmptyBasis(), settle: adEmptyBasis() }), A = Y[b[0]], o = A.months[b[2] - 1];
+        if (!o) return;
+        if (k === 'conf') { o.conf += a; if (inn) o.cIn += a; else o.cEx += a; o.n++; if (main) { o.nMain++; o.aMain += a; } else { o.nSub++; o.aSub += a; } }
+        else { o.fc += a; if (inn) o.fIn += a; else o.fEx += a; var f = A.forecast[e.company] || (A.forecast[e.company] = { gu: e.gu, m: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }); f.m[b[2] - 1] += a; }
+        var g = A.grid[key]; if (!g) { g = A.grid[key] = []; for (var q = 0; q < 12; q++) g.push([]); }
+        g[b[2] - 1].push({ co: e.company, a: a, io: e.gu, k: k, st: e.status, eid: e.id });
+        if (e.gu === '외부') { var cr = A.crm[e.company] || (A.crm[e.company] = { conf: 0, fc: 0, st: '', last: 0 }); if (k === 'conf') cr.conf += a; else cr.fc += a; if (b[2] >= cr.last) { cr.last = b[2]; cr.st = e.status; } }
+      });
+      if (k !== 'conf') return;
+      var m0 = Date.UTC(e.year, e.month - 1, 1), m1 = Date.UTC(e.year, e.month, 0), s = e.start_date ? Date.parse(e.start_date + 'T00:00:00Z') : null, en = e.end_date ? Date.parse(e.end_date + 'T00:00:00Z') : null;
+      if (!s || !en || en < s || en < m0 || s > m1) { s = m0; en = m1; }
+      var days = Math.round((en - s) / DAY) + 1, get = function (wk) { return W[wk] || (W[wk] = { week: wk, aIn: 0, aEx: 0, live: 0, start: 0, startAmt: 0 }); }, seen = {};
+      for (var t = s; t <= en; t += DAY) { var w = get(adIsoWeek(t)); if (inn) w.aIn += a / days; else w.aEx += a / days; if (!seen[w.week]) { seen[w.week] = 1; w.live++; } }
+      var w0 = get(adIsoWeek(s)); w0.start++; w0.startAmt += a;
+    });
+    c.weeks = Object.keys(W).sort().map(function (k2) { var w = W[k2]; w.aIn = Math.round(w.aIn); w.aEx = Math.round(w.aEx); return w; });
+    c.entN = ents.length;
+    return c;
+  }
+  // ③ 월별 운영 현황 표 (전체 슬롯 + 빈 칸)
+  function adGridHtml(d, A, mi, head) {
+    var slots = adSlotList(d), keys = slots.map(function (s) { return s[0] + '/' + s[1]; }), cap = {}, info = {}, boxes = AD.basis === 'exec' && INTERNAL;
+    slots.forEach(function (s) { cap[s[0] + '/' + s[1]] = s[2]; info[s[0] + '/' + s[1]] = s[3] || ''; });
+    Object.keys(A.grid).forEach(function (k) { var kk = k.replace(/[/]$/, '/(미지정)'); if (keys.indexOf(kk) < 0) { keys.push(kk); cap[kk] = 0; } if (kk !== k) { A.grid[kk] = A.grid[k]; } });
+    var free = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], capTot = 0, side = '', h = head('위치 · 슬롯', '연간 확정(만원)') + '<tbody>';
+    keys.forEach(function (k) {
+      var p = k.split('/'), cells = A.grid[k] || [[], [], [], [], [], [], [], [], [], [], [], []], n = cap[k] || 0, tot = 0; capTot += n;
+      if (p[0] !== side) { side = p[0]; h += '<tr class="grp"><td colspan="14">' + esc(side) + '</td></tr>'; }
+      h += '<tr><td class="l ad-slot"><b>' + esc(p[1] || '(미지정)') + '</b><small>' + (n ? '최대 ' + n + '개' : '슬롯 미지정') + (info[k] ? ' · ' + esc(info[k]) : '') + '</small></td>' + cells.map(function (cell, i) {
+        var used = cell.filter(function (x) { return x.st !== '실패'; }).length, f = Math.max(0, n - used); free[i] += f;
+        return '<td class="c ' + (i === mi ? 'cur' : '') + '">' + cell.map(function (x) {
+          if (x.k === 'conf') tot += x.a;
+          return '<span class="ad-chip' + (x.io === '외부' ? ' ex' : '') + (x.k === 'fc' ? ' fc' : x.st === '예약' ? ' rs' : '') + (x.eid ? ' db' : '') + '"' + (x.eid ? ' data-eid="' + esc(x.eid) + '" role="button" tabindex="0"' : '') + ' title="' + esc(x.co + ' ' + adMan(x.a) + '만원 · ' + x.io + ' · ' + x.st + (x.eid ? ' · 대시보드 등록(눌러서 수정)' : '')) + '">' + esc(x.co) + ' ' + adMan(x.a) + '</span>';
+        }).join('') + (n && used > n ? '<span class="ad-over">초과 ' + (used - n) + '</span>' : '') +
+          (boxes && AD.showEmpty ? new Array(f + 1).join('<button type="button" class="ad-box" data-k="' + esc(k) + '" data-m="' + (i + 1) + '" aria-label="' + esc(p[0] + ' ' + p[1] + ' ' + (i + 1) + '월 빈 칸에 광고 등록') + '"></button>') : '') + '</td>';
+      }).join('') + '<td>' + (tot ? adMan(tot) : '–') + '</td></tr>';
+    });
+    return h + '<tr class="sum"><td>빈 칸 합계 (최대 ' + capTot + '칸)</td>' + free.map(function (f, i) { return '<td class="' + (i === mi ? 'cur' : '') + '">' + f + '칸</td>'; }).join('') + '<td></td></tr></tbody>';
+  }
+  AD.showEmpty = true;
+  function adYmd(y, m, dd) { return y + '-' + String(m).padStart(2, '0') + '-' + String(dd).padStart(2, '0'); }
+  function adLast(y, m) { return new Date(y, m, 0).getDate(); }
+  function adFillSlots(pos, sel) { $('#afSlot').innerHTML = adSlotList(AD.data).filter(function (s) { return s[0] === pos; }).map(function (s) { return '<option>' + esc(s[1]) + '</option>'; }).join(''); if (sel) $('#afSlot').value = sel; }
+  function adKindLabel(st) { var k = adKindSt(st); return k === 'conf' ? '확정' : k === 'fc' ? '예측' : '제외'; }
+  function adForm(e, at) {
+    var m = $('#adModal'), y = e ? e.year : +AD.year, mo = e ? e.month : at.m, pk = e ? [e.pos, e.slot] : at.k.split('/');
+    $('#afTitle').textContent = e ? '등록 건 수정' : '광고 등록';
+    $('#afDesc').textContent = e ? '대시보드에서 등록한 건 · 등록 ' + (e.created_by || '') + (e.updated_by && e.updated_at ? ' · 최근 수정 ' + e.updated_by + ' ' + new Date(e.updated_at).toLocaleString('ko-KR', { hour12: false }) : '') : y + '년 ' + mo + '월 · ' + pk[0] + ' ' + pk[1] + ' 빈 칸에 등록합니다. 항목은 통합_Raw 열과 같으며 DB에만 저장됩니다(시트에는 쓰지 않음).';
+    $('#afY').value = y; $('#afM').value = mo; $('#afSM').value = e ? e.settle_month : mo; $('#afPos').value = pk[0] === '서브' ? '서브' : '메인'; adFillSlots($('#afPos').value, pk[1]);
+    $('#afGu').value = e ? e.gu : '외부'; $('#afCo').value = e ? e.company : ''; $('#afAmt').value = e && +e.amount ? (+e.amount).toLocaleString('ko-KR') : ''; $('#afDescIn').value = e ? e.content : '';
+    $('#afS').value = e ? (e.start_date || '') : adYmd(y, mo, 1); $('#afE').value = e ? (e.end_date || '') : adYmd(y, mo, adLast(y, mo));
+    $('#afSt').value = e ? e.status : '예약'; $('#afCf').value = adKindLabel($('#afSt').value);
+    $('#afDw').value = e ? e.dw : ''; $('#afPm').value = e ? e.contact : ''; $('#afDoc').value = e ? e.doc_no : ''; $('#afNote').value = e ? e.note : ''; $('#afIssue').value = e ? e.issue : '';
+    $('#afRep').value = '1'; $('#afRep').disabled = !!e; $('#afErr').textContent = ''; $('#afDel').hidden = !e; $('#afOk').textContent = e ? '수정' : '등록';
+    m.classList.add('show'); $('#afCo').focus();
+    var busy = function (on, txt) { $('#afOk').disabled = on; $('#afDel').disabled = on; $('#afOk').textContent = on && txt ? txt : (e ? '수정' : '등록'); };
+    $('#afCancel').onclick = function () { m.classList.remove('show'); };
+    $('#afDel').onclick = function () {
+      if (!window.confirm('「' + e.company + '」 ' + e.year + '년 ' + e.month + '월 등록 건을 삭제할까요?')) return;
+      busy(true, '삭제 중…');
+      sbq(SB.from('ad_entries').delete().eq('id', e.id)).then(function () {
+        AD.ent = AD.ent.filter(function (x) { return x.id !== e.id; }); m.classList.remove('show'); renderAds(); toast('등록 건을 삭제했습니다.');
+      }).catch(function (er) { $('#afErr').textContent = '삭제하지 못했습니다: ' + (er.message || er); }).then(function () { busy(false); });
+    };
+    $('#adForm').onsubmit = function (ev) {
+      ev.preventDefault();
+      var Y = +$('#afY').value, M = +$('#afM').value, SM = +$('#afSM').value;
+      var row = { year: Y, month: M, settle_month: SM, settle_year: SM < M ? Y + 1 : Y, pos: $('#afPos').value, slot: $('#afSlot').value, gu: $('#afGu').value, company: $('#afCo').value.trim(), content: $('#afDescIn').value.trim(),
+        dw: $('#afDw').value.trim(), contact: $('#afPm').value.trim(), doc_no: $('#afDoc').value.trim(), start_date: $('#afS').value || null, end_date: $('#afE').value || null,
+        amount: +($('#afAmt').value.replace(/[^0-9]/g, '') || 0), status: $('#afSt').value, note: $('#afNote').value.trim(), issue: $('#afIssue').value.trim(), updated_by: cfUser() };
+      var err = !Y || Y < 2020 ? '연도를 확인해 주세요.' : !row.company ? '회사를 입력해 주세요.' : (row.gu !== '공지' && !row.amount && adKindSt(row.status) === 'conf') ? '확정 상태(예약·진행중·완료)는 금액을 입력해 주세요.' : (row.start_date && row.end_date && row.end_date < row.start_date) ? '마감일이 시작일보다 빠릅니다.' : '';
+      $('#afErr').textContent = err; if (err) return;
+      busy(true, '저장 중…');
+      var req;
+      if (e) req = sbq(SB.from('ad_entries').update(row).eq('id', e.id).select()).then(function (r) { AD.ent = AD.ent.filter(function (x) { return x.id !== e.id; }).concat(r || []); return '수정했습니다.'; });
+      else {
+        var rows = [], rep = +$('#afRep').value;
+        for (var i = 0; i < rep; i++) {
+          var mm = M + i, yy = Y + Math.floor((mm - 1) / 12), sm = (SM - 1 + i) % 12 + 1, r2 = Object.assign({}, row, { year: yy, month: (mm - 1) % 12 + 1, settle_month: sm, created_by: row.updated_by });
+          r2.settle_year = sm < r2.month ? yy + 1 : yy;
+          if (i > 0) { r2.start_date = adYmd(yy, r2.month, 1); r2.end_date = adYmd(yy, r2.month, adLast(yy, r2.month)); }
+          rows.push(r2);
+        }
+        req = sbq(SB.from('ad_entries').insert(rows).select()).then(function (r) { AD.ent = (AD.ent || []).concat(r || []); return rep > 1 ? rep + '개월 연속으로 등록했습니다.' : '등록했습니다.'; });
+      }
+      req.then(function (msg) { m.classList.remove('show'); renderAds(); toast(msg + ' (DB 저장 · 시트에는 반영되지 않습니다)'); })
+        .catch(function (er) { $('#afErr').textContent = '저장하지 못했습니다: ' + (/ad_entries|does not exist|schema cache/i.test(er.message || '') ? 'DB에 광고 등록 표(ad_entries)가 없습니다. supabase/schema.sql 의 4-2) 부분을 실행해 주세요.' : (er.message || er)); })
+        .then(function () { busy(false); });
+    };
+  }
+  $('#adGrid').addEventListener('click', function (ev) {
+    var b = ev.target.closest('.ad-box'); if (b) { if (AD.entErr && /ad_entries/.test(AD.entErr)) { toast(AD.entErr, true, 12000); return; } adForm(null, { k: b.dataset.k, m: +b.dataset.m }); return; }
+    var c = ev.target.closest('.ad-chip[data-eid]'); if (c) { var e = (AD.ent || []).find(function (x) { return x.id === c.dataset.eid; }); if (e) adForm(e); }
+  });
+  $('#adGrid').addEventListener('keydown', function (ev) { var c = ev.target.closest('.ad-chip[data-eid]'); if (c && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); c.click(); } });
+  (function () {
+    var ms = ''; for (var i = 1; i <= 12; i++) ms += '<option value="' + i + '">' + i + '월</option>';
+    $('#afM').innerHTML = ms; $('#afSM').innerHTML = ms;
+    $('#afRep').innerHTML = [1, 2, 3, 4, 5, 6, 12].map(function (n) { return '<option value="' + n + '">' + (n === 1 ? '이 달만' : n + '개월 (실행월부터)') + '</option>'; }).join('');
+    $('#afPos').addEventListener('change', function () { adFillSlots(this.value); });
+    $('#afSt').addEventListener('change', function () { $('#afCf').value = adKindLabel(this.value); });
+    $('#afM').addEventListener('change', function () { var y = +$('#afY').value, mm = +this.value; $('#afSM').value = mm; $('#afS').value = adYmd(y, mm, 1); $('#afE').value = adYmd(y, mm, adLast(y, mm)); });
+    $('#afAmt').addEventListener('input', function () { var v = this.value.replace(/[^0-9]/g, ''); this.value = v ? (+v).toLocaleString('ko-KR') : ''; });
+    $('#adEmptyChk').addEventListener('change', function () { AD.showEmpty = this.checked; renderAds(); });
+  })();
 
   // ---- 좌측 메뉴 · 화면 전환 ------------------------------------------------
   // 홈 / 매출(닥터빌·팜빌 포인트) / 회원 지표(닥터빌·팜빌 회원 정보·활동성) / 분석 리포트·LLM(준비 중)
