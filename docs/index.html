@@ -277,7 +277,7 @@ body.pdf-mode { padding-left: 0; }
   body.view-report section { break-inside: avoid; }
 }
 /* 홈·준비 중 화면 */
-#homeMain, #reportMain, #llmMain { display: none; }
+#homeMain, #reportMain, #llmMain, #wactMain { display: none; }
 /* LLM */
 .llm-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .llm-top .seg button { white-space: nowrap; }
@@ -304,7 +304,46 @@ body.pdf-mode { padding-left: 0; }
 #llmSend { font: inherit; font-weight: 600; padding: 11px 16px; border-radius: 10px; border: 0; background: var(--accent); color: #fff; cursor: pointer; white-space: nowrap; }
 #llmSend:disabled { opacity: .6; cursor: progress; }
 .llm-hint { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
-body.view-home #homeMain, body.view-report #reportMain, body.view-llm #llmMain { display: block; }
+body.view-home #homeMain, body.view-report #reportMain, body.view-llm #llmMain, body.view-wact #wactMain { display: block; }
+/* 회원 활동 주간 업무 (주간보고 요약) */
+.wa-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.wa-top .seg button { white-space: nowrap; }
+.wa-lock { font-size: 11.5px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; }
+.wa-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.wa-kpis .kpi { padding: 12px 14px; }
+.wa-kpis .kpi .value { font-size: 24px; }
+.wa-kpis .kpi .label i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+.wa-sum { margin-top: 12px; }
+.wa-sum ul { margin: 6px 0 0; padding-left: 18px; }
+.wa-sum li { margin: 4px 0; font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+.wa-sum li b { color: var(--ink); }
+.wa-cat { margin-top: 18px; }
+.wa-cat h3.wa-ch { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 14.5px; }
+.wa-cat h3.wa-ch i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.wa-cat h3.wa-ch small { font-weight: 500; color: var(--muted); font-size: 12px; }
+.wa-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.wa-it { border-left: 3px solid var(--border); }
+.wa-it .wa-t { font-weight: 600; font-size: 13.5px; }
+.wa-it .wa-m { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 11.5px; color: var(--muted); margin: 4px 0 6px; }
+.wa-st { font-size: 11px; font-weight: 600; border-radius: 999px; padding: 1px 8px; background: var(--surface-2); color: var(--ink-2); }
+.wa-st.done { background: color-mix(in srgb, var(--s3) 16%, transparent); color: var(--s3); }
+.wa-st.new { background: color-mix(in srgb, var(--s2) 16%, transparent); color: var(--s2); }
+.wa-bar { position: relative; height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin: 2px 0 8px; }
+.wa-bar span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+.wa-r { font-size: 12.5px; color: var(--ink-2); white-space: pre-line; line-height: 1.55; max-height: 7.8em; overflow: hidden; }
+.wa-it.open .wa-r { max-height: none; }
+.wa-more { font-size: 11.5px; color: var(--s1); background: none; border: 0; padding: 4px 0 0; cursor: pointer; }
+.wa-trend table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.wa-trend th, .wa-trend td { padding: 6px 8px; border-bottom: 1px solid var(--grid); text-align: center; white-space: nowrap; }
+.wa-trend th:first-child, .wa-trend td:first-child { text-align: left; }
+.wa-trend th { color: var(--muted); font-weight: 500; font-size: 11.5px; }
+.wa-trend tr.cur td { font-weight: 700; }
+.wa-ex summary { cursor: pointer; font-size: 12.5px; color: var(--muted); }
+.wa-ex ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); }
+@media (max-width: 1100px) { .wa-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .wa-items { grid-template-columns: 1fr; } .wa-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.acc-gr { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.acc-gr.fixed { color: var(--muted); cursor: default; }
 body.view-static #memberMain, body.view-static #pointMain, body.view-static #actMain, body.view-static #pactMain,
 body.view-static .member-only, body.view-static #refreshBtn, body.view-static #pdfBtn, body.view-static #srcLabel, body.view-static #dbBadge { display: none !important; }
 .db-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 18px; border: 1px solid var(--line, #E1E1E1); font-size: 11.5px; white-space: nowrap; }
@@ -757,6 +796,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       <div class="nav-svc nav-cat"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></svg><span>회원 지표</span></div>
       <a class="nav-item" href="#members" data-view="members">회원 정보</a>
       <a class="nav-item" href="#activity" data-view="activity">활동성</a>
+      <a class="nav-item" href="#wact" data-view="wact">회원 활동 업무</a>
     </div>
     <button type="button" class="nav-head nav-pf" data-svc="pv" aria-expanded="true" aria-controls="navPv"><span class="pf-dot" aria-hidden="true"></span><span>팜빌</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
     <div class="nav-sub" id="navPv">
@@ -847,6 +887,12 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     </section>
     <div id="rpBody"></div>
     <footer>분석 리포트는 각 메뉴의 집계값(월·주·일 단위)만 사용하며 개인 단위 데이터는 쓰지 않습니다. 고객사별 매출 등 협력사 관련 수치는 외부 공유 전 사전 승인이 필요합니다.</footer>
+  </div>
+</main>
+
+<main id="wactMain">
+  <div class="wrap"><section><div id="waBody"></div></section>
+    <footer>주간 업무 보고(제출 완료분) 중 닥터빌·공통 업무를 업무명 기준으로 분류해 보여 줍니다. 최고 관리자가 지정한 사람만 볼 수 있으며, 내용은 대시보드 DB에 저장하지 않습니다. 협력사·전략 관련 내용은 외부 공유 전 사전 승인이 필요합니다.</footer>
   </div>
 </main>
 
@@ -1569,7 +1615,9 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   var ROLE_ORDER = ['super', 'admin', 'dv', 'partner'];
   var USER = null, ROLE = null, PKEY = null, INTERNAL = false, AUTHED = false, SB = null, SREM = 'mv-remember';
   var PARTNER_VIEWS = { home: 1, seminar: 1, ads: 1 };
+  var GRANTS = {}; // 최고 관리자가 지정한 메뉴 열람 (public.view_grants)
   function canView(v) {
+    if (v === 'wact') return !ROLE || ROLE === 'super' || (ROLE !== 'partner' && !!GRANTS.wact);
     if (!ROLE) return true;
     if (v === 'accounts') return ROLE === 'super' || ROLE === 'admin';
     if (ROLE === 'partner') return !!PARTNER_VIEWS[v];
@@ -1602,7 +1650,8 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       if (!p || !p.active || !ROLES[p.role]) { var e = new Error('noprofile'); e.code = 'noprofile'; throw e; }
       USER = { uid: p.id, id: p.email, name: p.name || p.email, org: p.org, role: p.role }; ROLE = p.role;
       INTERNAL = ROLE !== 'partner'; AUTHED = true; DB.on = true;
-      return loadSecrets();
+      GRANTS = {};
+      return SB.from('view_grants').select('view').eq('user_id', p.id).then(function (g) { (g.data || []).forEach(function (x) { GRANTS[x.view] = 1; }); }, function () {}).then(loadSecrets);
     });
   }
   var SECRETS = {};
@@ -1626,7 +1675,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (INTERNAL && !SECRETS.sys_password) toast(ROLE === 'super' ? '구글시트·저장본 연동을 위해 [계정 관리 → 보안 키 설정]을 먼저 해 주세요. 지금은 DB에 저장된 데이터만 표시합니다.' : '연동 보안 키가 아직 설정되지 않았습니다. 최고 관리자에게 [보안 키 설정]을 요청해 주세요. 지금은 DB에 저장된 데이터만 표시합니다.', true, 12000);
   }
   function lock(msg) {
-    KEY = null; PKEY = null; PW = null; ROLE = null; USER = null; AUTHED = false; INTERNAL = false; DB.on = false;
+    KEY = null; PKEY = null; PW = null; ROLE = null; USER = null; AUTHED = false; INTERNAL = false; DB.on = false; GRANTS = {}; if (WA) { WA.data = null; WA.err = null; }
     document.body.classList.add('locked'); $('#gateMsg').textContent = msg || ''; $('#uid').focus();
   }
   function authErrText(e) {
@@ -1768,6 +1817,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       if (r.error) throw r.error;
       ACCV.dir = (r.data || []).map(function (p) { return { uid: p.id, id: p.email, name: p.name, org: p.org, role: p.role, active: p.active, createdAt: p.created_at, updatedAt: p.updated_at }; });
       ACCV.err = '';
+      if (ROLE === 'super') return SB.from('view_grants').select('user_id,view').then(function (g) { ACCV.grants = {}; ACCV.gErr = g.error ? g.error.message : ''; (g.data || []).forEach(function (x) { ACCV.grants[x.user_id + '|' + x.view] = 1; }); });
     }).catch(function (e) { ACCV.err = '계정 목록을 불러오지 못했습니다: ' + (e.message || e); })
       .then(function () { ACCV.loading = false; renderAccounts(); });
   }
@@ -1785,12 +1835,13 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       var rows = d.slice().sort(function (a, b) { return ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role) || String(a.name).localeCompare(String(b.name), 'ko'); });
       var cnt = {}; rows.forEach(function (r) { cnt[r.role] = (cnt[r.role] || 0) + 1; });
       $('#accList').innerHTML = '<p class="acc-sum">' + ROLE_ORDER.map(function (r) { return ROLES[r] + ' <b>' + (cnt[r] || 0) + '</b>명'; }).join(' · ') + '</p>' +
-        '<div class="yoy-wrap"><table class="acctbl"><thead><tr><th>아이디</th><th>이름</th><th>소속</th><th>권한</th><th>등록일</th><th>최근 변경</th>' + (sup ? '<th></th>' : '') + '</tr></thead><tbody>' +
+        '<div class="yoy-wrap"><table class="acctbl"><thead><tr><th>아이디</th><th>이름</th><th>소속</th><th>권한</th><th>등록일</th><th>최근 변경</th>' + (sup ? '<th title="최고 관리자가 지정한 사람만 열람">회원 활동 업무</th><th></th>' : '') + '</tr></thead><tbody>' +
         rows.map(function (r) {
           var me = USER && r.uid === USER.uid;
           return '<tr><td>' + esc(r.id) + (me ? ' <span class="me">나</span>' : '') + (r.active === false ? ' <small>(사용 중지)</small>' : '') + '</td><td>' + esc(r.name || '') + '</td><td>' + esc(r.org || '') + '</td><td><span class="role role-' + r.role + '">' + (ROLES[r.role] || r.role) + '</span></td><td>' + fmtDate(r.createdAt) + '</td><td>' + fmtDate(r.updatedAt) + '</td>' +
+            (sup ? '<td>' + (r.role === 'super' ? '<span class="acc-gr fixed">기본 열람</span>' : r.role === 'partner' ? '<span class="acc-gr fixed">–</span>' : '<label class="acc-gr"><input type="checkbox" data-grant="wact" data-id="' + esc(r.uid) + '"' + ((ACCV.grants || {})[r.uid + '|wact'] ? ' checked' : '') + (ACCV.gErr ? ' disabled' : '') + '> 열람</label>') + '</td>' : '') +
             (sup ? '<td class="acts">' + (me ? '' : '<button type="button" class="btn sm" data-act="edit" data-id="' + esc(r.uid) + '">수정</button><button type="button" class="btn sm" data-act="pw" data-id="' + esc(r.uid) + '">비밀번호 재설정</button><button type="button" class="btn sm danger" data-act="del" data-id="' + esc(r.uid) + '">삭제</button>') + '</td>' : '') + '</tr>';
-        }).join('') + '</tbody></table></div>';
+        }).join('') + '</tbody></table></div>' + (sup && ACCV.gErr ? '<p class="anote warn">열람 지정 표(view_grants)를 읽지 못했습니다: ' + esc(ACCV.gErr) + ' — Supabase SQL Editor에서 view_grants.sql을 실행해 주세요.</p>' : '');
     }
     var b1 = $('#accAdd'); if (b1) b1.onclick = function () { accForm('add'); };
     var b2 = $('#accMyPw'); if (b2) b2.onclick = function () { accForm('mypw'); };
@@ -1817,6 +1868,18 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       adminCall({ action: 'delete', id: r.uid }).then(function () { toast(r.name + ' 계정을 삭제했습니다.'); return loadDir(); })
         .catch(function (e) { toast(e.message || String(e), true, 8000); b.disabled = false; });
     } else accForm(b.dataset.act, r);
+  });
+  $('#accList').addEventListener('change', function (ev) {
+    var c = ev.target.closest('input[data-grant]'); if (!c || ROLE !== 'super') return;
+    var uid = c.dataset.id, v = c.dataset.grant, on = c.checked, r = (ACCV.dir || []).find(function (x) { return x.uid === uid; });
+    c.disabled = true;
+    var p = on ? SB.from('view_grants').upsert({ user_id: uid, view: v, granted_by: USER.uid }) : SB.from('view_grants').delete().eq('user_id', uid).eq('view', v);
+    p.then(function (x) {
+      if (x.error) throw x.error;
+      ACCV.grants = ACCV.grants || {}; if (on) ACCV.grants[uid + '|' + v] = 1; else delete ACCV.grants[uid + '|' + v];
+      toast((r ? r.name : '') + ' — 회원 활동 주간 업무 열람을 ' + (on ? '지정했습니다. 다음 로그인부터 메뉴가 보입니다.' : '해제했습니다.'));
+    }).catch(function (e) { c.checked = !on; toast('열람 지정 저장 실패: ' + (e.message || e), true, 8000); })
+      .then(function () { c.disabled = false; });
   });
   function confirmBox(msg) { return window.confirm(msg); }
   function pwRule(pw, pw2) {
@@ -2130,6 +2193,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       return;
     }
     if (VIEW === 'accounts') loadDir();
+    if (VIEW === 'wact') loadWact();
     if (VIEW === 'sales') loadSales(false);
     if (VIEW === 'ads') loadAds(false);
     if (VIEW === 'sched') loadSchedule(false);
@@ -4346,6 +4410,121 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     close();
     return html;
   }
+  // 회원 활동 주간 업무 — 주간 업무 보고(별도 Supabase 프로젝트, 제출 완료분) → Edge Function 'weekly-activity'
+  var WA_CATS = [
+    { k: 'sem', n: '비학술 세미나', c: 'var(--s1)', re: /비학술|웨비나|세미나|강의|파트너스/ },
+    { k: 'evt', n: '회원가입·이벤트', c: 'var(--s2)', re: /이벤트|회원가입|가입|프로모션|캠페인|추천|기부|설문/ },
+    { k: 'cnt', n: '콘텐츠', c: 'var(--s3)', re: /콘텐츠|뉴스레터|동영상|영상|아티클|뉴스|보도자료|학회일정|해외학회|매거진|퀴즈|심사청구/ },
+    { k: 'pt', n: '포인트·포인트샵', c: 'var(--s4)', re: /포인트|제로샵|리워드/ },
+    { k: 'svc', n: '기타 회원 서비스', c: 'var(--s5)', re: /회원|페르소나|알림|브랜드존|샘플|컨퍼런스빌/ }
+  ];
+  var WA_EXCL = /광고 배너|배너 통계|통계 데이터|제휴 검토|업무 관리 솔루션/;
+  var WA = { data: null, loading: false, err: null, week: null, cat: 'all' };
+  function waCat(it) {
+    var t = it.title || '';
+    if (WA_EXCL.test(t)) return null;
+    for (var i = 0; i < WA_CATS.length; i++) if (WA_CATS[i].re.test(t)) return WA_CATS[i].k;
+    return null;
+  }
+  function waCatOf(k) { for (var i = 0; i < WA_CATS.length; i++) if (WA_CATS[i].k === k) return WA_CATS[i]; return null; }
+  function waWk(w) { var p = String(w).split('-'); return (+p[1]) + '/' + (+p[2]) + ' 주'; }
+  function waShort(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n) + '…' : s; }
+  function waSplit(items) {
+    var by = {}, ex = [];
+    WA_CATS.forEach(function (c) { by[c.k] = []; });
+    items.forEach(function (it) { var k = waCat(it); if (k) by[k].push(it); else ex.push(it); });
+    return { by: by, ex: ex };
+  }
+  function waLine(cat, list, prevList) {
+    if (!list.length) return '';
+    var done = list.filter(function (x) { return x.state === '완료'; }).length;
+    var prevT = {}; (prevList || []).forEach(function (x) { prevT[x.title] = x; });
+    var fresh = prevList ? list.filter(function (x) { return !prevT[x.title]; }) : [];
+    var moved = list.filter(function (x) { var p = prevT[x.title]; return p && (+x.progress || 0) > (+p.progress || 0); });
+    var tops = list.slice().sort(function (a, b) { return (+b.progress || 0) - (+a.progress || 0); }).slice(0, 3)
+      .map(function (x) { return esc(waShort(x.title, 28)) + ' ' + (+x.progress || 0) + '%'; });
+    var s = '<li><b>' + esc(cat.n) + ' ' + list.length + '건</b>';
+    var bits = [];
+    if (done) bits.push('완료 ' + done);
+    if (fresh.length) bits.push('신규 ' + fresh.length);
+    if (moved.length) bits.push('진척 ' + moved.length);
+    if (bits.length) s += ' (' + bits.join(' · ') + ')';
+    return s + ' — ' + tops.join(', ') + '</li>';
+  }
+  function renderWact() {
+    var box = $('#waBody'); if (!box) return;
+    if (WA.loading && !WA.data) { box.innerHTML = '<div class="empty">주간 업무 보고를 불러오는 중…</div>'; return; }
+    if (WA.err && !WA.data) { box.innerHTML = '<div class="empty">' + esc(WA.err) + '<br><button type="button" class="btn" id="waReload" style="margin-top:10px">다시 시도</button></div>'; return; }
+    var d = WA.data; if (!d || !d.items || !d.items.length) { box.innerHTML = '<div class="empty">제출된 주간 업무 보고가 없습니다.</div>'; return; }
+    var weeks = d.weeks && d.weeks.length ? d.weeks : Array.from(new Set(d.items.map(function (x) { return x.week; }))).sort().reverse();
+    if (!WA.week || weeks.indexOf(WA.week) < 0) WA.week = weeks[0];
+    var wi = weeks.indexOf(WA.week), prevW = weeks[wi + 1] || null;
+    var cur = waSplit(d.items.filter(function (x) { return x.week === WA.week; }));
+    var prev = prevW ? waSplit(d.items.filter(function (x) { return x.week === prevW; })) : null;
+    function ppl(w) { return new Set(d.items.filter(function (x) { return x.week === w; }).map(function (x) { return x.owner; })).size; }
+    var total = 0, ptotal = 0;
+    WA_CATS.forEach(function (c) { total += cur.by[c.k].length; if (prev) ptotal += prev.by[c.k].length; });
+    function dl(a, b) { if (b == null) return '<span class="delta flat">전주 없음</span>'; var v = a - b; return '<span class="delta ' + (v > 0 ? 'up' : v < 0 ? 'down' : 'flat') + '">전주 대비 ' + (v > 0 ? '+' : '') + v + '</span>'; }
+    var h = '<div class="wa-top"><div class="seg" id="waWeeks">' + weeks.slice(0, 8).map(function (w) { return '<button type="button" data-w="' + esc(w) + '" aria-pressed="' + (w === WA.week) + '">' + esc(waWk(w)) + '</button>'; }).join('') + '</div>' +
+      '<span style="display:flex;gap:8px;align-items:center"><span class="wa-lock">🔒 최고 관리자 지정 열람 · 제출 완료 보고만</span><button type="button" class="btn" id="waReload"' + (WA.loading ? ' disabled' : '') + '>' + (WA.loading ? '불러오는 중…' : '새로고침') + '</button></span></div>';
+    h += '<div class="wa-kpis"><div class="card kpi"><div class="label">회원 활동 업무</div><div class="value">' + total + '<small>건</small></div><div class="meta">' + dl(total, prev ? ptotal : null) + ' · 보고 ' + ppl(WA.week) + '명' + (prevW ? ' (전주 ' + ppl(prevW) + ')' : '') + '</div></div>';
+    WA_CATS.forEach(function (c) {
+      var n = cur.by[c.k].length, dn = cur.by[c.k].filter(function (x) { return x.state === '완료'; }).length;
+      h += '<div class="card kpi"><div class="label"><i style="background:' + c.c + '"></i>' + esc(c.n) + '</div><div class="value">' + n + '<small>건</small></div><div class="meta">' + dl(n, prev ? prev.by[c.k].length : null) + (dn ? ' · 완료 ' + dn : '') + '</div></div>';
+    });
+    h += '</div>';
+    var lines = WA_CATS.map(function (c) { return waLine(c, cur.by[c.k], prev ? prev.by[c.k] : null); }).join('');
+    h += '<div class="card wa-sum"><h3>이번 주 요약 · ' + esc(waWk(WA.week)) + ' (' + esc(WA.week) + ' 시작)</h3><div class="desc">업무명 기준 자동 분류 · 진행률 상위 3건 표기 · 신규 = 전주 보고에 없던 업무 · 아직 제출하지 않은 보고는 집계에 없음</div>' +
+      (lines ? '<ul>' + lines + '</ul>' : '<div class="empty">이번 주 회원 활동 관련 업무가 없습니다.</div>') + '</div>';
+    WA_CATS.forEach(function (c) {
+      var list = cur.by[c.k]; if (!list.length) return;
+      var pt = {}; if (prev) prev.by[c.k].forEach(function (x) { pt[x.title] = x; });
+      h += '<div class="wa-cat"><h3 class="wa-ch"><i style="background:' + c.c + '"></i>' + esc(c.n) + ' <small>' + list.length + '건</small></h3><div class="wa-items">';
+      list.forEach(function (x) {
+        var p = Math.max(0, Math.min(100, +x.progress || 0)), pv = pt[x.title], dp = pv ? p - (+pv.progress || 0) : null;
+        var st = x.state === '완료' ? 'done' : '';
+        h += '<div class="card wa-it" style="border-left-color:' + c.c + '"><div class="wa-t">' + esc(x.title) + '</div>' +
+          '<div class="wa-m"><span class="wa-st ' + st + '">' + esc(x.state || '-') + '</span>' + (pv || !prev ? '' : '<span class="wa-st new">신규</span>') +
+          '<span>' + esc(x.owner || '') + '</span><span>' + esc(x.service || '') + ' · ' + esc(x.project || '') + '</span>' +
+          (x.target ? '<span>목표 ' + esc(x.target) + '</span>' : '') + '<span>진행 ' + p + '%' + (dp ? ' (' + (dp > 0 ? '+' : '') + dp + '%p)' : '') + '</span></div>' +
+          '<div class="wa-bar"><span style="width:' + p + '%;background:' + c.c + '"></span></div>' +
+          (x.result ? '<div class="wa-r">' + esc(x.result) + '</div>' + (String(x.result).length > 160 ? '<button type="button" class="wa-more">더 보기</button>' : '') : '') + '</div>';
+      });
+      h += '</div></div>';
+    });
+    h += '<div class="card wa-trend" style="margin-top:18px"><h3>주차별 추이</h3><div class="desc">카테고리별 보고 건수 (완료)</div><table><thead><tr><th>주차</th>' + WA_CATS.map(function (c) { return '<th>' + esc(c.n) + '</th>'; }).join('') + '<th>합계</th><th>보고 인원</th></tr></thead><tbody>';
+    weeks.slice(0, 8).forEach(function (w) {
+      var s = waSplit(d.items.filter(function (x) { return x.week === w; })), t = 0;
+      h += '<tr' + (w === WA.week ? ' class="cur"' : '') + '><td>' + esc(waWk(w)) + '</td>' + WA_CATS.map(function (c) { var n = s.by[c.k].length, dn = s.by[c.k].filter(function (x) { return x.state === '완료'; }).length; t += n; return '<td>' + (n || '·') + (dn ? ' <span style="color:var(--muted)">(' + dn + ')</span>' : '') + '</td>'; }).join('') + '<td>' + t + '</td><td>' + ppl(w) + '명</td></tr>';
+    });
+    h += '</tbody></table></div>';
+    if (cur.ex.length) h += '<details class="card wa-ex" style="margin-top:12px"><summary>회원 활동 외 업무 ' + cur.ex.length + '건 (요약에서 제외)</summary><ul>' + cur.ex.map(function (x) { return '<li>' + esc(x.title) + ' · ' + esc(x.owner || '') + '</li>'; }).join('') + '</ul></details>';
+    h += '<p class="wa-foot" style="font-size:11.5px;color:var(--muted);margin-top:10px">출처: 주간 업무 보고 DB (닥터빌·공통, 제출 완료) · 불러온 시각 ' + esc(d.fetchedAt ? new Date(d.fetchedAt).toLocaleString('ko-KR') : '-') + '</p>';
+    box.innerHTML = h;
+  }
+  function loadWact() {
+    if (!AUTHED || !canView('wact')) return;
+    WA.loading = true; WA.err = null; renderWact();
+    $('#subtitle').textContent = '주간 업무 보고 중 회원 활동 관련 업무 요약';
+    SB.functions.invoke('weekly-activity', { body: {} }).then(function (r) {
+      if (r.error) {
+        var ctx = r.error.context;
+        return (ctx && ctx.json ? ctx.json().catch(function () { return null; }) : Promise.resolve(null)).then(function (j) {
+          throw new Error(j && j.error ? j.error : /Failed to send|fetch/i.test(r.error.message || '') ? '주간 업무 함수(weekly-activity)에 연결하지 못했습니다. Supabase Edge Function 배포 상태를 확인해 주세요.' : (r.error.message || '요청 실패'));
+        });
+      }
+      if (!r.data || !r.data.ok) throw new Error((r.data && r.data.error) || '요청 실패');
+      WA.data = r.data;
+    }).catch(function (e) { WA.err = e.message || String(e); if (WA.data) toast(WA.err, true, 8000); })
+      .then(function () { WA.loading = false; if (VIEW === 'wact') renderWact(); });
+  }
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('#waReload')) { loadWact(); return; }
+    var b = e.target.closest && e.target.closest('#waWeeks button');
+    if (b) { WA.week = b.getAttribute('data-w'); renderWact(); return; }
+    var m = e.target.closest && e.target.closest('.wa-more');
+    if (m) { var it = m.closest('.wa-it'); it.classList.toggle('open'); m.textContent = it.classList.contains('open') ? '접기' : '더 보기'; }
+  });
   function renderLlm() {
     if (VIEW !== 'llm') return;
     $('#subtitle').textContent = 'DB에 저장된 대시보드 데이터를 근거로 질문에 답합니다 · 모델 ' + LLM_NAME[LLM.model];
@@ -4393,10 +4572,10 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 
   // ---- 좌측 메뉴 · 화면 전환 ------------------------------------------------
   // 홈 / 매출(닥터빌·팜빌 포인트) / 회원 지표(닥터빌·팜빌 회원 정보·활동성) / 분석 리포트·LLM(준비 중)
-  var VIEWS = ['home', 'members', 'pharm', 'sales', 'points', 'ppoints', 'seminar', 'ads', 'sched', 'sads', 'conf', 'activity', 'pactivity', 'report', 'llm', 'accounts'];
-  var STATIC_VIEWS = { home: 1, report: 1, llm: 1, sads: 1, accounts: 1 };
+  var VIEWS = ['home', 'members', 'pharm', 'sales', 'points', 'ppoints', 'seminar', 'ads', 'sched', 'sads', 'conf', 'activity', 'wact', 'pactivity', 'report', 'llm', 'accounts'];
+  var STATIC_VIEWS = { home: 1, report: 1, llm: 1, sads: 1, accounts: 1, wact: 1 };
   var VIEW_TITLE = { home: '닥터빌 · 팜빌 운영 대시보드', report: '분석 리포트', llm: 'LLM', ads: '닥터빌 광고 대시보드', accounts: '계정 관리', sched: '세미나 현황', sads: '광고 현황', conf: '컨퍼런스 현황',
-    points: '닥터빌 포인트 대시보드', seminar: '닥터빌 세미나 대시보드', sales: '닥터빌 매출 대시보드', ppoints: '팜빌 포인트 대시보드', activity: '닥터빌 활동성 대시보드', pactivity: '팜빌 활동성 대시보드' };
+    points: '닥터빌 포인트 대시보드', seminar: '닥터빌 세미나 대시보드', sales: '닥터빌 매출 대시보드', ppoints: '팜빌 포인트 대시보드', activity: '닥터빌 활동성 대시보드', wact: '닥터빌 회원 활동 주간 업무', pactivity: '팜빌 활동성 대시보드' };
   function setNav(open) {
     document.body.classList.toggle('nav-open', open);
     $('#navBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -4420,7 +4599,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     document.body.classList.toggle('view-sales', VIEW === 'sales');
     document.body.classList.toggle('view-sched', VIEW === 'sched');
     document.body.classList.toggle('view-conf', VIEW === 'conf');
-    ['home', 'report', 'llm', 'ads', 'sads', 'accounts'].forEach(function (k) { document.body.classList.toggle('view-' + k, VIEW === k); });
+    ['home', 'report', 'llm', 'ads', 'sads', 'accounts', 'wact'].forEach(function (k) { document.body.classList.toggle('view-' + k, VIEW === k); });
     document.querySelectorAll('#sideNav .nav-item').forEach(function (b) {
       if (b.dataset.view === VIEW) {
         b.setAttribute('aria-current', 'page');
@@ -4435,6 +4614,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       else if (VIEW === 'report') { RP.enterAt = Date.now(); RP.autoDone = {}; renderReport(); if (started) rpLoad(); }
       else if (VIEW === 'accounts') { renderAccounts(); if (started && !ACCV.dir && !ACCV.loading) loadDir(); }
       else if (VIEW === 'llm') renderLlm();
+      else if (VIEW === 'wact') { renderWact(); if (started && !WA.data && !WA.loading) loadWact(); }
       else $('#subtitle').textContent = '준비 중인 메뉴입니다';
       return;
     }
