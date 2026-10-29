@@ -346,6 +346,7 @@ body.view-home #homeMain, body.view-report #reportMain, body.view-llm #llmMain, 
 .acc-gr.fixed { color: var(--muted); cursor: default; }
 body.view-static #memberMain, body.view-static #pointMain, body.view-static #actMain, body.view-static #pactMain,
 body.view-static .member-only, body.view-static #refreshBtn, body.view-static #pdfBtn, body.view-static #srcLabel, body.view-static #dbBadge { display: none !important; }
+body.role-partner #xlBtn, body.view-home #xlBtn, body.view-report #xlBtn, body.view-llm #xlBtn, body.view-accounts #xlBtn, body.view-sads #xlBtn { display: none !important; }
 .db-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 18px; border: 1px solid var(--line, #E1E1E1); font-size: 11.5px; white-space: nowrap; }
 .db-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #9aa5b1; }
 .db-badge.new::before { background: #2F80FF; }
@@ -836,6 +837,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       <span class="src db-badge" id="dbBadge" hidden></span>
       <button class="btn primary" id="refreshBtn" type="button" title="구글시트의 최신 값을 불러와 다시 집계합니다">갱신</button>
       <button class="btn" id="pdfBtn" type="button" title="현재 화면을 PDF 파일로 내려받습니다">PDF</button>
+      <button class="btn" id="xlBtn" type="button" title="현재 화면의 지표·표와 기간별 추이를 Excel로 내려받습니다 (내부용)">Excel</button>
       <button class="btn" id="themeBtn" type="button" aria-label="화면 테마 전환">테마</button>
       <span class="src" id="userBadge"></span>
       <button class="btn" id="logoutBtn" type="button">로그아웃</button>
@@ -2492,6 +2494,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   }
   // 호버 레이어: 열 단위 hit 영역
   function hoverCols(f, n, xOf, bw, html, onHi) {
+    f.svg.__xl = { n: n, html: html };   // Excel 출력용: 열별 툴팁 = 차트 데이터
     var g = el('g', {}, f.svg);
     var cross = el('line', { y1: f.m.t, y2: f.m.t + f.ih, stroke: css('--axis'), 'stroke-width': 1, opacity: 0 }, g);
     for (var i = 0; i < n; i++) (function (i) {
@@ -6061,6 +6064,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
         var ref = xcol(c) + (r + 1), st = row.s;
         if (typeof v === 'number' && isFinite(v)) {
           var ns = st === 1 ? 1 : (st === 7 || (row.pct && row.pct.indexOf(c) >= 0)) ? 7 : st === 3 ? 3 : 2;
+          if (ns === 2 && Math.round(v) !== v) ns = 8;   // 소수는 소수 자리 유지
           cs.push('<c r="' + ref + '" s="' + ns + '"><v>' + (Math.round(v * 10000) / 10000) + '</v></c>');
         } else {
           var ts = st === 3 ? 5 : st === 2 || st === 7 ? 0 : (st || 0);
@@ -6075,12 +6079,12 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     return o.join('');
   }
   var XSTYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-    '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0"/><numFmt numFmtId="165" formatCode="0.0%"/></numFmts>' +
+    '<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0"/><numFmt numFmtId="165" formatCode="0.0%"/><numFmt numFmtId="166" formatCode="#,##0.0##"/></numFmts>' +
     '<fonts count="3"><font><sz val="10"/><name val="맑은 고딕"/></font><font><b/><sz val="10"/><name val="맑은 고딕"/></font><font><b/><sz val="13"/><name val="맑은 고딕"/></font></fonts>' +
     '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
     '<fill><patternFill patternType="solid"><fgColor rgb="FFDCE6F2"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill></fills>' +
     '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top/><bottom style="thin"><color rgb="FF9FB3CC"/></bottom><diagonal/></border></borders>' +
-    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8">' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="9">' +
     '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
     '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
     '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
@@ -6089,6 +6093,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     '<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +
     '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>' +
     '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+    '<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
     '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
   function xlsxBlob(sheets) {
     var R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
@@ -6114,6 +6119,183 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (totals) rows.push({ c: totals, s: 3, pct: pctCols });
     return { name: name, widths: widths, freeze: 1, rows: rows, filter: 'A1:' + xcol(head.length - 1) + (body.length + 1) };
   }
+
+  // ---- Excel 출력 (지표 화면 공통) -------------------------------------------
+  // 현재 화면에 보이는 KPI·표 + 차트의 기간별 추이(호버 데이터)를 시트별로 담아 내려받음 · 내부 담당자만
+  // 개인 단위 정보는 화면에 표시된 범위(마스킹 상태) 그대로이며 별도로 추가하지 않음
+  var XL_FILE = { members: 'DoctorVille_Members', pharm: 'PharmVille_Members', points: 'DoctorVille_Points', ppoints: 'PharmVille_Points',
+    activity: 'DoctorVille_Activity', pactivity: 'PharmVille_Activity', sales: 'DoctorVille_Sales', seminar: 'DoctorVille_Seminar', ads: 'DoctorVille_Ads',
+    sched: 'DoctorVille_Seminar_Schedule', conf: 'DoctorVille_Conference', wact: 'DoctorVille_Member_Work' };
+  function xlOn() { return INTERNAL && !!XL_FILE[VIEW]; }
+  function xlShown(e) { return !!e && e.getClientRects().length > 0 && !e.closest('.modal, #tip, header, nav, aside, #sideNav'); }
+  function xlText(node) {
+    var c = node.cloneNode(true);
+    c.querySelectorAll('button, input, select, textarea, script, style, svg').forEach(function (x) { x.remove(); });
+    c.querySelectorAll('*').forEach(function (x) {   // 같은 모양이 반복되는 항목(칩·목록)은 ' / '로 구분
+      var p = x.previousElementSibling;
+      x.before(p && p.tagName === x.tagName && p.className === x.className ? ' / ' : ' ');
+    });
+    return c.textContent.replace(/\s+/g, ' ').trim();
+  }
+  // 숫자로 바꿀 수 있는 값만 숫자로 (단위 명·회·건·P·원·개·칸 · % 는 비율)
+  function xlVal(t) {
+    if (t === '' || t === '–' || t === '-' || t === '·' || t === '—') return { v: '' };
+    var m = /^([+\-−]?)((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s*(%|명|회|건|P|원|개|칸)?$/.exec(t);
+    if (!m) return { v: t };
+    var n = +m[2].replace(/,/g, ''); if (m[1] === '-' || m[1] === '−') n = -n;
+    return m[3] === '%' ? { v: n / 100, pct: true } : { v: n };
+  }
+  function xlRow(cells, style, keepFirst) {
+    var row = { c: [], pct: [] };
+    cells.forEach(function (t, i) {
+      if (typeof t !== 'string') { row.c.push(t); return; }
+      if (style === 1) t = t.replace(/\s*[▲▼↑↓]$/, '');
+      var x = (i === 0 && keepFirst !== false) || style === 1 ? { v: t } : xlVal(t);
+      row.c.push(x.v); if (x.pct) row.pct.push(i);
+    });
+    if (style) row.s = style;
+    return row;
+  }
+  function xlWidths(rows) {
+    var w = [];
+    rows.forEach(function (r) { (r.c || []).forEach(function (v, i) {
+      var s = v == null ? '' : typeof v === 'number' ? fmt(Math.round(v)) : String(v), n = 0;
+      for (var k = 0; k < s.length; k++) n += s.charCodeAt(k) > 255 ? 1.8 : 1;
+      w[i] = Math.max(w[i] || 8, Math.min(48, Math.ceil(n) + 2));
+    }); });
+    return w;
+  }
+  // 요소가 속한 카드·섹션 제목
+  function xlTitle(e) {
+    var card = e.closest('.card'), h = card && card.querySelector('h3, h2');
+    if (h && xlText(h)) return xlText(h);
+    for (var p = e; p && p !== document.body; p = p.parentElement) {
+      var prev = p.previousElementSibling;
+      while (prev) {
+        var hh = prev.matches('h2, h3, .sec-head') ? prev : prev.querySelector && prev.querySelector('.sec-head h2, h2, h3');
+        if (hh && xlShown(hh) && xlText(hh)) return xlText(hh.matches('.sec-head') ? (hh.querySelector('h2, h3') || hh) : hh);
+        prev = prev.previousElementSibling;
+      }
+    }
+    return '';
+  }
+  function xlTable(tb) {
+    var grid = [], rows = [], heads = 0, sumRows = {};
+    Array.prototype.forEach.call(tb.rows, function (tr, r) {
+      if (!xlShown(tr)) return;
+      var ri = grid.length; grid[ri] = grid[ri] || [];
+      var cells = Array.prototype.filter.call(tr.cells, function (c) { return getComputedStyle(c).display !== 'none'; });
+      var col = 0, allTh = cells.length && cells.every(function (c) { return c.tagName === 'TH'; });
+      cells.forEach(function (c) {
+        while (grid[ri][col] !== undefined) col++;
+        var t = xlText(c), cs = Math.max(1, c.colSpan || 1), rs = Math.max(1, c.rowSpan || 1);
+        for (var a = 0; a < rs; a++) for (var b = 0; b < cs; b++) { grid[ri + a] = grid[ri + a] || []; grid[ri + a][col + b] = a === 0 && b === 0 ? t : ''; }
+        col += cs;
+      });
+      if (tr.parentElement.tagName === 'THEAD' || allTh && ri === heads) heads = ri + 1;
+      if (/\b(sum|tot|total)\b/.test(tr.className)) sumRows[ri] = 1;
+    });
+    grid.forEach(function (cells, i) { rows.push(xlRow(cells.map(function (v) { return v == null ? '' : v; }), i < heads ? 1 : sumRows[i] ? 3 : 0)); });
+    return { rows: rows, heads: heads };
+  }
+  // 차트: hoverCols가 남긴 열별 툴팁(tipRows)에서 구간·계열 값을 읽음
+  function xlChart(svg) {
+    var x = svg.__xl, keys = [], data = [], box = document.createElement('div');
+    for (var i = 0; i < x.n; i++) {
+      box.innerHTML = x.html(i);
+      var t = box.querySelector('.t'), o = { t: t ? t.textContent.trim() : String(i + 1), v: {} };
+      box.querySelectorAll('.r').forEach(function (r) {
+        var k = (r.querySelector('span') || r).textContent.trim(), v = (r.querySelector('b') || r).textContent.trim();
+        if (keys.indexOf(k) < 0) keys.push(k); o.v[k] = v;
+      });
+      data.push(o);
+    }
+    var rows = [xlRow(['구간'].concat(keys), 1)].concat(data.map(function (o) { return xlRow([o.t].concat(keys.map(function (k) { return o.v[k] == null ? '' : o.v[k]; }))); }));
+    return rows;
+  }
+  function xlSafe(n, used) {
+    var b = String(n || '시트').replace(/\//g, '.').replace(/[\[\]:*?\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 28) || '시트', s = b, k = 2;
+    while (used[s]) s = b.slice(0, 26) + ' ' + (k++);
+    used[s] = 1; return s;
+  }
+  // 화면 밖 데이터가 필요한 메뉴 (달력·카드형 목록)
+  var XL_EXTRA = {
+    sched: function () {
+      var m = SCH.month, rows = (schRows(m).rows || []).slice().sort(function (a, b) { return (a.date + (a.time || '99')) < (b.date + (b.time || '99')) ? -1 : 1; });
+      return [{ name: monthLabel(m) + ' 세미나 목록', rows: [xlRow(['날짜', '시간', '상태', '유형', '송출', '구분', '회사', '카테고리', '품목·리드', '행사명', '연제', '강사', '장소', '채널', 'PM', '신청', '참석', '출처'], 1)].concat(rows.map(function (r) {
+        return xlRow([r.date || '', r.time || r.timeText || '', r.status || '', r.type || '', r.tx || '', r.io || '', r.company || '', r.cat || '', r.product || r.lead || '', r.title || '', r.topic && r.topic !== '-' ? r.topic : '', r.speaker || '', r.place || '', r.channel || '', r.pm || '', r.apply || '', r.attend || '', r._src === 'new' ? '대시보드 등록' : r._src === 'edit' ? '대시보드 수정' : '편성표']);
+      })) }];
+    },
+    wact: function () {
+      var d = WA.data; if (!d || !d.items) return [];
+      var head = ['주차(시작일)', '분류', '업무명', '담당', '서비스', '프로젝트', '상태', '진행률', '목표일', '결과'];
+      var line = function (x) { var c = waCatOf(waCat(x)); return xlRow([x.week, c ? c.n : '회원 활동 외', x.title, x.owner || '', x.service || '', x.project || '', x.state || '', (+x.progress || 0) / 100, x.target || '', x.result || ''], 0, false); };
+      var fix = function (r) { r.pct = [7]; return r; };
+      var cur = d.items.filter(function (x) { return x.week === WA.week; }), all = d.items.filter(function (x) { return waCat(x); });
+      return [{ name: '업무 목록 ' + waWk(WA.week), rows: [xlRow(head, 1)].concat(cur.map(function (x) { return fix(line(x)); })), wide: 9 },
+        { name: '회원 활동 업무 전체 주차', rows: [xlRow(head, 1)].concat(all.map(function (x) { return fix(line(x)); })), wide: 9 }];
+    }
+  };
+  function xlExport() {
+    if (!xlOn()) return;
+    var now = new Date(), pad = function (n) { return n < 10 ? '0' + n : n; };
+    var stamp = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    var title = $('#mainTitle').textContent.trim(), used = { '요약': 1 }, sheets = [], nT = 0, nC = 0;
+    var roots = Array.prototype.filter.call(document.querySelectorAll('main'), function (m) { return getComputedStyle(m).display !== 'none'; });
+    var all = function (sel) { var o = []; roots.forEach(function (r) { r.querySelectorAll(sel).forEach(function (e) { if (xlShown(e)) o.push(e); }); }); return o; };
+    // 1) 요약: 기준·선택 조건·KPI
+    var sum = [{ c: [title], s: 4 }, { c: [] }, xlRow(['출력 시각', stamp]), xlRow(['출력자', USER ? USER.name + ' (' + ROLES[ROLE] + ')' : '']), xlRow(['기준', $('#subtitle').textContent.trim()])];
+    var conds = [];
+    all('select').forEach(function (s) { if (s.selectedIndex >= 0 && s.options[s.selectedIndex]) { var lb = s.id && document.querySelector('label[for="' + s.id + '"]'); conds.push((lb ? lb.textContent.trim() + ' ' : '') + s.options[s.selectedIndex].text.trim()); } });
+    all('.seg button[aria-pressed="true"], [role="tab"][aria-selected="true"]').forEach(function (b) { var t = b.textContent.trim(); if (t && conds.indexOf(t) < 0) conds.push(t); });
+    Array.prototype.forEach.call(document.querySelectorAll('header .controls select, header .controls .seg button[aria-pressed="true"]'), function (s) {
+      if (!s.getClientRects().length) return;
+      var t = s.tagName === 'SELECT' ? (s.options[s.selectedIndex] ? s.options[s.selectedIndex].text.trim() : '') : s.textContent.trim();
+      if (t && conds.indexOf(t) < 0) conds.unshift(t);
+    });
+    if (conds.length) sum.push(xlRow(['선택 조건', conds.join(' · ')]));
+    sum.push(xlRow(['보안', '닥터빌사업부 내부용 · 대외비 — 외부 공유 전 팀장·사업부장 승인 필요']), { c: [] });
+    var kpis = all('.kpi');
+    if (kpis.length) {
+      sum.push(xlRow(['구분', '지표', '값', '단위', '설명'], 1));
+      kpis.forEach(function (k) {
+        var lb = k.querySelector('.label, .hl, .k'), val = k.querySelector('.value, .v, .big'), meta = k.querySelector('.meta, .sub, .m');
+        var unit = val && val.querySelector('small') ? val.querySelector('small').textContent.trim() : '';
+        var vt = val ? xlText(val).replace(unit, '').trim() : '';
+        var r = xlRow([xlTitle(k.parentElement) || '', '', vt, unit, meta ? xlText(meta) : ''], 0);
+        r.c[1] = lb ? xlText(lb) : ''; r.c[4] = meta ? xlText(meta) : ''; sum.push(r);
+      });
+    }
+    // 2) 화면의 표
+    all('table').forEach(function (tb) {
+      if (tb.closest('table') !== tb || !tb.rows.length) return;
+      var t = xlTable(tb); if (!t.rows.length) return;
+      var nm = xlTitle(tb) || title, cap = tb.caption ? xlText(tb.caption) : '';
+      var rows = [{ c: [nm + (cap ? ' · ' + cap : '')], s: 5 }].concat(t.rows);
+      sheets.push({ name: xlSafe(nm, used), widths: xlWidths(t.rows), freeze: t.heads ? t.heads + 1 : 0, rows: rows }); nT++;
+    });
+    // 3) 차트의 기간별 추이
+    all('svg').forEach(function (svg) {
+      if (!svg.__xl || !svg.__xl.n) return;
+      var nm = svg.getAttribute('aria-label') || xlTitle(svg) || '추이', rows = xlChart(svg);
+      sheets.push({ name: xlSafe('추이 ' + nm, used), widths: xlWidths(rows), freeze: 2, rows: [{ c: [nm + ' (차트 데이터)'], s: 5 }].concat(rows) }); nC++;
+    });
+    // 4) 메뉴별 추가 시트
+    if (XL_EXTRA[VIEW]) XL_EXTRA[VIEW]().forEach(function (x) {
+      var w = xlWidths(x.rows); if (x.wide != null) w[x.wide] = 80;
+      sheets.push({ name: xlSafe(x.name, used), widths: w, freeze: 1, rows: x.rows }); nT++;
+    });
+    if (!kpis.length && !sheets.length) { toast('이 화면에는 아직 내보낼 지표·표가 없습니다. 데이터를 불러온 뒤 다시 눌러 주세요.', true); return; }
+    sum.push({ c: [] }, xlRow(['포함 시트', '표 ' + nT + '개 · 차트 추이 ' + nC + '개 (화면에 보이는 범위 기준)']));
+    var sw = xlWidths(sum.slice(2)); sw[0] = Math.max(sw[0] || 0, 14); sw[1] = Math.max(sw[1] || 0, 20); if (sw[4]) sw[4] = Math.min(60, sw[4]);
+    sheets.unshift({ name: '요약', widths: sw, rows: sum });
+    var file = (VIEW === 'members' || VIEW === 'pharm') ? (SVC === 'pv' ? 'PharmVille_Members' : 'DoctorVille_Members') : XL_FILE[VIEW];
+    var blob = xlsxBlob(sheets), url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = file + '_' + stamp.replace(/[-: ]/g, '').replace(/^(\d{8})(\d{4})$/, '$1_$2') + '.xlsx';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    toast('Excel 출력 완료 · 시트 ' + sheets.length + '개 (내부용 — 외부 공유 전 승인 필요)');
+  }
+  $('#xlBtn').addEventListener('click', xlExport);
 
   // ---- ⑤~⑧ Excel 추출 (집계값만 사용 · 회원 번호는 마스킹 상태 그대로) --------
   $('#dExport').addEventListener('click', function () {
