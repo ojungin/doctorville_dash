@@ -160,6 +160,15 @@ footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--borde
 .modal button { font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); cursor: pointer; }
 .modal button.ok { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
 .modal button.ok:disabled { opacity: .6; cursor: progress; }
+.modal.ra-modal { max-width: 660px; }
+.modal .ra-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 52vh; overflow: auto; }
+.ra-list li { display: grid; grid-template-columns: 18px minmax(0, 190px) minmax(0, 1fr); gap: 8px; align-items: baseline; font-size: 12.5px; padding: 5px 0; border-bottom: 1px solid var(--grid); }
+.ra-list li i { font-style: normal; text-align: center; color: var(--muted); }
+.ra-list li b { font-weight: 600; }
+.ra-list li span { color: var(--ink-2); overflow-wrap: anywhere; }
+.ra-list li.ra-run i { color: var(--accent); } .ra-list li.ra-ok i { color: var(--up); } .ra-list li.ra-fail i, .ra-list li.ra-fail span { color: var(--down); } .ra-list li.ra-skip span { color: var(--muted); }
+.ra-prog { font-variant-numeric: tabular-nums; font-weight: 600; }
+@media (max-width: 560px) { .ra-list li { grid-template-columns: 18px 1fr; } .ra-list li span { grid-column: 2; } }
 .modal.wide { max-width: 440px; }
 .modal .xr { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .modal .xr label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); }
@@ -837,6 +846,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       <span class="src db-badge" id="dbBadge" hidden></span>
       <button class="btn primary" id="refreshBtn" type="button" title="구글시트의 최신 값을 불러와 다시 집계합니다">갱신</button>
       <button class="btn" id="pdfBtn" type="button" title="현재 화면을 PDF 파일로 내려받습니다">PDF</button>
+      <button class="btn" id="raBtn" type="button" hidden title="회원·활동성·매출·광고·세미나·컨퍼런스·포인트 등 전체 데이터를 한 번에 다시 불러와 DB에 저장합니다 (최고 관리자·관리자)">전체 갱신</button>
       <button class="btn" id="xlBtn" type="button" title="현재 화면의 지표·표와 기간별 추이를 Excel로 내려받습니다 (내부용)">Excel</button>
       <button class="btn" id="themeBtn" type="button" aria-label="화면 테마 전환">테마</button>
       <span class="src" id="userBadge"></span>
@@ -1430,6 +1440,16 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <div class="row"><button type="button" id="xCancel">닫기</button><button type="submit" class="ok" id="xOk">Excel 추출</button></div>
   </form>
 </div>
+<div class="modal-bg" id="raModal">
+  <div class="modal wide ra-modal">
+    <h3>전체 갱신</h3>
+    <p>메뉴별 [갱신]을 한 번에 실행해 원본(구글시트·저장소 파일·주간 업무 보고·포인트 갱신 서버)을 다시 읽고 DB 저장본을 덮어씁니다. 다른 담당자도 갱신된 저장본을 보게 됩니다. 1~3분 걸리며, 창을 닫아도 계속 진행됩니다.</p>
+    <ul id="raList" class="ra-list"></ul>
+    <p class="ra-prog" id="raProg"></p>
+    <p class="warn">포인트는 Raw 폴더가 있는 PC에서 갱신 서버가 켜져 있을 때만 함께 갱신됩니다.</p>
+    <div class="row"><button type="button" id="raClose">닫기</button><button type="button" class="ok" id="raOk">전체 갱신 시작</button></div>
+  </div>
+</div>
 <div class="modal-bg" id="accModal">
   <form class="modal wide" id="accForm" autocomplete="off">
     <h3 id="accTitle">계정 등록</h3>
@@ -1727,6 +1747,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       if (label) label.hidden = !labelAny;
       sub.hidden = !any; if (sub.previousElementSibling) sub.previousElementSibling.hidden = !any;
     });
+    $('#raBtn').hidden = !(ROLE === 'super' || ROLE === 'admin');
     $('#userBadge').textContent = USER ? USER.name + ' · ' + ROLES[ROLE] : '';
     $('#userBadge').title = USER ? USER.id : '';
     document.body.classList.toggle('role-partner', ROLE === 'partner');
@@ -1997,6 +2018,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   var toastT;
   function toast(msg, err, ms) {
     if (!msg) return;   // 탭 전환으로 버려진 응답(stale)
+    if (RA && RA.run) return;   // 전체 갱신 중에는 메뉴별 안내를 띄우지 않고 진행 창에 모아 표시
     var t = $('#toast'); t.textContent = msg; t.className = 'show' + (err ? ' err' : '');
     clearTimeout(toastT); toastT = setTimeout(function () { t.className = ''; }, ms || (err ? 6000 : 3500));
   }
@@ -6119,6 +6141,127 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     if (totals) rows.push({ c: totals, s: 3, pct: pctCols });
     return { name: name, widths: widths, freeze: 1, rows: rows, filter: 'A1:' + xcol(head.length - 1) + (body.length + 1) };
   }
+
+  // ---- 전체 갱신 (최고 관리자·관리자) ----------------------------------------
+  // 메뉴별 [갱신]과 같은 경로로 원본을 다시 읽어 DB 저장본을 덮어씀
+  //   줄 A(구글시트·Apps Script, 차례대로): 회원 닥터빌 → 회원 팜빌 → 활동성 → 매출 → 광고 → 세미나 편성표(이번 달) → 컨퍼런스·캘린더
+  //   줄 B(저장소 파일·DB·함수, 줄 A와 동시에): 세미나 편성 → 팜빌 활동성 → 회원 활동 업무 → 포인트(갱신 서버가 켜져 있을 때만)
+  var RA = { run: false, steps: [], t0: 0 };
+  function raCan() { return ROLE === 'super' || ROLE === 'admin'; }
+  function raMembers(svc) {
+    var body = { action: 'refresh', password: PW };
+    if (svc === 'pv') body.svc = 'pv';
+    return fetch(CONFIG.appsScriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res.ok) { var e = new Error(res.error || 'error'); e.code = res.error; throw e; }
+        if (!res.snap) throw new Error('집계 결과가 비어 있습니다.');
+        if (svc === 'pv' && (res.snap.svc || 'dv') !== 'pv') { var og = new Error('old_gs'); og.code = 'old_gs'; throw og; }
+        var key = 'api|get|' + svc;
+        return dbPut(key, res, 'internal', 'apps-script:refresh').then(function () {
+          dbNote(key, new Date().toISOString(), 'source'); dbPurge('api|get|' + svc + '|');
+          var st = STATES[svc];
+          if (svc === SVC && st.snap) applyRemote(res);          // 보고 있는 서비스면 바로 반영
+          else if (st.started || st.snap) { st.started = false; st.snap = null; st.prev = null; st.index = null; st.weekCtx = null; st.month = null; }   // 다음에 열 때 새 저장본을 읽음
+          return res.snap.week + ' · 전체 ' + fmt(res.snap.kpi.total) + '명 · 주간 신규 ' + fmt(res.snap.kpi.newWeek) + '명';
+        });
+      }).catch(function (e) { if (e.code === 'unauthorized') PW = null; throw new Error(e.code ? apiErrorText(e) : (e.message || String(e))); });
+  }
+  function raPoints(step) {
+    var base = (CONFIG.pointAgentUrl || 'http://127.0.0.1:8765').replace(/\/$/, ''), poll = null;
+    return fetch(base + '/ping', { cache: 'no-store' }).then(function (r) { return r.json(); }, function () { return null; }).then(function (ping) {
+      if (!ping) { step.skip = '포인트 갱신 서버가 꺼져 있어 건너뜀 (Raw 폴더 PC에서 「포인트_갱신서버_실행.bat」 실행 후 포인트 메뉴에서 [갱신])'; return; }
+      poll = setInterval(function () {
+        fetch(base + '/progress', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (g) {
+          if (!g.running) return;
+          step.note = (g.svc === 'pv' ? '[팜빌] ' : '') + (g.stage === 'migrate' ? '충전P 보강 ' + g.fileIndex + '/' + g.fileCount : g.stage === 'load' ? '적재 ' + g.fileIndex + '/' + g.fileCount : g.stage === 'aggregate' ? '집계 중' : g.stage === 'publish' ? '게시 중' : '갱신 중');
+          raRender();
+        }).catch(function () {});
+      }, 1500);
+      return fetch(base + '/refresh', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ password: PW }) })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          if (!res || !res.ok) { var e = new Error(res && (res.message || res.error) || '응답 없음'); if (res && res.error === 'unauthorized') e.message = '비밀번호가 대시보드 비밀번호와 다릅니다.'; throw e; }
+          PSTATES.dv.data = res.data; PSTATES.dv.loaded = true;
+          if (res.data) { dbPut('file|' + PFILE.dv, res.data, 'internal', 'point-agent'); dbNote('file|' + PFILE.dv, new Date().toISOString(), 'source'); }
+          var pvOk = res.pv && res.pv.ok;
+          if (pvOk) { ensurePv(); PSTATES.pv.data = res.pv.data; PSTATES.pv.loaded = true; if (res.pv.data) { dbPut('file|' + PFILE.pv, res.pv.data, 'internal', 'point-agent'); dbNote('file|' + PFILE.pv, new Date().toISOString(), 'source'); } }
+          if (isPts()) { buildPeriods(); setPointHeader('데이터: 방금 갱신'); renderPoints(); }
+          return '닥터빌 신규 파일 ' + (res.loaded || []).length + '개' + (res.pv ? ' · 팜빌 ' + (pvOk ? '신규 파일 ' + (res.pv.loaded || []).length + '개' : '갱신 실패(서버 창 확인)') : '') + (res.data && res.data.range ? ' · 데이터 ~' + res.data.range.to : '');
+        });
+    }).then(function (v) { if (poll) clearInterval(poll); return v; }, function (e) { if (poll) clearInterval(poll); throw e; });
+  }
+  // 메뉴 로더는 오류를 화면 상태(err)에 담고 끝나므로, 끝난 뒤 그 값을 확인
+  function raLoader(fn, errOf, okMsg) {
+    return function () { return Promise.resolve(fn()).then(function () { var e = errOf(); if (e) throw new Error(e); return okMsg ? okMsg() : ''; }); };
+  }
+  function raPlan() {
+    var m = todayYmd().slice(0, 7);
+    var LA = [
+      { k: 'mdv', n: '닥터빌 회원 정보', run: function () { return raMembers('dv'); } },
+      { k: 'mpv', n: '팜빌 회원 정보', run: function () { return raMembers('pv'); } },
+      { k: 'act', n: '닥터빌 활동성', run: raLoader(function () { return loadActivity(true); }, function () { return A_ERR(); }) },
+      { k: 'sales', n: '닥터빌 매출', run: raLoader(function () { return loadSales(true); }, function () { return SL.err; }) },
+      { k: 'ads', n: '닥터빌 광고', run: raLoader(function () { return loadAds(true); }, function () { return AD.err; }, function () { return AD.data ? 'Raw ' + fmt(AD.data.rows) + '행' : ''; }) },
+      { k: 'sched', n: '세미나 현황 (' + monthLabel(SCH.month || m) + ' 편성표)', run: raLoader(function () { return loadSchedule(true); }, function () { return SCH.err; }) },
+      { k: 'conf', n: '컨퍼런스 · 마케팅팀 캘린더', run: raLoader(function () { return loadConf(true); }, function () { return CF.err || (CF.gcErr && CF.gcErr[CF.month]) || ''; }) }
+    ];
+    var LB = [
+      { k: 'sem', n: '닥터빌 세미나 (저장소 편성 파일)', run: raLoader(function () { return loadSeminar(true); }, function () { return SEM.err; }) },
+      { k: 'pact', n: '팜빌 활동성 (저장소 파일)', run: raLoader(function () { return loadPvActivity(true); }, function () { return PA.err; }) }
+    ];
+    if (canView('wact')) LB.push({ k: 'wact', n: '회원 활동 주간 업무', run: function () { return new Promise(function (ok, no) {
+      var st = setInterval(function () { if (!WA.loading) { clearInterval(st); if (WA.err) no(new Error(WA.err)); else ok(WA.data ? '주차 ' + (WA.data.weeks || []).length + '개' : ''); } }, 300);
+      loadWact();
+    }); } });
+    LB.push({ k: 'pts', n: '포인트 (닥터빌·팜빌, 갱신 서버)', run: function (s) { return raPoints(s); } });
+    return { A: LA, B: LB };
+  }
+  function A_ERR() { return A.err; }
+  function raRender() {
+    var box = $('#raList'); if (!box) return;
+    var ico = { wait: '○', run: '◐', ok: '●', skip: '–', fail: '✕' };
+    box.innerHTML = RA.steps.map(function (s) {
+      return '<li class="ra-' + s.st + '"><i>' + ico[s.st] + '</i><b>' + esc(s.n) + '</b><span>' + esc(s.st === 'wait' ? '대기' : s.st === 'run' ? (s.note || '진행 중…') : s.st === 'ok' ? '완료' + (s.msg ? ' · ' + s.msg : '') + (s.ms ? ' (' + (s.ms / 1000).toFixed(0) + '초)' : '') : s.st === 'skip' ? s.msg : s.msg) + '</span></li>';
+    }).join('');
+    var done = RA.steps.filter(function (s) { return s.st !== 'wait' && s.st !== 'run'; }).length;
+    $('#raProg').textContent = RA.steps.length ? (RA.run ? '진행 ' + done + ' / ' + RA.steps.length + ' · ' + Math.round((Date.now() - RA.t0) / 1000) + '초' : '끝 · 완료 ' + RA.steps.filter(function (s) { return s.st === 'ok'; }).length + ' · 건너뜀 ' + RA.steps.filter(function (s) { return s.st === 'skip'; }).length + ' · 실패 ' + RA.steps.filter(function (s) { return s.st === 'fail'; }).length) : '';
+    $('#raOk').disabled = RA.run; $('#raOk').textContent = RA.run ? '갱신 중…' : RA.steps.length ? '다시 실행' : '전체 갱신 시작';
+    var b = $('#raBtn'); b.textContent = RA.run ? '전체 갱신 ' + done + '/' + RA.steps.length : '전체 갱신';
+  }
+  function raLane(list) {
+    return list.reduce(function (p, s) {
+      return p.then(function () {
+        s.st = 'run'; s.t = Date.now(); raRender();
+        return Promise.resolve().then(function () { return s.run(s); }).then(function (msg) {
+          s.ms = Date.now() - s.t;
+          if (s.skip) { s.st = 'skip'; s.msg = s.skip; } else { s.st = 'ok'; s.msg = msg || ''; }
+        }, function (e) { s.st = 'fail'; s.msg = (e && e.message) || String(e); })
+          .then(raRender);
+      });
+    }, Promise.resolve());
+  }
+  function raStart() {
+    if (RA.run || !raCan()) return;
+    if (!CONFIG.appsScriptUrl) { toast('구글시트 연동 주소(docs/data/config.json)가 설정되지 않았습니다.', true); return; }
+    (PW ? Promise.resolve(PW) : askPw('전체 갱신을 하려면 구글시트 연동 비밀번호(시스템 비밀번호)를 입력해 주세요.')).then(function (pw) {
+      if (!pw) return;
+      PW = pw;
+      var plan = raPlan();
+      RA.steps = plan.A.concat(plan.B).map(function (s) { s.st = 'wait'; s.msg = ''; s.note = ''; s.skip = ''; return s; });
+      RA.run = true; RA.t0 = Date.now(); raRender();
+      var tick = setInterval(raRender, 1000);
+      Promise.all([raLane(plan.A), raLane(plan.B)]).then(function () {
+        clearInterval(tick); RA.run = false; raRender();
+        if (['report', 'llm', 'accounts'].indexOf(VIEW) < 0) setView(VIEW, true);   // 보고 있는 화면 다시 그리기
+        var f = RA.steps.filter(function (s) { return s.st === 'fail'; }).length, sk = RA.steps.filter(function (s) { return s.st === 'skip'; }).length;
+        toast('전체 갱신 끝 · 완료 ' + RA.steps.filter(function (s) { return s.st === 'ok'; }).length + '개' + (sk ? ' · 건너뜀 ' + sk : '') + (f ? ' · 실패 ' + f + ' (목록에서 사유 확인)' : '') + ' · ' + Math.round((Date.now() - RA.t0) / 1000) + '초', !!f, f ? 10000 : 5000);
+      });
+    });
+  }
+  $('#raBtn').addEventListener('click', function () { if (!raCan()) return; raRender(); $('#raModal').classList.add('show'); });
+  $('#raClose').addEventListener('click', function () { $('#raModal').classList.remove('show'); });
+  $('#raOk').addEventListener('click', raStart);
 
   // ---- Excel 출력 (지표 화면 공통) -------------------------------------------
   // 현재 화면에 보이는 KPI·표 + 차트의 기간별 추이(호버 데이터)를 시트별로 담아 내려받음 · 내부 담당자만
