@@ -2308,8 +2308,41 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   $('#modeSeg').querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.mode === state.mode ? 'true' : 'false'); });
   var rt; addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { renderTrends(); renderPTrends(); renderPWTrends(); if (VIEW === 'activity' && A.data) renderActivity(); if (VIEW === 'pactivity' && PA.data) renderPvActivity(); if (VIEW === 'seminar' && SEM.data) renderSemChart(); if (VIEW === 'sales' && SL.data) renderSlChart(); if (VIEW === 'ads' && AD.data) renderAds(); if (isPts() && P.data) { renderPYoy(); renderPAnom(); } }, 120); });
 
+  // 닥터빌 가입경로 표시명 변경 (2026-11-03 요청: 어드민 값 '웨비나' → '컨퍼런스빌 회원 가입 이벤트')
+  //   시트·DB·저장본에는 원래 값이 남아 있어도 화면(표·차트·Excel·리포트)에서는 항상 바뀐 이름으로 표시 · 같은 이름이 이미 있으면 합산
+  var DV_ROUTE_RENAME = { '웨비나': '컨퍼런스빌 회원 가입 이벤트' };
+  function routeRenameMap(o) {
+    if (!o || typeof o !== 'object') return;
+    Object.keys(DV_ROUTE_RENAME).forEach(function (a) {
+      if (!(a in o)) return;
+      var b = DV_ROUTE_RENAME[a];
+      o[b] = (typeof o[b] === 'number' ? o[b] : 0) + (typeof o[a] === 'number' ? o[a] : 0); delete o[a];
+    });
+  }
+  function routeRenameSnap(s) {
+    if (!s || s.__routeRenamed) return;
+    (s.weekly || []).forEach(function (w) { routeRenameMap(w.route); });
+    (s.monthlySeries || []).forEach(function (m) { routeRenameMap(m.route); });
+    var d = s.dims && s.dims.route;
+    if (d && d.rows) {
+      var out = [];
+      d.rows.forEach(function (r) {
+        var nm = DV_ROUTE_RENAME[r.name] || r.name, ex = null;
+        for (var i = 0; i < out.length; i++) if (out[i].name === nm) ex = out[i];
+        if (!ex) { r.name = nm; out.push(r); return; }
+        ['count', 'share', 'newWeek', 'newShare4w', 'newMonth', 'newShare3m'].forEach(function (k) {
+          if (typeof ex[k] === 'number' && typeof r[k] === 'number') ex[k] = Math.round((ex[k] + r[k]) * 100) / 100;
+          else if (typeof ex[k] !== 'number' && typeof r[k] === 'number') ex[k] = r[k];
+        });
+      });
+      out.sort(function (a, b) { return a.name === '기타(소수)' ? 1 : b.name === '기타(소수)' ? -1 : (b.count || 0) - (a.count || 0); });
+      d.rows = out;
+    }
+    try { Object.defineProperty(s, '__routeRenamed', { value: true }); } catch (e) {}
+  }
   function renderAll() {
     if (!state.snap) return;
+    if (SVC === 'dv') { routeRenameSnap(state.snap); routeRenameSnap(state.prev); if (state.weekCtx) { routeRenameSnap(state.weekCtx.snap); routeRenameSnap(state.weekCtx.prev); } }
     var s = state.snap;
     if (state.mode === 'month' && !s.monthlySeries) { toast(noMonthlyReason(), true, 12000); setMode('week', true); return; }
     var mon = state.mode === 'month';
