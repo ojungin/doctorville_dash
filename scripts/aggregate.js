@@ -98,6 +98,10 @@
         if (!v || v === '알 수 없음') return UNKNOWN;
         if (v === '세종시') return '세종';
         return v;
+      case 'route':
+        // 닥터빌: 어드민 가입경로 '웨비나' → '컨퍼런스빌 회원 가입 이벤트' (2026-11-03 요청, 대시보드 화면과 동일)
+        if (ctx.svc !== 'pv' && v === '웨비나') return '컨퍼런스빌 회원 가입 이벤트';
+        return v || UNKNOWN;
       case 'status':
         if (/^\d+$/.test(v)) return '기타(코드값)';
         return v || UNKNOWN;
@@ -175,7 +179,7 @@
     if (missing.length) throw new Error('시트에 필요한 필드가 없습니다: ' + missing.join(', '));
 
     var asOf = !!opt.asOf;
-    var ctx = { now: asOf ? (opt.activityNow || Date.now()) : now };
+    var ctx = { now: asOf ? (opt.activityNow || Date.now()) : now, svc: opt.profile === 'pv' ? 'pv' : 'dv' };
     var curWeek = weekStart(now);           // 진행 중인 주
     var refStart = curWeek - 7 * DAY;       // 직전 완료 주(보고 대상 주)
     var prevStart = refStart - 7 * DAY;
