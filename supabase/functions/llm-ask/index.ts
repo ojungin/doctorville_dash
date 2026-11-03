@@ -113,6 +113,42 @@ const TOOLS = [
   { name: 'get_data', description: '저장본에서 경로의 값을 돌려줍니다. 경로 예: snap.kpi, sales.years.2026.rows[0:40], ads.agg.2026.exec.months. 긴 배열은 [시작:끝]으로 나눠 조회하세요.', input_schema: { type: 'object', properties: { key: { type: 'string' }, path: { type: 'string', description: '점(.)과 [i] / [시작:끝] 경로. 비우면 전체' } }, required: ['key'] } },
 ];
 
+// ---- 닥터빌 가입경로 표시명 (2026-11-03 요청, 대시보드 화면과 동일) ------------------
+// 어드민 원본 값 '웨비나' → '컨퍼런스빌 회원 가입 이벤트'. DB에는 원래 값이 남아 있으므로 조회 결과에서 바꿔 Claude에 전달
+const DV_ROUTE_RENAME: Record<string, string> = { '웨비나': '컨퍼런스빌 회원 가입 이벤트' };
+function isDvMemberKey(key: string) {
+  return /^api\|get\|dv(\||$)/.test(key) || /^file\|data\/(index\.enc\.json|snapshots\/)/.test(key);
+}
+function renameRouteMap(o: any) {
+  for (const [a, b] of Object.entries(DV_ROUTE_RENAME)) {
+    if (!(a in o)) continue;
+    o[b] = (typeof o[b] === 'number' ? o[b] : 0) + (typeof o[a] === 'number' ? o[a] : 0);
+    delete o[a];
+  }
+}
+function renameRouteRows(rows: any[]) {
+  const out: any[] = [];
+  for (const r of rows) {
+    if (!r || typeof r !== 'object') { out.push(r); continue; }
+    const nm = DV_ROUTE_RENAME[r.name] || r.name, ex = out.find((x) => x && x.name === nm);
+    if (!ex) { r.name = nm; out.push(r); continue; }
+    for (const k of Object.keys(r)) if (k !== 'name' && typeof r[k] === 'number') ex[k] = typeof ex[k] === 'number' ? Math.round((ex[k] + r[k]) * 100) / 100 : r[k];
+  }
+  return out;
+}
+// 'route'(가입경로) 아래만 바꿈: dims.route.rows[].name, weekly[]/monthlySeries[].route 키
+function renameRoutes(v: any): any {
+  if (Array.isArray(v)) { v.forEach(renameRoutes); return v; }
+  if (!v || typeof v !== 'object') return v;
+  for (const k of Object.keys(v)) {
+    const x = v[k];
+    if (k === 'route' && x && typeof x === 'object' && !Array.isArray(x)) {
+      if (Array.isArray(x.rows)) x.rows = renameRouteRows(x.rows); else renameRouteMap(x);
+    } else renameRoutes(x);
+  }
+  return v;
+}
+
 function system(today: string) {
   return [
     '당신은 엠서클 닥터빌·팜빌 운영 대시보드의 데이터 분석가입니다. 사용자는 닥터빌 내부 담당자입니다.',
@@ -124,6 +160,7 @@ function system(today: string) {
     '4. 숫자는 단위를 붙여 정확히 쓰고(원·만원·억, 명, %), 계산했다면 계산식을 짧게 적습니다. 데이터의 기준 시각(저장 시각)을 함께 밝힙니다.',
     '5. 개인을 식별할 수 있는 정보는 다루지 않습니다.',
     '6. 한국어로, 다음 형식으로 답합니다: **요약**(1~3문장) → 근거(필요하면 마크다운 표) → 해석·제안(있을 때만, 짧게) → "사용 데이터: 키 · 저장 시각".',
+    "7. 닥터빌 회원의 가입경로 '웨비나'는 '컨퍼런스빌 회원 가입 이벤트'로 부릅니다. 원본에 '웨비나'가 보여도 답변에는 '컨퍼런스빌 회원 가입 이벤트'로 씁니다 (팜빌은 해당 없음).",
   ].join('\n');
 }
 
@@ -169,7 +206,7 @@ Deno.serve(async (req) => {
         const { data, error } = await db.from('datasets').select('data, fetched_at').eq('key', key).maybeSingle();
         if (error) throw new Error(error.message);
         if (!data) throw new Error('저장본이 없습니다: ' + key);
-        v = data.data; used.set(key, data.fetched_at);
+        v = isDvMemberKey(key) ? renameRoutes(data.data) : data.data; used.set(key, data.fetched_at);
       }
       cache.set(key, v);
       return v;
