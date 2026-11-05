@@ -541,6 +541,13 @@ body.locked #gate { display: flex; }
 .gate-card button:disabled { opacity: .6; cursor: progress; }
 .gate-msg { min-height: 18px; font-size: 13px; color: var(--down); }
 .gate-note { font-size: 11.5px; color: var(--muted); margin: 0; }
+.otp-step { display: grid; gap: 8px; }
+.otp-step[hidden], .otp-links[hidden] { display: none; }
+#otp { letter-spacing: .3em; font-variant-numeric: tabular-nums; font-size: 18px; }
+#otp::placeholder { letter-spacing: 0; font-size: 14px; }
+.otp-links { display: flex; justify-content: space-between; gap: 8px; }
+.gate-card .otp-links button { background: none; color: var(--accent); padding: 2px 0; margin: 0; font-size: 12.5px; font-weight: 500; }
+.gate-card .otp-links button:disabled { color: var(--muted); cursor: default; }
 @media (max-width: 1080px) { .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 480px) { .wrap { padding: 0 16px; } .kpi .value { font-size: 24px; } }
@@ -775,16 +782,20 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
 <body class="locked">
 <div id="gate">
   <div class="gate-card">
-    <div class="gh"><h1>닥터빌 · 팜빌 운영 대시보드</h1><p>닥터빌사업부 · 발급받은 계정으로 로그인하세요</p></div>
+    <div class="gh"><h1>닥터빌 · 팜빌 운영 대시보드</h1><p>닥터빌사업부 · 등록된 이메일로 인증 코드를 받아 로그인하세요</p></div>
     <form id="gateForm">
-      <label for="uid">아이디</label>
-      <input id="uid" type="text" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required autofocus>
-      <label for="pw">비밀번호</label>
-      <input id="pw" type="password" autocomplete="current-password" required>
+      <label for="uid">이메일 (아이디)</label>
+      <input id="uid" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required autofocus>
+      <div class="otp-step" id="otpStep" hidden>
+        <label for="otp">인증 코드</label>
+        <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="메일로 받은 숫자 코드">
+        <p class="gate-note" id="otpInfo"></p>
+      </div>
       <label class="remember"><input id="remember" type="checkbox"> 이 탭을 닫을 때까지 로그인 유지</label>
       <div class="gate-msg" id="gateMsg" role="alert"></div>
-      <button type="submit" id="gateBtn">로그인</button>
-      <p class="gate-note">계정은 최고 관리자에게 요청해 주세요. 데이터는 DB에 저장되며 계정 권한에 맞는 데이터만 열립니다.</p>
+      <button type="submit" id="gateBtn">인증 코드 받기</button>
+      <div class="otp-links" id="otpLinks" hidden><button type="button" id="otpResend">코드 다시 받기</button><button type="button" id="otpBack">이메일 다시 입력</button></div>
+      <p class="gate-note">계정은 최고 관리자에게 요청해 주세요. 비밀번호 없이, 등록된 이메일로 받은 일회용 코드로 로그인합니다. 데이터는 계정 권한에 맞는 것만 열립니다.</p>
     </form>
   </div>
 </div>
@@ -1457,8 +1468,6 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <label class="fl f-id">아이디 (이메일)<input id="accFId" type="text" inputmode="email" autocapitalize="off" spellcheck="false"></label>
     <div class="xr f-info"><label>이름<input id="accFName" type="text"></label><label>소속<input id="accFOrg" type="text" placeholder="예: 콘텐츠운영팀, ○○제약"></label></div>
     <label class="fl f-info">권한<select id="accFRole"><option value="super">최고 관리자 — 계정 등록·관리, 모든 기능</option><option value="admin">관리자 — 계정 확인, 모든 기능</option><option value="dv">닥터빌 담당자 — 계정 메뉴 외 모든 기능</option><option value="partner">협력사 담당자 — 매출 &gt; 세미나·광고만</option></select></label>
-    <div class="xr f-pw"><label>비밀번호<input id="accFPw" type="password" autocomplete="new-password"></label><label>비밀번호 확인<input id="accFPw2" type="password" autocomplete="new-password"></label></div>
-    <p class="f-pw">8자 이상, 영문과 숫자를 함께 넣어 주세요.</p>
     <div class="err" id="accErr"></div>
     <div class="row"><button type="button" id="accCancel">취소</button><button type="submit" class="ok" id="accOk">저장</button></div>
   </form>
@@ -1690,7 +1699,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     });
   }
   function unlock() {
-    document.body.classList.remove('locked'); $('#pw').value = '';
+    document.body.classList.remove('locked'); $('#otp').value = ''; otpReset();
     applyRoleChrome();
     if (!canView(VIEW)) setView('home'); else if (STATIC_VIEWS[VIEW]) setView(VIEW, true);
     start();
@@ -1703,26 +1712,62 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   function authErrText(e) {
     var m = String(e && (e.message || e) || '');
     if (e && e.code === 'noprofile') return '계정 권한이 등록되지 않았거나 사용 중지된 계정입니다. 최고 관리자에게 문의해 주세요.';
-    if (/Invalid login credentials/i.test(m)) return '아이디 또는 비밀번호가 올바르지 않습니다.';
-    if (/Email not confirmed/i.test(m)) return '이메일 인증이 완료되지 않은 계정입니다. 최고 관리자에게 문의해 주세요.';
+    if (/Signups not allowed|user not found|not allowed for otp/i.test(m)) return '등록되지 않은 이메일입니다. 최고 관리자에게 계정 등록을 요청해 주세요.';
+    if (/expired|invalid|otp/i.test(m) && /token|otp|code/i.test(m)) return '인증 코드가 올바르지 않거나 만료되었습니다. 메일의 최신 코드를 입력하거나 [코드 다시 받기]를 눌러 주세요.';
+    var wait = /after (\d+) seconds?/i.exec(m); if (wait) return '보안을 위해 ' + wait[1] + '초 뒤에 다시 요청할 수 있습니다.';
+    if (/sending|smtp|email.*(send|deliver)/i.test(m)) return '인증 메일을 보내지 못했습니다. 메일 서버 설정을 확인해야 합니다 — 최고 관리자에게 문의해 주세요.';
     if (/rate limit|too many/i.test(m)) return '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.';
     if (/Failed to fetch|NetworkError/i.test(m)) return 'DB 서버에 연결하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.';
     return '로그인하지 못했습니다: ' + m;
   }
+  // 이메일 인증 로그인 (Supabase Auth 이메일 OTP): ① 이메일 → 인증 코드 메일 ② 코드 입력 → 로그인
+  //   등록된 계정만 (shouldCreateUser:false) · 권한은 기존과 같이 profiles.role
+  var OTP = { email: '', sentAt: 0, timer: null };
+  var OTP_GAP = 60;   // 다시 받기 대기(초) — Supabase 기본 요청 간격과 같음
+  function otpReset() {
+    OTP.email = ''; clearInterval(OTP.timer);
+    $('#otpStep').hidden = true; $('#otpLinks').hidden = true; $('#uid').readOnly = false;
+    $('#gateBtn').textContent = '인증 코드 받기';
+  }
+  function otpTick() {
+    var left = Math.max(0, OTP_GAP - Math.floor((Date.now() - OTP.sentAt) / 1000)), b = $('#otpResend');
+    b.disabled = left > 0; b.textContent = left > 0 ? '코드 다시 받기 (' + left + '초)' : '코드 다시 받기';
+    if (!left) clearInterval(OTP.timer);
+  }
+  function otpSend(id) {
+    var btn = $('#gateBtn');
+    btn.disabled = true; btn.textContent = '메일 보내는 중…'; $('#gateMsg').textContent = '';
+    return SB.auth.signInWithOtp({ email: id, options: { shouldCreateUser: false } }).then(function (r) {
+      if (r.error) throw r.error;
+      OTP.email = id; OTP.sentAt = Date.now();
+      $('#uid').readOnly = true; $('#otpStep').hidden = false; $('#otpLinks').hidden = false; $('#otp').value = '';
+      $('#otpInfo').textContent = id + ' 으로 인증 코드를 보냈습니다. 메일이 보이지 않으면 스팸함도 확인해 주세요. (코드는 일정 시간 뒤 만료)';
+      clearInterval(OTP.timer); otpTick(); OTP.timer = setInterval(otpTick, 1000);
+      $('#otp').focus();
+    }).catch(function (e) { $('#gateMsg').textContent = authErrText(e); })
+      .then(function () { btn.disabled = false; btn.textContent = OTP.email ? '로그인' : '인증 코드 받기'; });
+  }
   $('#gateForm').addEventListener('submit', function (ev) {
     ev.preventDefault();
-    var btn = $('#gateBtn'), id = normId($('#uid').value), pw = $('#pw').value;
+    var btn = $('#gateBtn'), id = normId($('#uid').value);
     if (!SB) { $('#gateMsg').textContent = !CONFIG.supabaseUrl ? 'DB(Supabase) 연결 정보가 설정되지 않았습니다. docs/data/config.json 의 supabaseUrl·supabaseAnonKey 를 확인해 주세요.' : 'DB 연결 라이브러리를 불러오지 못했습니다. 새로고침 해주세요.'; return; }
-    btn.disabled = true; btn.textContent = '확인 중…'; $('#gateMsg').textContent = '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id)) { $('#gateMsg').textContent = '등록된 이메일 주소를 입력해 주세요.'; return; }
     try { if ($('#remember').checked) sessionStorage.setItem(SREM, '1'); else sessionStorage.removeItem(SREM); } catch (e) {}
-    SB.auth.signInWithPassword({ email: id, password: pw }).then(function (r) {
+    if (!OTP.email) { otpSend(id); return; }
+    var code = $('#otp').value.replace(/\D/g, '');
+    if (code.length < 6) { $('#gateMsg').textContent = '메일로 받은 인증 코드(숫자)를 입력해 주세요.'; $('#otp').focus(); return; }
+    btn.disabled = true; btn.textContent = '확인 중…'; $('#gateMsg').textContent = '';
+    SB.auth.verifyOtp({ email: OTP.email, token: code, type: 'email' }).then(function (r) {
       if (r.error) throw r.error;
       return applySession(r.data.user);
     }).then(unlock).catch(function (e) {
-      if (e && e.code === 'noprofile') SB.auth.signOut();
-      lock(authErrText(e)); $('#pw').select();
-    }).then(function () { btn.disabled = false; btn.textContent = '로그인'; });
+      if (e && e.code === 'noprofile') { SB.auth.signOut(); otpReset(); }
+      lock(authErrText(e)); if (OTP.email) $('#otp').select();
+    }).then(function () { btn.disabled = false; btn.textContent = OTP.email ? '로그인' : '인증 코드 받기'; });
   });
+  $('#otpResend').addEventListener('click', function () { if (OTP.email) otpSend(OTP.email); });
+  $('#otpBack').addEventListener('click', function () { otpReset(); $('#gateMsg').textContent = ''; $('#uid').focus(); });
+  $('#otp').addEventListener('input', function () { var v = this.value.replace(/\D/g, ''); if (v !== this.value) this.value = v; });
   $('#logoutBtn').addEventListener('click', function () {
     AUTHED = false;
     var done = function () { try { sessionStorage.removeItem(SREM); } catch (e) {} location.reload(); };
@@ -1850,7 +1895,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     $('#subtitle').textContent = '로그인 계정 ' + (ROLE === 'super' ? '등록·관리' : '확인');
     var sup = ROLE === 'super', keyOk = !!SECRETS.sys_password;
     $('#accMe').innerHTML = USER ? '<div class="card acc-me"><div><div class="hl">내 계정</div><b>' + esc(USER.name) + '</b> · ' + esc(USER.id) + ' <span class="role role-' + ROLE + '">' + ROLES[ROLE] + '</span></div>' +
-      '<div class="acc-act"><button type="button" class="btn" id="accMyPw">내 비밀번호 변경</button>' + (sup ? '<button type="button" class="btn" id="accKey">보안 키 ' + (keyOk ? '재설정' : '설정') + '</button><button type="button" class="btn accent" id="accAdd">계정 등록</button>' : '') + '</div></div>' +
+      '<div class="acc-act">' + (sup ? '<button type="button" class="btn" id="accKey">보안 키 ' + (keyOk ? '재설정' : '설정') + '</button><button type="button" class="btn accent" id="accAdd">계정 등록</button>' : '') + '</div></div>' +
       (sup && !keyOk ? '<p class="anote warn">구글시트(Apps Script)·포인트 서버·저장소 파일을 읽으려면 [보안 키 설정]에서 시스템 비밀번호를 한 번 등록해 주세요. 등록 전에는 DB에 저장된 데이터만 볼 수 있습니다.</p>' : '') : '';
     var d = ACCV.dir;
     if (!d) { $('#accList').innerHTML = '<div class="empty">' + esc(ACCV.err || (ACCV.loading ? '불러오는 중…' : '계정 목록이 없습니다.')) + '</div>'; }
@@ -1863,11 +1908,10 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
           var me = USER && r.uid === USER.uid;
           return '<tr><td>' + esc(r.id) + (me ? ' <span class="me">나</span>' : '') + (r.active === false ? ' <small>(사용 중지)</small>' : '') + '</td><td>' + esc(r.name || '') + '</td><td>' + esc(r.org || '') + '</td><td><span class="role role-' + r.role + '">' + (ROLES[r.role] || r.role) + '</span></td><td>' + fmtDate(r.createdAt) + '</td><td>' + fmtDate(r.updatedAt) + '</td>' +
             (sup ? '<td>' + (r.role === 'super' ? '<span class="acc-gr fixed">기본 열람</span>' : r.role === 'partner' ? '<span class="acc-gr fixed">–</span>' : '<label class="acc-gr"><input type="checkbox" data-grant="wact" data-id="' + esc(r.uid) + '"' + ((ACCV.grants || {})[r.uid + '|wact'] ? ' checked' : '') + (ACCV.gErr ? ' disabled' : '') + '> 열람</label>') + '</td>' : '') +
-            (sup ? '<td class="acts">' + (me ? '' : '<button type="button" class="btn sm" data-act="edit" data-id="' + esc(r.uid) + '">수정</button><button type="button" class="btn sm" data-act="pw" data-id="' + esc(r.uid) + '">비밀번호 재설정</button><button type="button" class="btn sm danger" data-act="del" data-id="' + esc(r.uid) + '">삭제</button>') + '</td>' : '') + '</tr>';
+            (sup ? '<td class="acts">' + (me ? '' : '<button type="button" class="btn sm" data-act="edit" data-id="' + esc(r.uid) + '">수정</button><button type="button" class="btn sm danger" data-act="del" data-id="' + esc(r.uid) + '">삭제</button>') + '</td>' : '') + '</tr>';
         }).join('') + '</tbody></table></div>' + (sup && ACCV.gErr ? '<p class="anote warn">열람 지정 표(view_grants)를 읽지 못했습니다: ' + esc(ACCV.gErr) + ' — Supabase SQL Editor에서 view_grants.sql을 실행해 주세요.</p>' : '');
     }
     var b1 = $('#accAdd'); if (b1) b1.onclick = function () { accForm('add'); };
-    var b2 = $('#accMyPw'); if (b2) b2.onclick = function () { accForm('mypw'); };
     var b3 = $('#accKey'); if (b3) b3.onclick = keyForm;
   }
   function adminCall(body) {
@@ -1913,36 +1957,34 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
   }
   // 계정 등록·수정·비밀번호 재설정·내 비밀번호 변경 폼
   function accForm(mode, r) {
-    var m = $('#accModal'), add = mode === 'add', edit = mode === 'edit', pwOnly = mode === 'pw' || mode === 'mypw';
-    $('#accTitle').textContent = add ? '계정 등록' : edit ? '계정 수정' : mode === 'mypw' ? '내 비밀번호 변경' : '비밀번호 재설정';
-    $('#accDesc').textContent = add ? '등록 후 아이디와 초기 비밀번호를 당사자에게 따로 전달해 주세요.' : edit ? '이름·소속·권한을 바꿉니다. 비밀번호는 그대로 유지됩니다.' : mode === 'mypw' ? '변경 후 다음 로그인부터 새 비밀번호를 사용합니다.' : r.name + '(' + r.id + ')의 새 비밀번호를 정해 당사자에게 전달해 주세요.';
-    $('#accFId').value = r ? r.id : (mode === 'mypw' ? USER.id : ''); $('#accFId').readOnly = !add;
+    // 이메일 인증 로그인: 계정 등록·수정만 (비밀번호 없음)
+    var m = $('#accModal'), add = mode === 'add', edit = mode === 'edit';
+    if (!add && !edit) return;
+    $('#accTitle').textContent = add ? '계정 등록' : '계정 수정';
+    $('#accDesc').textContent = add ? '등록하면 이 이메일로 인증 코드를 받아 로그인할 수 있습니다. 당사자에게 대시보드 주소만 안내해 주세요.' : '이름·소속·권한을 바꿉니다. 로그인 이메일은 바꿀 수 없습니다.';
+    $('#accFId').value = r ? r.id : ''; $('#accFId').readOnly = !add;
     $('#accFName').value = r ? r.name || '' : ''; $('#accFOrg').value = r ? r.org || '' : '';
     $('#accFRole').value = r ? r.role : 'dv';
-    $('#accFPw').value = ''; $('#accFPw2').value = ''; $('#accErr').textContent = '';
-    m.querySelectorAll('.f-info').forEach(function (x) { x.hidden = pwOnly; });
-    m.querySelectorAll('.f-pw').forEach(function (x) { x.hidden = edit; });
-    m.querySelector('.f-id').hidden = mode === 'mypw';
-    m.classList.add('show'); (add ? $('#accFId') : pwOnly ? $('#accFPw') : $('#accFName')).focus();
+    $('#accErr').textContent = '';
+    m.querySelectorAll('.f-info').forEach(function (x) { x.hidden = false; });
+    m.querySelector('.f-id').hidden = false;
+    m.classList.add('show'); (add ? $('#accFId') : $('#accFName')).focus();
     $('#accCancel').onclick = function () { m.classList.remove('show'); };
     $('#accForm').onsubmit = function (ev) {
       ev.preventDefault();
-      var id = normId($('#accFId').value), name = $('#accFName').value.trim(), org = $('#accFOrg').value.trim(), role = $('#accFRole').value, pw = $('#accFPw').value, err = '';
+      var id = normId($('#accFId').value), name = $('#accFName').value.trim(), org = $('#accFOrg').value.trim(), role = $('#accFRole').value, err = '';
       if (add && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id)) err = '아이디는 이메일 형식으로 입력해 주세요.';
       else if (add && (ACCV.dir || []).some(function (x) { return normId(x.id) === id; })) err = '이미 등록된 아이디입니다.';
-      else if (!pwOnly && !name) err = '이름을 입력해 주세요.';
-      else if (!pwOnly && !ROLES[role]) err = '권한을 선택해 주세요.';
-      else if (!edit) err = pwRule(pw, $('#accFPw2').value);
+      else if (!name) err = '이름을 입력해 주세요.';
+      else if (!ROLES[role]) err = '권한을 선택해 주세요.';
       $('#accErr').textContent = err; if (err) return;
       var ok = $('#accOk'); ok.disabled = true; ok.textContent = '저장 중…';
-      var p = mode === 'mypw' ? SB.auth.updateUser({ password: pw }).then(function (x) { if (x.error) throw new Error(/same|different/i.test(x.error.message) ? '지금 비밀번호와 다른 비밀번호를 입력해 주세요.' : x.error.message); })
-        : add ? adminCall({ action: 'create', email: id, password: pw, name: name, org: org, role: role })
-        : edit ? adminCall({ action: 'update', id: r.uid, name: name, org: org, role: role })
-        : adminCall({ action: 'reset', id: r.uid, password: pw });
+      var p = add ? adminCall({ action: 'create', email: id, name: name, org: org, role: role })
+        : adminCall({ action: 'update', id: r.uid, name: name, org: org, role: role });
       p.then(function () {
         m.classList.remove('show');
-        toast(add ? '계정을 등록했습니다.' : mode === 'mypw' ? '비밀번호를 변경했습니다.' : edit ? '계정을 수정했습니다.' : '비밀번호를 재설정했습니다.');
-        if (mode !== 'mypw') loadDir();
+        toast(add ? '계정을 등록했습니다. ' + id + ' 으로 인증 코드를 받아 로그인할 수 있습니다.' : '계정을 수정했습니다.');
+        loadDir();
       }).catch(function (e) { $('#accErr').textContent = e.message || String(e); })
         .then(function () { ok.disabled = false; ok.textContent = '저장'; });
     };
