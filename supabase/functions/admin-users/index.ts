@@ -1,5 +1,6 @@
 // 닥터빌 · 팜빌 운영 대시보드 — 계정 관리 Edge Function (admin-users)
-// 최고 관리자(profiles.role = 'super')만 호출 가능. 계정 등록·수정·비밀번호 재설정·삭제.
+// 최고 관리자(profiles.role = 'super')만 호출 가능. 계정 등록·수정·삭제.
+// 로그인은 이메일 인증 코드(OTP) 방식 — 계정 등록 시 비밀번호를 받지 않음 (2026-11-05 전환)
 // 배포: Supabase 대시보드 → Edge Functions → Deploy a new function → Via Editor → 이름 admin-users → 이 코드 붙여넣기 → Deploy
 // 배포 후 Settings 탭의 'Verify JWT with legacy secret'은 끔 (이 코드가 직접 로그인·최고 관리자 여부를 확인)
 // SUPABASE_URL · SUPABASE_ANON_KEY · SUPABASE_SERVICE_ROLE_KEY 는 Supabase가 자동으로 넣어 줍니다 (따로 설정하지 않음).
@@ -27,11 +28,6 @@ function out(req: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors(req), 'Content-Type': 'application/json' } });
 }
 const s = (v: unknown, n = 200) => String(v ?? '').trim().slice(0, n);
-function pwRule(pw: string) {
-  if (pw.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
-  if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) return '비밀번호에 영문과 숫자를 함께 넣어 주세요.';
-  return '';
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors(req) });
@@ -51,12 +47,11 @@ Deno.serve(async (req) => {
     const superCount = async () => (await admin.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'super').eq('active', true)).count || 0;
 
     if (action === 'create') {
-      const email = s(b.email, 200).toLowerCase(), password = String(b.password || ''), role = s(b.role, 10);
+      const email = s(b.email, 200).toLowerCase(), role = s(b.role, 10);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return out(req, { ok: false, error: '아이디는 이메일 형식으로 입력해 주세요.' }, 400);
       if (!ROLES.includes(role)) return out(req, { ok: false, error: '권한을 선택해 주세요.' }, 400);
       if (!s(b.name)) return out(req, { ok: false, error: '이름을 입력해 주세요.' }, 400);
-      const pe = pwRule(password); if (pe) return out(req, { ok: false, error: pe }, 400);
-      const { data: cu, error: ce } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+      const { data: cu, error: ce } = await admin.auth.admin.createUser({ email, email_confirm: true });   // 비밀번호 없음 → 이메일 인증 코드로만 로그인
       if (ce || !cu?.user) return out(req, { ok: false, error: /already|registered|exists/i.test(ce?.message || '') ? '이미 등록된 아이디입니다.' : '계정을 만들지 못했습니다: ' + (ce?.message || '') }, 400);
       const { error: pe2 } = await admin.from('profiles').insert({ id: cu.user.id, email, name: s(b.name, 60), org: s(b.org, 100), role, created_by: me.id, updated_by: me.id });
       if (pe2) { await admin.auth.admin.deleteUser(cu.user.id); return out(req, { ok: false, error: '프로필 저장 실패: ' + pe2.message }, 500); }
@@ -75,13 +70,6 @@ Deno.serve(async (req) => {
       if (target.role === 'super' && role !== 'super' && (await superCount()) <= 1) return out(req, { ok: false, error: '최고 관리자는 최소 1명이 있어야 합니다.' }, 400);
       const { error } = await admin.from('profiles').update({ name: s(b.name, 60), org: s(b.org, 100), role, updated_by: me.id }).eq('id', id);
       if (error) return out(req, { ok: false, error: error.message }, 500);
-      return out(req, { ok: true });
-    }
-    if (action === 'reset') {
-      const password = String(b.password || ''); const pe = pwRule(password); if (pe) return out(req, { ok: false, error: pe }, 400);
-      const { error } = await admin.auth.admin.updateUserById(id, { password });
-      if (error) return out(req, { ok: false, error: error.message }, 500);
-      await admin.from('profiles').update({ updated_by: me.id }).eq('id', id);
       return out(req, { ok: true });
     }
     if (action === 'delete') {
