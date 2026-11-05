@@ -4,7 +4,8 @@
  * 소스: 「● 닥터빌 TF 닥터빌사업부 매출 _26년 10월 마감 보고」
  *   - [대시보드] 탭 : 'raw (세부)' 탭(월·금액·거래처·내/외부·항목·플랫폼)을 고객사 × 항목 × 월 금액으로 정리
  *                    + 'raw' 탭의 '예측' 열(11·12월 등)을 예정 매출로 함께 보냄
- *   - [(매출) 4Q]·[(매출)]·[(손익)] 탭 : 시트 탭을 표시값·배경색·글자색·굵기·정렬·병합 그대로 보냄 (숨긴 행·열 제외)
+ *   - [(매출) 4Q]·[(매출)]·[(손익)] 탭 : 시트 탭의 표시값·병합·서식을 보냄 → 대시보드가 같은 구성(목표대비·전년대비·월별·손익)의 화면으로 다시 그림
+ *     (숨긴 열도 hc 표시와 함께 보냄 — 묶음 제목·4분기 실적 등 숨긴 열 값도 대시보드 표에 쓰기 위함)
  * 적요(세부 내역)·담당자는 보내지 않습니다.
  *
  * 설치 (Code.gs 는 바꿀 필요 없음 — 기존 doPost 의 action:'sales' 줄을 그대로 사용)
@@ -149,7 +150,7 @@ function salesForecast_(ss) {
   return out;
 }
 
-// 시트 탭 → 표시용 격자 (숨긴 행·열 제외, 끝의 빈 행·열 제외)
+// 시트 탭 → 격자 (숨긴 행 제외, 숨긴 열은 hc 로 표시, 끝의 빈 행·열 제외)
 function salesView_(sh) {
   var nr = sh.getLastRow(), nc = sh.getLastColumn();
   if (!nr || !nc) return { name: sh.getName(), err: '빈 탭입니다' };
@@ -157,7 +158,8 @@ function salesView_(sh) {
   var dv = rg.getDisplayValues(), val = rg.getValues(), nf = rg.getNumberFormats(), bg = rg.getBackgrounds(), fc = rg.getFontColors(),
     fw = rg.getFontWeights(), fs = rg.getFontSizes(), fi = rg.getFontStyles(), ha = rg.getHorizontalAlignments(), va = rg.getVerticalAlignments(), wr = rg.getWraps();
   var rows = [], cols = [];
-  for (var c = 1; c <= nc; c++) if (!sh.isColumnHiddenByUser(c)) cols.push(c);
+  var hid = {};
+  for (var c = 1; c <= nc; c++) { cols.push(c); if (sh.isColumnHiddenByUser(c)) hid[c] = 1; }
   for (var r = 1; r <= nr; r++) if (!sh.isRowHiddenByUser(r) && !sh.isRowHiddenByFilter(r)) rows.push(r);
   var used = function (r0, c0) { return dv[r0 - 1][c0 - 1] !== '' || !!salesBg_(bg[r0 - 1][c0 - 1]); };
   while (cols.length && !rows.some(function (r0) { return used(r0, cols[cols.length - 1]); })) cols.pop();
@@ -181,7 +183,7 @@ function salesView_(sh) {
     if (a != null && b != null && (rs > 1 || cs > 1)) merges.push([a, b, rs, cs]);
   });
   return { name: sh.getName(), gid: sh.getSheetId(), w: cols.map(function (c0) { return sh.getColumnWidth(c0); }), h: [],   // 행 높이는 기본값 사용(호출 수를 줄여 속도 확보)
-    cl: cols.map(salesColName_), rl: rows, st: styles, cells: cells, merges: merges };
+    cl: cols.map(salesColName_), rl: rows, hc: cols.map(function (c0) { return hid[c0] ? 1 : 0; }), st: styles, cells: cells, merges: merges };
 }
 function salesBg_(b) { return b && !/^#f{6}$/i.test(b) ? b : ''; }
 function salesColName_(c) { var s = ''; while (c > 0) { var m = (c - 1) % 26; s = String.fromCharCode(65 + m) + s; c = Math.floor((c - 1) / 26); } return s; }
