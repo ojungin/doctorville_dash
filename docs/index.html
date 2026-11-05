@@ -653,21 +653,49 @@ th.sort.on { color: var(--accent); }
 .plan-tag { display: block; font-size: 10px; color: var(--muted); font-weight: 400; }
 .sl-search { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--ink); width: 200px; }
 .sl-search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sl-cust-card + .sl-cust-card { margin-top: 14px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.sl-cust-h { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.sl-cust-h b { font-size: 14.5px; }
+.sl-cust-h .muted { color: var(--muted); font-size: 12.5px; }
+#slCustTbl > .yoy-note { margin-top: 10px; }
 .sl-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 16px; border-bottom: 1px solid var(--border); }
 .sl-tabs button { font: inherit; font-size: 13.5px; border: 0; background: transparent; color: var(--ink-2); padding: 8px 14px; margin-bottom: -1px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
 .sl-tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
 .sl-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .slsheet-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
 .slsheet-head p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
-.slsheet-paper { background: #ffffff; color: #1f1f1f; border: 1px solid var(--border); border-radius: 10px; padding: 12px; overflow: auto; max-height: calc(100vh - 230px); }
-table.slsheet { border-collapse: collapse; table-layout: fixed; font-family: Arial, 'Pretendard', sans-serif; color: #1f1f1f; }
-table.slsheet td { padding: 1px 4px; white-space: nowrap; overflow: visible; line-height: 1.25; border: 0; vertical-align: bottom; }
-table.slsheet td.wr { white-space: normal; }
-table.slsheet td.bg { box-shadow: inset 0 -1px 0 rgba(0,0,0,.06); }
-table.slsheet th.slx { position: sticky; top: 0; z-index: 1; background: #f8f9fa; color: #80868b; font: 500 10px Arial, sans-serif; border-bottom: 1px solid #dadce0; padding: 2px 0; }
-table.slsheet th.sly { position: sticky; left: 0; z-index: 1; background: #f8f9fa; color: #80868b; font: 500 10px Arial, sans-serif; border-right: 1px solid #dadce0; width: 28px; text-align: center; }
-table.slsheet th.slc { position: sticky; top: 0; left: 0; z-index: 2; background: #f8f9fa; border-right: 1px solid #dadce0; border-bottom: 1px solid #dadce0; }
-#slSheet .yoy-note { margin-top: 8px; }
+.slr-kpis { margin-bottom: 4px; }
+.slr-kpis .value small { font-size: 13px; color: var(--muted); margin-left: 6px; font-weight: 500; }
+.slr-kpis .meta b { font-weight: 600; color: var(--ink); }
+.slr-kpis .meta b.slr-up { color: var(--up); }
+.slr-kpis .meta b.slr-down { color: var(--down); }
+.slr-sec { margin-top: 26px; }
+.slr-tbl { min-width: 0; }
+.slr-tbl thead th { text-align: center; vertical-align: bottom; }
+.slr-tbl th.slr-g { color: var(--ink); font-weight: 700; border-bottom: 2px solid var(--accent); }
+.slr-tbl th.slr-sp { color: var(--ink-2); border-bottom: 1px solid var(--grid); }
+.slr-tbl .slr-gs { border-left: 1px solid var(--axis); }
+.slr-tbl td.slr-v { font-weight: 700; color: var(--ink); }
+.slr-tbl small.slr-sh { color: var(--muted); font-weight: 400; margin-left: 4px; font-size: 11px; }
+.slr-tbl small.slr-desc { display: block; color: var(--muted); font-weight: 400; font-size: 11px; }
+.slr-tbl tr.slr-l0 th.rowh, .slr-tbl tr.slr-l0 td { background: var(--accent-soft); font-weight: 700; }
+.slr-tbl tr.slr-l1 th.rowh { padding-left: 18px; font-weight: 700; }
+.slr-tbl tr.slr-l1 td, .slr-tbl tr.slr-l1 th.rowh { background: var(--surface-2); }
+.slr-tbl tr.slr-l2 th.rowh { padding-left: 32px; font-weight: 500; color: var(--ink-2); }
+.slr-tbl tr.slr-sub th.rowh { padding-left: 32px; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.slr-tbl tr.slr-sub td { font-size: 11.5px; color: var(--muted); }
+.slr-tbl td.slr-up, .slr-tbl tr.slr-sub td.slr-up { color: var(--up); }
+.slr-tbl td.slr-down, .slr-tbl tr.slr-sub td.slr-down { color: var(--down); }
+.slr-mt tr.slr-pick { cursor: pointer; }
+.slr-mt tr.slr-pick:hover th.rowh { color: var(--accent); }
+.slr-mt tr.slr-on th.rowh { box-shadow: inset 3px 0 0 var(--accent); color: var(--accent); }
+.slr-mhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 16px 0 8px; }
+.slr-mhead h3 { margin: 0; font-size: 15px; }
+.slr-grid { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; }
+.slr-notes { margin: 12px 0 0; padding: 12px 16px 12px 30px; background: var(--surface-2); border-radius: 8px; color: var(--ink-2); font-size: 13px; }
+.slr-notes li + li { margin-top: 4px; }
+@media (max-width: 860px) { .slr-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* 좌측 메뉴 계층: 1단 대메뉴 → 2단 플랫폼(닥터빌·팜빌) → 3단 메뉴 */
 .nav-head { margin-top: 6px; }
@@ -1013,8 +1041,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <section id="slSheet" hidden>
       <div class="slsheet-head"><div><h2 id="slSheetTitle"></h2><p id="slSheetSub"></p></div><a class="btn" id="slSheetLink" target="_blank" rel="noopener">시트에서 열기</a></div>
       <div id="slSheetEmpty" class="empty" hidden></div>
-      <div class="slsheet-paper" id="slSheetBox"></div>
-      <div class="yoy-note">시트 탭을 표시값·색·병합 그대로 옮겨 보여 줍니다(숨긴 행·열 제외). 테두리와 조건부 서식 색은 시트와 다를 수 있습니다.</div>
+      <div id="slRepBox"></div>
     </section>
     <section class="sltop">
       <div class="sec-head">
@@ -1052,7 +1079,15 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     </section>
     <section class="sldata">
       <div class="sec-head"><div><h2>고객사별 매출</h2><p id="slCustSub"></p></div>
-        <div class="pfilter"><input id="slQ" class="sl-search" type="search" placeholder="고객사 검색" aria-label="고객사 검색"></div></div>
+        <div class="pfilter">
+          <div class="seg" id="slCustSeg" role="group" aria-label="고객사별 매출 사업 구분">
+            <button type="button" data-cc="all" aria-pressed="true">전체</button>
+            <button type="button" data-cc="세미나">세미나</button>
+            <button type="button" data-cc="광고">광고</button>
+            <button type="button" data-cc="컨퍼런스">컨퍼런스</button>
+          </div>
+          <input id="slQ" class="sl-search" type="search" placeholder="고객사 검색" aria-label="고객사 검색">
+        </div></div>
       <div class="card"><div id="slCustTbl"></div></div>
     </section>
     <footer>매출·손익은 구글시트에서 직접 읽어 오며 저장소(GitHub)에는 저장하지 않습니다(내부 전용 DB 캐시만 사용). 적요·담당자는 가져오지 않고, 협력사 계정은 이 데이터를 불러올 수 없습니다. 손익 등 재무 정보는 외부 공유 전 팀장·사업부장 승인이 필요합니다.</footer>
@@ -3541,43 +3576,245 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     $('#slSheet').hidden = !sheet;
     document.querySelectorAll('#salesApp .sldata, #salesApp .sltop').forEach(function (el) { el.hidden = sheet; });
     if (!sheet) return false;
-    renderSlSheet(vs[names.indexOf(SL.tab)]);
+    renderSlRep(vs[names.indexOf(SL.tab)]);
     return true;
   }
-  function slDark(hex) { var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(hex || ''); if (!m) return false; return (0.299 * parseInt(m[1], 16) + 0.587 * parseInt(m[2], 16) + 0.114 * parseInt(m[3], 16)) < 110; }
-  function renderSlSheet(v) {
-    var d = SL.data;
-    $('#slSheetTitle').textContent = v.name;
-    $('#slSheetSub').textContent = d.source + ' · 시트 조회 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false });
-    var ln = $('#slSheetLink'); if (d.sheetUrl) { ln.hidden = false; ln.href = d.sheetUrl.replace(/#.*$/, '') + (v.gid != null ? '#gid=' + v.gid : ''); } else ln.hidden = true;
-    $('#slSheetEmpty').hidden = !v.err; $('#slSheetBox').hidden = !!v.err;
-    if (v.err) { $('#slSheetEmpty').textContent = v.name + ': ' + v.err; return; }
-    var st = v.st.map(function (x) {
-      var p = x.split('|'), css = [];
-      if (p[0]) css.push('background:' + p[0]);
-      if (p[1]) css.push('color:' + p[1]); else if (p[0] && slDark(p[0])) css.push('color:#ffffff');
-      if (p[2] === '1') css.push('font-weight:700');
-      css.push('font-size:' + Math.max(8, Math.round(+p[3] * 1.333 * 0.92)) + 'px');
-      if (p[4] === '1') css.push('font-style:italic');
-      css.push('text-align:' + ({ center: 'center', right: 'right', left: 'left', normal: 'left' }[p[5]] || 'left'));
-      css.push('vertical-align:' + ({ middle: 'middle', top: 'top' }[p[6]] || 'bottom'));
-      return { css: css.join(';'), bg: !!p[0], wr: p[7] === '1' };
-    });
-    var skip = {}, span = {};
-    v.merges.forEach(function (m) { span[m[0] + ',' + m[1]] = m; for (var i = 0; i < m[2]; i++) for (var j = 0; j < m[3]; j++) if (i || j) skip[(m[0] + i) + ',' + (m[1] + j)] = 1; });
-    var tw = 28; v.w.forEach(function (w) { tw += Math.max(8, w); });
-    var h = '<table class="slsheet" style="width:' + tw + 'px"><colgroup><col style="width:28px">' + v.w.map(function (w) { return '<col style="width:' + Math.max(8, w) + 'px">'; }).join('') + '</colgroup>' +
-      '<thead><tr><th class="slc"></th>' + v.cl.map(function (c) { return '<th class="slx">' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
-    v.cells.forEach(function (row, i) {
-      h += '<tr style="height:' + Math.max(16, v.h[i] || 21) + 'px"><th class="sly">' + v.rl[i] + '</th>';
-      row.forEach(function (cell, j) {
-        if (skip[i + ',' + j]) return;
-        var txt = Array.isArray(cell) ? cell[0] : '', si = Array.isArray(cell) ? cell[1] : cell, S = st[si] || { css: '' }, m = span[i + ',' + j];
-        h += '<td' + (m ? (m[2] > 1 ? ' rowspan="' + m[2] + '"' : '') + (m[3] > 1 ? ' colspan="' + m[3] + '"' : '') : '') + (S.bg || S.wr ? ' class="' + (S.bg ? 'bg' : '') + (S.wr ? ' wr' : '') + '"' : '') + ' style="' + S.css + '">' + esc(txt) + '</td>';
+  // ---- 매출 화면 상단 탭: (매출) 4Q · (매출) · (손익) ------------------------------
+  // Apps Script(sales.gs)가 보낸 시트 탭 격자(views)를 읽어 시트와 같은 구성(목표대비·전년대비·월별·손익)을
+  // 대시보드 화면(요약 카드 + 표 + 월별 표·추이)으로 다시 그림. 숨긴 열(hc)은 묶음 제목·값을 읽는 데만 사용.
+  var SLR_MONTH = /^(\d{1,2})월$/;
+  function slrTxt(v, i, j) { var c = v.cells[i] && v.cells[i][j]; return Array.isArray(c) ? String(c[0]).trim() : ''; }
+  function slrIsNum(t) { return !!t && /\d/.test(t) && t.length <= 14 && !/[가-힣]{2,}/.test(t.replace(/억|배|건|원/g, '')); }
+  function slrIsNote(t) { return !!t && !slrIsNum(t) && (t.length > 14 || /^[※→]|^\d\)/.test(t)); }
+  function slrShare(t) { return /^\(\s*-?[\d.,]+%\s*\)$/.test(t); }
+  function slrNum(t) {
+    if (!t) return null; var s = String(t).trim(), neg = /^\(.*\)$/.test(s) && !/%/.test(s) ? false : /^-/.test(s);
+    var n = parseFloat(s.replace(/[^\d.]/g, '')); if (isNaN(n)) return null;
+    if (/%/.test(s)) n = n / 100;
+    return neg ? -n : n;
+  }
+  function slrParse(v) {
+    var R = v.cells.length, C = v.cl.length, out = { name: v.name, title: '', ref: '', sections: [] };
+    for (var j0 = 0; j0 < C && !out.title; j0++) out.title = slrTxt(v, 0, j0);
+    out.title = out.title.replace(/^[■□▶●\s]+/, '');
+    for (var j1 = 0; j1 < C && !out.ref; j1++) out.ref = slrTxt(v, 1, j1);
+    var span = {};   // 'i,j' → [i, j0, cs] (가로 병합)
+    (v.merges || []).forEach(function (m) { for (var k = 0; k < m[3]; k++) span[m[0] + ',' + (m[1] + k)] = m; });
+    var monthCnt = function (i) { var n = 0; for (var j = 0; j < C; j++) if (SLR_MONTH.test(slrTxt(v, i, j))) n++; return n; };
+    var firstCol = function (i) { for (var j = 0; j < C; j++) if (slrTxt(v, i, j)) return j; return -1; };
+    // 표 머리 행: 월(1월~12월)이 6칸 이상인 행 → 그 행의 첫 칸 왼쪽이 행 이름 영역
+    var labelEnd = C;
+    for (var i0 = 0; i0 < R; i0++) if (monthCnt(i0) >= 6) { labelEnd = Math.min(labelEnd, firstCol(i0)); }
+    if (labelEnd === C || labelEnd < 1) return out;
+    var labelOf = function (i) { for (var j = 1; j < labelEnd; j++) { var t = slrTxt(v, i, j); if (t && !slrIsNote(t)) return { t: t, j: j }; } return null; };
+    var rowEmpty = function (i) { for (var j = 0; j < C; j++) if (slrTxt(v, i, j)) return false; return true; };
+    var isHeader = function (i) {
+      if (labelOf(i)) return false;
+      if (monthCnt(i) >= 6) return true;
+      var nxt = i + 1 < R && labelOf(i + 1), shortT = 0;
+      for (var j = labelEnd; j < C; j++) { var t = slrTxt(v, i, j); if (t && !slrIsNum(t) && !slrIsNote(t) && !/^✔/.test(t)) shortT++; }
+      return !!nxt && shortT >= 2;
+    };
+    var heads = []; for (var i1 = 2; i1 < R; i1++) if (isHeader(i1)) heads.push(i1);
+    var preStart = heads.map(function (H) { var a = H; while (a - 1 >= 2 && !rowEmpty(a - 1) && !labelOf(a - 1) && !isHeader(a - 1)) a--; return a; });
+    heads.forEach(function (H, hi) {
+      var sec = { title: '', notes: [], marks: {}, groups: [], months: [], rows: [] }, prev = out.sections[out.sections.length - 1];
+      // 머리 위 행들: ✔ 제목 · 월 묶음 이름 · '예측' 표시 · 메모
+      var preNotes = [];
+      for (var a = preStart[hi]; a < H; a++) {
+        for (var j = 0; j < C; j++) {
+          var t = slrTxt(v, a, j); if (!t) continue;
+          if (/^✔/.test(t)) sec.title = t.replace(/^✔️?\s*/, '');
+          else if (slrIsNote(t)) preNotes.push(t);
+          else if (sec.marks[j] == null) sec.marks[j] = t;
+        }
+      }
+      preNotes.forEach(function (t) { (prev ? prev.notes : sec.notes).push(t); });
+      var end = hi + 1 < heads.length ? preStart[hi + 1] : R;
+      // 월 묶음
+      var runs = [], cur = null;
+      for (var j2 = labelEnd; j2 < C; j2++) {
+        var mm = SLR_MONTH.exec(slrTxt(v, H, j2));
+        if (mm && cur && +mm[1] > cur.last && j2 === cur.lastJ + 1) { cur.cols[+mm[1]] = j2; cur.last = +mm[1]; cur.lastJ = j2; }
+        else if (mm) { cur = { cols: {}, first: j2, last: +mm[1], lastJ: j2 }; cur.cols[+mm[1]] = j2; runs.push(cur); }
+      }
+      runs = runs.filter(function (r) { return Object.keys(r.cols).length >= 6; });
+      runs.forEach(function (r, ri) {
+        var lab = '', fc = {};
+        for (var j = r.first - 1; j <= r.lastJ; j++) { var t = sec.marks[j]; if (!t) continue; if (/예측|예정/.test(t)) { if (j >= r.first) for (var m in r.cols) if (r.cols[m] === j) fc[m] = 1; } else if (!lab) lab = t; }
+        if (!lab) lab = ri === 0 ? '실적' : /목표/.test(sec.title) ? '목표' : /전년/.test(sec.title) ? '전년' : '비교 ' + ri;
+        sec.months.push({ label: lab, cols: r.cols, fc: fc });
       });
-      h += '</tr>';
+      var sumEnd = runs.length ? runs[0].first : C;
+      // 본문 행
+      var body = [];
+      for (var b = H + 1; b < end; b++) {
+        if (rowEmpty(b)) continue;
+        var lb = labelOf(b), notes = [], hasVal = false;
+        for (var j3 = labelEnd; j3 < C; j3++) { var t3 = slrTxt(v, b, j3); if (!t3) continue; if (slrIsNote(t3)) notes.push(t3); else hasVal = true; }
+        if (lb) {
+          var desc = []; for (var jd = lb.j + 1; jd < labelEnd; jd++) { var td = slrTxt(v, b, jd); if (td) desc.push(td); }
+          body.push({ i: b, label: lb.t, lj: lb.j, desc: desc.join(' · '), subs: [], notes: notes });
+        } else if (hasVal && body.length && !isHeader(b)) {
+          var sl = ''; for (var js = labelEnd; js < (sumEnd < C ? sumEnd : C); js++) { var ts = slrTxt(v, b, js); if (ts && !slrIsNum(ts) && !slrIsNote(ts)) sl = ts; }
+          if (!sl) {
+            var vt = []; for (var jv = sumEnd < C ? sumEnd : labelEnd; jv < C; jv++) { var tv = slrTxt(v, b, jv); if (tv && slrIsNum(tv)) vt.push(tv); }
+            sl = vt.length && vt.every(slrShare) ? '비중' : vt.length && vt.every(function (x) { return /%$/.test(x); }) ? (/이익/.test(body[body.length - 1].label) ? '이익률' : '비율') : vt.filter(function (x) { return /^[+-]/.test(x); }).length >= vt.length * 0.6 ? '전년 대비 증감' : '';
+          }
+          body[body.length - 1].subs.push({ i: b, label: sl, notes: notes });
+        } else notes.forEach(function (n) { sec.notes.push(n); });
+        if (lb || (hasVal && body.length)) notes.forEach(function (n) { sec.notes.push(n); });
+      }
+      var ljs = []; body.forEach(function (r) { if (ljs.indexOf(r.lj) < 0) ljs.push(r.lj); }); ljs.sort(function (x, y) { return x - y; });
+      body.forEach(function (r) { r.level = ljs.indexOf(r.lj); });
+      sec.rows = body;
+      if (!sec.title) sec.title = hi === 0 ? out.title : (body[0] ? body[0].label + ' 구성' : '세부');
+      // 요약 열 묶음: 머리·본문이 모두 빈 열로 나눔
+      var allRows = [H]; body.forEach(function (r) { allRows.push(r.i); r.subs.forEach(function (s) { allRows.push(s.i); }); });
+      var colEmpty = function (j) { return allRows.every(function (i, k) { var t = slrTxt(v, i, j); return !t || slrIsNote(t) || (k > 0 && !slrIsNum(t)); }); };
+      var groups = [], g = null;
+      for (var j4 = labelEnd; j4 < sumEnd; j4++) {
+        if (colEmpty(j4)) { g = null; continue; }
+        if (!g) { g = { cols: [] }; groups.push(g); }
+        var hs = slrTxt(v, H, j4), sp = span[H + ',' + j4], top = sp && sp[3] > 1 ? slrTxt(v, H, sp[1]) : '';
+        var isPeriod = /\d+\s*년|\d+\s*월|분기|누계/.test(hs) && !/대비/.test(hs);
+        if (isPeriod && g.cols.length && g.cols.some(function (c) { return /대비|GAP|달성/.test(c.head + ' ' + c.top); })) { g = { cols: [] }; groups.push(g); }
+        var spFirst = !!(top && sp[1] === j4); if (spFirst) top = '';   // 병합 머리의 첫 열은 그 이름을 그대로 사용
+        g.cols.push({ j: j4, head: top ? '' : hs, top: top, spFirst: spFirst, hidden: !!(v.hc && v.hc[j4]) });
+      }
+      groups.forEach(function (gr) {
+        gr.title = gr.cols[0].head || gr.cols[0].top || '';
+        var vals = function (j) { return allRows.slice(1).map(function (i) { return slrTxt(v, i, j); }).filter(function (t) { return t && !slrIsNote(t); }); };
+        gr.cols.forEach(function (c, k) {
+          var vs = vals(c.j);
+          c.share = !c.head && vs.length && vs.filter(slrShare).length >= vs.length * 0.6;
+          var nx = gr.cols[k + 1];
+          if ((!c.head || c.spFirst) && k > 0 && nx && !c.share) {   // 다음 열과 같은 값(1.1억 ↔ 107% 등) → 중복 열
+            var same = 0, n = 0;
+            allRows.slice(1).forEach(function (i) { var a1 = slrNum(slrTxt(v, i, c.j)), b1 = slrNum(slrTxt(v, i, nx.j)); if (a1 == null || b1 == null || slrShare(slrTxt(v, i, c.j))) return; n++; if (Math.abs(a1 - b1) < 0.06 || Math.abs(a1 * 100 - b1) < 0.6 || Math.abs(a1 - b1 * 100) < 0.6) same++; });
+            c.dup = n > 0 && same === n;
+          }
+          if (k > 0 && !c.head && !c.share && !c.dup) {
+            var t0 = vs.filter(function (t) { return !slrShare(t); })[0] || '';
+            c.head = /배$/.test(t0) ? '배수' : /^[+-].*%$/.test(t0) ? '증감률' : /^[+-]/.test(t0) ? '증감' : /%$/.test(t0) ? '비율' : '값';
+            c.sub = true;
+          }
+        });
+        if (gr.cols[0]) gr.cols[0].head = gr.cols[0].head || gr.cols[0].top;
+        gr.cols = gr.cols.filter(function (c) { return !c.dup; });
+      });
+      sec.groups = groups.filter(function (gr) { return gr.cols.some(function (c) { return !c.share; }); });
+      out.sections.push(sec);
     });
-    $('#slSheetBox').innerHTML = h + '</tbody></table>';
+    return out;
+  }
+  // 값 색: 증감(+/-) · 달성률/배수(100%·1배 기준)
+  function slrCls(head, top, t) {
+    if (!t) return '';
+    var h = (head || '') + ' ' + (top || '');
+    if (/^\+/.test(t) && !/^\+0(\.0+)?%?$/.test(t)) return 'up';
+    if (/^-/.test(t) && !/^-0(\.0+)?%?$/.test(t)) return 'down';
+    if (/달성률|대비|배수/.test(h) && /(%|배)$/.test(t)) { var n = slrNum(t); if (n == null) return ''; var base = /배$/.test(t) ? 1 : 1; return n >= base ? 'up' : 'down'; }
+    return '';
+  }
+  var SLR = { sel: {}, mg: {} };
+  function renderSlRep(v) {
+    var d = SL.data, P = slrParse(v), box = $('#slRepBox');
+    $('#slSheetTitle').textContent = P.title || v.name;
+    $('#slSheetSub').textContent = (P.ref ? P.ref + ' 기준 · ' : '') + '시트 「' + v.name + '」 · 시트 조회 ' + new Date(d.fetchedAt).toLocaleString('ko-KR', { hour12: false });
+    var ln = $('#slSheetLink'); if (d.sheetUrl) { ln.hidden = false; ln.href = d.sheetUrl.replace(/#.*$/, '') + (v.gid != null ? '#gid=' + v.gid : ''); } else ln.hidden = true;
+    $('#slSheetEmpty').hidden = !v.err && P.sections.length > 0; box.hidden = !$('#slSheetEmpty').hidden;
+    if (v.err || !P.sections.length) { $('#slSheetEmpty').textContent = v.name + ': ' + (v.err || '표 구조(월 머리 행)를 찾지 못했습니다'); return; }
+    var T = function (i, j) { return slrTxt(v, i, j); };
+    var h = '';
+    // 요약 카드: 첫 묶음의 최상위 행 (최상위 행이 하나면 묶음별)
+    var s0 = P.sections[0], tops = s0.rows.filter(function (r) { return r.level === 0; }), cards = [];
+    var card = function (r, gr) {
+      var c0 = gr.cols[0], val = T(r.i, c0.j), share = '';
+      gr.cols.forEach(function (c) { if (c.share && T(r.i, c.j) && !share) share = T(r.i, c.j); });
+      var meta = gr.cols.slice(1).filter(function (c) { return !c.share && T(r.i, c.j); }).map(function (c) { var t = T(r.i, c.j), cl = slrCls(c.head, c.top, t); return esc(c.top ? c.top + ' ' + c.head : c.head) + ' <b class="' + (cl ? 'slr-' + cl : '') + '">' + esc(t) + '</b>'; });
+      var subM = r.subs.filter(function (s) { return T(s.i, c0.j); }).map(function (s) { return (s.label || '비율') + ' ' + T(s.i, c0.j); });
+      return '<div class="card kpi"><div class="label">' + esc(r.label) + ' · ' + esc(gr.title || '') + '</div><div class="value">' + esc(val || '–') + (share && share !== '(100%)' ? '<small>' + esc(share) + '</small>' : '') + '</div><div class="meta">' + meta.concat(subM.map(esc)).join(' · ') + '</div></div>';
+    };
+    if (tops.length === 1) s0.groups.forEach(function (gr) { if (T(tops[0].i, gr.cols[0].j)) cards.push(card(tops[0], gr)); });
+    else tops.forEach(function (r) { if (s0.groups[0]) cards.push(card(r, s0.groups[0])); });
+    if (cards.length) h += '<section><div class="kpis slr-kpis">' + cards.slice(0, 8).join('') + '</div></section>';
+    P.sections.forEach(function (sec, si) {
+      var key = v.name + '|' + si;
+      h += '<section class="slr-sec"><div class="sec-head"><div><h2>' + esc(sec.title) + '</h2><p>' + esc(sec.groups.map(function (g) { return g.title; }).filter(Boolean).join(' · ')) + (sec.months.length ? ' · 월별 ' + esc(sec.months.map(function (m) { return m.label; }).join(' / ')) : '') + '</p></div></div>';
+      // 요약 표
+      if (sec.groups.length) {
+        var cols = []; sec.groups.forEach(function (g, gi) { g.cols.forEach(function (c, k) { if (!c.share) cols.push({ c: c, g: gi, first: k === 0, gr: g }); }); });
+        var head1 = '<tr><th class="rowh" rowspan="2"></th>' + sec.groups.map(function (g, gi) { var n = g.cols.filter(function (c) { return !c.share; }).length; return '<th class="slr-g' + (gi ? ' slr-gs' : '') + '" colspan="' + n + '">' + esc(g.title || '') + '</th>'; }).join('') + '</tr>';
+        var hasSpan = cols.some(function (c) { return !!c.c.top; }), head2 = '<tr>', head3 = '<tr>';
+        for (var ci = 0; ci < cols.length; ci++) {
+          var c = cols[ci], x = c.c, gcl = c.g && c.first ? 'slr-gs' : '';
+          if (x.top) { var n = 0; while (ci + n < cols.length && cols[ci + n].c.top === x.top && cols[ci + n].g === c.g) n++; head2 += '<th class="slr-sp ' + gcl + '" colspan="' + n + '">' + esc(x.top) + '</th>'; for (var z = 0; z < n; z++) head3 += '<th>' + esc(cols[ci + z].c.head) + '</th>'; ci += n - 1; }
+          else head2 += '<th class="' + gcl + '"' + (hasSpan ? ' rowspan="2"' : '') + '>' + (c.first ? '실적' : esc(x.head)) + '</th>';
+        }
+        if (hasSpan) head2 += '</tr>' + head3;
+        var cellH = function (i, c, isFirst, gi) {
+          var t = T(i, c.c.j), share = '';
+          if (isFirst) c.gr.cols.forEach(function (x) { if (x.share && T(i, x.j) && !share) share = T(i, x.j); });
+          if (!isFirst && slrShare(t) && !c.c.head) t = '';
+          var cl = isFirst ? '' : slrCls(c.c.head, c.c.top, t);
+          return '<td class="' + (gi && isFirst ? 'slr-gs ' : '') + (cl ? 'slr-' + cl : '') + (isFirst ? ' slr-v' : '') + '">' + (t ? esc(t) : '<span class="z">–</span>') + (share ? '<small class="slr-sh">' + esc(share) + '</small>' : '') + '</td>';
+        };
+        var bodyH = '';
+        sec.rows.forEach(function (r) {
+          bodyH += '<tr class="slr-l' + r.level + '"><th class="rowh" title="' + esc(r.label + (r.desc ? ' — ' + r.desc : '')) + '">' + esc(r.label) + (r.desc ? '<small class="slr-desc">' + esc(r.desc) + '</small>' : '') + '</th>' + cols.map(function (c) { return cellH(r.i, c, c.first, c.g); }).join('') + '</tr>';
+          r.subs.forEach(function (s) {
+            var sv = cols.map(function (c) { return T(s.i, c.c.j); }).filter(Boolean);
+            if (!sv.length || !sv.every(function (t) { return /%\)?$/.test(t); })) return;   // 요약 표에는 비율(%) 보조 행만
+            bodyH += '<tr class="slr-sub"><th class="rowh">' + esc(s.label || '비율') + '</th>' + cols.map(function (c) { var t = T(s.i, c.c.j); return '<td class="' + (c.g && c.first ? 'slr-gs' : '') + '">' + esc(t) + '</td>'; }).join('') + '</tr>';
+          });
+        });
+        h += '<div class="card"><div class="yoy-wrap"><table class="semtbl slr-tbl"><thead>' + head1.replace('rowspan="2"', 'rowspan="' + (hasSpan ? 3 : 2) + '"') + head2 + '</tr></thead><tbody>' + bodyH + '</tbody></table></div></div>';
+      }
+      // 월별 표 + 추이
+      if (sec.months.length) {
+        var mg = SLR.mg[key] != null && sec.months[SLR.mg[key]] ? SLR.mg[key] : 0, M = sec.months[mg];
+        var selI = SLR.sel[key] != null ? SLR.sel[key] : (sec.rows[0] && sec.rows[0].i);
+        var mh = '<tr><th class="rowh">' + esc(M.label) + '</th>' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { return '<th>' + m + '월' + (M.fc[m] ? '<small class="plan-tag">예측</small>' : '') + '</th>'; }).join('') + '<th>합계</th></tr>';
+        var mrow = function (i, label, cls, sub) {
+          var sum = 0, any = false;
+          var tds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) {
+            var j = M.cols[m], t = j != null ? T(i, j) : '';
+            if (!sub) { var n = slrNum(t); if (n != null && !/%/.test(t)) { sum += n; any = true; } }
+            var cl = sub ? slrCls('', '', t) : '';
+            return '<td class="' + (M.fc[m] ? 'plan ' : '') + (cl ? 'slr-' + cl : '') + '">' + (t ? esc(t) : '<span class="z">–</span>') + '</td>';
+          }).join('');
+          return '<tr class="' + cls + (i === selI ? ' slr-on' : '') + '" data-i="' + i + '"><th class="rowh">' + esc(label) + '</th>' + tds + '<td class="sum">' + (!sub && any ? (Math.round(sum * 10) / 10).toFixed(1) : '') + '</td></tr>';
+        };
+        var mb = '';
+        sec.rows.forEach(function (r) { mb += mrow(r.i, r.label, 'slr-l' + r.level + ' slr-pick', false); r.subs.forEach(function (s) { if (Object.keys(M.cols).some(function (m) { return T(s.i, M.cols[m]); })) mb += mrow(s.i, s.label || '비율', 'slr-sub', true); }); });
+        var seg = sec.months.length > 1 ? '<div class="seg slr-mseg" data-k="' + esc(key) + '" role="group" aria-label="월별 묶음">' + sec.months.map(function (m, k) { return '<button type="button" data-g="' + k + '" aria-pressed="' + (k === mg) + '">' + esc(m.label) + '</button>'; }).join('') + '</div>' : '';
+        h += '<div class="slr-mhead"><h3>월별</h3>' + seg + '</div><div class="grid2 slr-grid"><div class="card"><div class="yoy-wrap"><table class="semtbl slr-tbl slr-mt" data-k="' + esc(key) + '"><thead>' + mh + '</thead><tbody>' + mb + '</tbody></table></div><div class="yoy-note">단위: 억원(비율 행 제외) · 행을 누르면 오른쪽 추이 그래프가 바뀝니다' + (Object.keys(M.fc).length ? ' · 점선 칸 = 시트의 예측' : '') + '</div></div>' +
+          '<div class="card"><h3 class="rp-h3" id="slrChT' + si + '"></h3><ul class="legend" id="slrLg' + si + '"></ul><div class="chart" id="slrCh' + si + '"></div></div></div>';
+      }
+      if (sec.notes.length) h += '<ul class="slr-notes">' + sec.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
+      h += '</section>';
+    });
+    box.innerHTML = h;
+    // 이벤트·그래프
+    P.sections.forEach(function (sec, si) {
+      var key = v.name + '|' + si;
+      if (!sec.months.length) return;
+      var selI = SLR.sel[key] != null ? SLR.sel[key] : (sec.rows[0] && sec.rows[0].i), row = null;
+      sec.rows.forEach(function (r) { if (r.i === selI) row = r; });
+      if (!row) row = sec.rows[0];
+      var cols = [css('--s1'), css('--s2'), css('--s3'), css('--s4')];
+      var ser = sec.months.map(function (m, k) {
+        var vals = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (mo) { var j = m.cols[mo], t = j != null ? T(row.i, j) : ''; return /%/.test(t) ? null : slrNum(t); });
+        for (var e = 11; e >= 0 && (vals[e] === 0 || vals[e] == null); e--) vals[e] = null;   // 아직 마감 전인 뒤쪽 0 은 그래프에서 제외
+        return { name: m.label, color: cols[k % 4], dash: k ? '5 4' : null, vals: vals };
+      });
+      $('#slrChT' + si).textContent = row.label + ' 월별 추이 (억원)';
+      aLegend('#slrLg' + si, ser);
+      aLineChart($('#slrCh' + si), ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'], ser, { zero: true, hi: -1, ml: 44, fmtY: function (x) { return (Math.round(x * 10) / 10) + '억'; }, title: function (i) { return (i + 1) + '월'; }, fmtV: function (x) { return x == null ? '–' : x.toFixed(1) + '억'; }, label: row.label + ' 월별 추이' });
+    });
+    box.querySelectorAll('.slr-mseg button').forEach(function (b) { b.onclick = function () { SLR.mg[b.parentNode.dataset.k] = +b.dataset.g; renderSlRep(v); }; });
+    box.querySelectorAll('table.slr-mt tr.slr-pick').forEach(function (tr) { tr.onclick = function () { SLR.sel[tr.closest('table').dataset.k] = +tr.dataset.i; renderSlRep(v); }; });
   }
   function slSegName() { return SL.seg === 'all' ? '전체' : SL.seg; }
   function renderSlKpis() {
@@ -3661,38 +3898,54 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     $('#slCatTbl').innerHTML = '<div class="yoy-wrap"><table class="semtbl"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div><div class="yoy-note">단위: 백만원 · 항목 = raw (세부)의 항목(학회 = 컨퍼런스빌, 플랫폼 팜빌·베터빌은 플랫폼 이름)</div>';
     $('#slCatSub').textContent = y + '년 · ' + slSegName() + ' · 연간 합계는 ' + (nowY ? '실적+예정' : '실적');
   }
+  // 고객사별 매출: [전체·세미나·광고·컨퍼런스] 필터 + 내부·외부 표 분리 (상단 내부·외부 버튼을 고르면 그 표만)
+  var SL_CC = { all: null, '세미나': ['라이브세미나', '세미나'], '광고': ['광고'], '컨퍼런스': ['컨퍼런스빌', '컨퍼런스'] };
+  function slCcOk(cat) { var l = SL_CC[SL.cc || 'all']; return !l || l.indexOf(cat) >= 0; }
   function renderSlCust() {
     var y = SL.year, py = String(+y - 1), dn = slDone(y), nowY = slIsNow(y), hasP = !!SL.data.years[py];
-    var map = {};
-    slRows(y, SL.seg, SL.cat).forEach(function (r) {
-      if (r.fc) return;   // 예정(raw 탭 예측)은 고객사 표에서 제외
-      var o = map[r.c] || (map[r.c] = { k: r.c, io: r.io, cats: {}, a: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], p: null });
-      o.cats[r.cat] = 1; r.m.forEach(function (v, i) { o.a[i] += v || 0; });
-    });
-    if (hasP) slRows(py, SL.seg, SL.cat).forEach(function (r) { if (r.fc) return; var o = map[r.c] || (map[r.c] = { k: r.c, io: r.io, cats: {}, a: null, p: 0, onlyPrev: true }); o.p = (o.p || 0) + slTot(r.m); });
-    var q = SL.q.trim().toLowerCase();
-    var rows = Object.keys(map).map(function (k) { var o = map[k]; o.t = o.a ? slTot(o.a) : 0; o.ytd = o.a ? slTot(o.a, dn || 12) : 0; return o; })
-      .filter(function (o) { return (o.t || o.p) && (!q || o.k.toLowerCase().indexOf(q) >= 0); });
-    var K = SL.sort.k, D = SL.sort.d;
-    rows.sort(function (a, b) { var x = K === 'k' ? a.k.localeCompare(b.k, 'ko') : K === 'p' ? (a.p || 0) - (b.p || 0) : K === 'ytd' ? a.ytd - b.ytd : a.t - b.t; return x * D || b.t - a.t; });
-    var tot = rows.reduce(function (s, o) { return s + o.t; }, 0), LIM = 20, shown = SL.all ? rows : rows.slice(0, LIM);
-    var max = 1; rows.forEach(function (o) { (o.a || []).forEach(function (v) { if (v > max) max = v; }); });
-    var bg = function (v) { if (!v) return ''; return 'background:color-mix(in srgb, var(--accent) ' + Math.round(6 + Math.min(1, v / max) * 40) + '%, transparent)'; };
-    var sortTh = function (k, lbl) { return '<th class="sort' + (K === k ? ' on' : '') + '" data-k="' + k + '">' + lbl + (K === k ? (D < 0 ? ' ▾' : ' ▴') : '') + '</th>'; };
-    var head = '<tr>' + sortTh('k', '고객사').replace('<th class="sort', '<th class="rowh sort') + '<th>구분</th>' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { return '<th' + (nowY && m === dn + 1 ? ' class="cur"' : '') + '>' + m + '월</th>'; }).join('') +
+    document.querySelectorAll('#slCustSeg button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.cc === (SL.cc || 'all') ? 'true' : 'false'); });
+    var q = SL.q.trim().toLowerCase(), K = SL.sort.k, D = SL.sort.d, LIM = 20;
+    var build = function (io) {
+      var map = {};
+      slRows(y, io, 'all').forEach(function (r) {
+        if (r.fc || !slCcOk(r.cat)) return;   // 예정(raw 탭 예측) 제외
+        var o = map[r.c] || (map[r.c] = { k: r.c, io: r.io, cats: {}, a: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], p: null });
+        if (!o.a) o.a = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        o.cats[r.cat] = 1; r.m.forEach(function (v, i) { o.a[i] += v || 0; });
+      });
+      if (hasP) slRows(py, io, 'all').forEach(function (r) { if (r.fc || !slCcOk(r.cat)) return; var o = map[r.c] || (map[r.c] = { k: r.c, io: r.io, cats: {}, a: null, p: 0 }); if (!o.cats[r.cat]) o.cats[r.cat] = 1; o.p = (o.p || 0) + slTot(r.m); });
+      var rows = Object.keys(map).map(function (k) { var o = map[k]; o.t = o.a ? slTot(o.a) : 0; o.ytd = o.a ? slTot(o.a, dn || 12) : 0; return o; })
+        .filter(function (o) { return (o.t || o.p) && (!q || o.k.toLowerCase().indexOf(q) >= 0); });
+      rows.sort(function (a, b) { var x = K === 'k' ? a.k.localeCompare(b.k, 'ko') : K === 'p' ? (a.p || 0) - (b.p || 0) : K === 'ytd' ? a.ytd - b.ytd : a.t - b.t; return x * D || b.t - a.t; });
+      return rows;
+    };
+    var sortTh = function (k, lbl) { return '<th class="sort' + (K === k ? ' on' : '') + (k === 'k' ? ' rowh' : '') + '" data-k="' + k + '">' + lbl + (K === k ? (D < 0 ? ' ▾' : ' ▴') : '') + '</th>'; };
+    var head = '<tr>' + sortTh('k', '고객사') + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (m) { return '<th' + (nowY && m === dn + 1 ? ' class="cur"' : '') + '>' + m + '월</th>'; }).join('') +
       sortTh('t', y + '년 합계') + '<th>비중</th>' + sortTh('ytd', '누적<br>(1~' + (dn || 12) + '월)') + (hasP ? sortTh('p', py + '년') + '<th>증감률</th>' : '') + '</tr>';
-    var body = shown.map(function (o) {
-      return '<tr><th class="rowh" title="' + esc(o.k) + ' · ' + Object.keys(o.cats).join('·') + '">' + esc(o.k) + '<small class="cats">' + esc(Object.keys(o.cats).join('·')) + '</small></th><td class="io"><span class="io-chip io-' + (o.io === '내부' ? 'in' : 'out') + '">' + esc(o.io) + '</span></td>' +
-        (o.a ? o.a.map(function (v, i) { return '<td class="' + (nowY && i >= dn ? 'plan' : '') + '" style="' + bg(v) + '">' + mil(v) + '</td>'; }).join('') : '<td colspan="12" class="na">' + y + '년 매출 없음</td>') +
-        '<td class="sum">' + mil(o.t) + '</td><td>' + (tot ? (o.t / tot * 100).toFixed(1) + '%' : '–') + '</td><td>' + mil(o.ytd) + '</td>' + (hasP ? '<td>' + (o.p == null ? '–' : mil(o.p)) + '</td>' + slDelta(o.t, o.p, true) : '') + '</tr>';
-    }).join('');
-    $('#slCustTbl').innerHTML = (rows.length ? '<div class="yoy-wrap"><table class="semtbl custtbl"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' : '<div class="empty">조건에 맞는 고객사가 없습니다.</div>') +
-      (rows.length > LIM ? '<button type="button" class="btn more" id="slMore">' + (SL.all ? '상위 ' + LIM + '개만 보기' : '전체 ' + rows.length + '개 보기') + '</button>' : '') +
-      '<div class="yoy-note">단위: 백만원 · raw (세부)의 거래처 기준(예정 매출 제외) · 적요·담당자는 가져오지 않습니다.</div>';
-    $('#slCustSub').textContent = y + '년 · ' + slSegName() + (SL.cat !== 'all' ? ' · ' + SL.cat : '') + ' · 고객사 ' + rows.length + '곳';
-    var mb = $('#slMore'); if (mb) mb.onclick = function () { SL.all = !SL.all; renderSlCust(); };
+    var ios = SL.seg === 'all' ? ['내부', '외부'] : [SL.seg], html = '', cnt = [];
+    ios.forEach(function (io) {
+      var rows = build(io), tot = rows.reduce(function (s, o) { return s + o.t; }, 0), totP = rows.reduce(function (s, o) { return s + (o.p || 0); }, 0);
+      var sum = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; rows.forEach(function (o) { (o.a || []).forEach(function (v, i) { sum[i] += v; }); });
+      var max = 1; rows.forEach(function (o) { (o.a || []).forEach(function (v) { if (v > max) max = v; }); });
+      var bg = function (v) { if (!v) return ''; return 'background:color-mix(in srgb, var(--accent) ' + Math.round(6 + Math.min(1, v / max) * 40) + '%, transparent)'; };
+      var open = SL.allIo && SL.allIo[io], shown = open ? rows : rows.slice(0, LIM);
+      cnt.push(io + ' ' + rows.length + '곳');
+      var body = shown.map(function (o) {
+        return '<tr><th class="rowh" title="' + esc(o.k) + '">' + esc(o.k) + '<small class="cats">' + esc(Object.keys(o.cats).join('·')) + '</small></th>' +
+          (o.a ? o.a.map(function (v, i) { return '<td class="' + (nowY && i >= dn ? 'plan' : '') + '" style="' + bg(v) + '">' + mil(v) + '</td>'; }).join('') : '<td colspan="12" class="na">' + y + '년 매출 없음</td>') +
+          '<td class="sum">' + mil(o.t) + '</td><td>' + (tot ? (o.t / tot * 100).toFixed(1) + '%' : '–') + '</td><td>' + mil(o.ytd) + '</td>' + (hasP ? '<td>' + (o.p == null ? '–' : mil(o.p)) + '</td>' + slDelta(o.t, o.p, true) : '') + '</tr>';
+      }).join('');
+      if (rows.length) body += '<tr class="tot"><th class="rowh">' + io + ' 합계</th>' + sum.map(function (v) { return '<td>' + mil(v) + '</td>'; }).join('') + '<td class="sum">' + mil(tot) + '</td><td>100%</td><td>' + mil(slTot(sum, dn || 12)) + '</td>' + (hasP ? '<td>' + mil(totP) + '</td>' + slDelta(tot, totP, true) : '') + '</tr>';
+      html += '<div class="card sl-cust-card"><div class="sl-cust-h"><span class="io-chip io-' + (io === '내부' ? 'in' : 'out') + '">' + io + '</span><b>고객사별 매출</b><span class="muted">' + rows.length + '곳 · ' + y + '년 ' + won(tot) + '원</span></div>' +
+        (rows.length ? '<div class="yoy-wrap"><table class="semtbl custtbl"><caption class="sr-only">' + io + ' 고객사별 매출</caption><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' : '<div class="empty">조건에 맞는 고객사가 없습니다.</div>') +
+        (rows.length > LIM ? '<button type="button" class="btn more sl-more" data-io="' + io + '">' + (open ? '상위 ' + LIM + '곳만 보기' : '전체 ' + rows.length + '곳 보기') + '</button>' : '') + '</div>';
+    });
+    $('#slCustTbl').innerHTML = html + '<div class="yoy-note">단위: 백만원 · raw (세부)의 거래처 기준(예정 매출 제외) · 세미나 = 라이브세미나, 컨퍼런스 = 컨퍼런스빌(학회) · 적요·담당자는 가져오지 않습니다.</div>';
+    $('#slCustSub').textContent = y + '년 · ' + ({ all: '전체 사업', '세미나': '세미나', '광고': '광고', '컨퍼런스': '컨퍼런스' }[SL.cc || 'all']) + ' · ' + cnt.join(' · ');
+    $('#slCustTbl').querySelectorAll('.sl-more').forEach(function (b) { b.onclick = function () { SL.allIo = SL.allIo || {}; SL.allIo[b.dataset.io] = !SL.allIo[b.dataset.io]; renderSlCust(); }; });
     $('#slCustTbl').querySelectorAll('th.sort').forEach(function (th) { th.onclick = function () { var k = th.dataset.k; SL.sort = { k: k, d: SL.sort.k === k ? -SL.sort.d : (k === 'k' ? 1 : -1) }; renderSlCust(); }; });
   }
+  document.querySelectorAll('#slCustSeg button').forEach(function (b) { b.addEventListener('click', function () { SL.cc = b.dataset.cc; SL.allIo = {}; renderSlCust(); }); });
   document.querySelectorAll('#slSeg button').forEach(function (b) { b.addEventListener('click', function () { SL.seg = b.dataset.seg; SL.all = false; renderSales(); }); });
   $('#slYear').addEventListener('change', function () { SL.year = this.value; SL.all = false; renderSales(); });
   $('#slCat').addEventListener('change', function () { SL.cat = this.value; SL.all = false; renderSales(); });
