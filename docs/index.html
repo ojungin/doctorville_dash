@@ -653,6 +653,7 @@ th.sort.on { color: var(--accent); }
 .plan-tag { display: block; font-size: 10px; color: var(--muted); font-weight: 400; }
 .sl-search { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--ink); width: 200px; }
 .sl-search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.act-one { grid-template-columns: minmax(0, 1fr) !important; }   /* 활동성 그래프: 한 줄에 하나씩 */
 .ytd-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .ytd-opt { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
 .ytd-opt input { accent-color: var(--accent); margin: 0; }
@@ -1268,7 +1269,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <section class="padata">
       <div class="sec-head"><div><h2>활동성 추이</h2><p id="paTrendDesc"></p></div>
         <div class="seg" id="paRangeSeg" role="group" aria-label="추이 기간"></div></div>
-      <div class="grid2">
+      <div class="grid2 act-one">
         <div class="card"><div class="ytd-h"><h3>활성 사용자 (DAU · WAU · MAU)</h3><label class="ytd-opt"><input type="checkbox" id="paYtdOpt"> YTD 활성 사용자 함께 보기</label></div><p class="desc" id="paYtdDesc" hidden>점선: YTD 활성 사용자(연초 누적)</p><ul class="legend" id="palUsers"></ul><div class="chart" id="pachUsers"></div></div>
         <div class="card"><h3>방문수 · 신규 · 재방문수</h3><p class="desc" id="paVisitDesc"></p><ul class="legend" id="palVisits"></ul><div class="chart" id="pachVisits"></div></div>
         <div class="card"><h3>조회수</h3><p class="desc">진한 막대: 선택한 기간</p><div class="chart" id="pachViews"></div></div>
@@ -1295,7 +1296,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <section class="padata">
       <div class="sec-head"><div><h2>유입경로</h2><p id="paInSub"></p></div>
         <div class="seg" id="paInSrcSeg" role="group" aria-label="유입 출처"></div></div>
-      <div class="grid2">
+      <div class="grid2 act-one">
         <div class="card"><h3>채널별 방문수 (세션) 추이</h3><p class="desc" id="paChDesc"></p><ul class="legend" id="palCh"></ul><div class="chart" id="pachCh"></div></div>
         <div class="card"><h3>채널 비중 — 선택 기간</h3><p class="desc" id="paChShareDesc"></p><div id="paChShare"></div></div>
       </div>
@@ -1334,7 +1335,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     </section>
     <section class="adata">
       <div class="sec-head"><div><h2>활동성 추이</h2><p id="aTrendDesc"></p></div></div>
-      <div class="grid2">
+      <div class="grid2 act-one">
         <div class="card"><div class="ytd-h"><h3>활성 사용자 (DAU · WAU · MAU)</h3><label class="ytd-opt"><input type="checkbox" id="aYtdOpt"> MAU (YTD) 함께 보기</label></div><ul class="legend" id="alUsers"></ul><div class="chart" id="achUsers"></div></div>
         <div class="card"><h3>조회수</h3><p class="desc">진한 막대: 선택한 기간</p><div class="chart" id="achViews"></div></div>
         <div class="card"><h3>고착도 (DAU/MAU) — 기기별</h3><ul class="legend" id="alStick"></ul><div class="chart" id="achStick"></div></div>
