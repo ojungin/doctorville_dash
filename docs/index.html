@@ -2626,6 +2626,8 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var p = Math.pow(10, Math.floor(Math.log10(v))), n = v / p;
     return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
   }
+  // 활동성 그래프 세로축: 최고값의 130% (유효숫자 3자리로 올림 — 예: 2,900 → 3,770 / 12,345 → 16,100)
+  function axTop(mx) { var v = (mx > 0 ? mx : 1) * 1.3, p = Math.pow(10, Math.floor(Math.log10(v)) - 2); return Math.round(Math.ceil(v / p - 1e-9) * p * 1000) / 1000; }
   function short(n) { return n >= 10000 ? (n / 10000).toFixed(n % 10000 ? 1 : 0) + '만' : fmt(n); }
   function frame(host, opts) {
     host.innerHTML = '';
@@ -3096,8 +3098,8 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var all = []; series.forEach(function (s) { s.vals.forEach(function (v) { if (v != null && !isNaN(v)) all.push(+v); }); });
     if (!all.length) { host.innerHTML = '<p class="empty">데이터가 없습니다.</p>'; return; }
     var mn = Math.min.apply(null, all), mx = Math.max.apply(null, all);
-    var lo = opts.zero ? 0 : Math.max(0, mn - (mx - mn) * 0.2), hi = niceMax(mx * 1.05);
-    if (!opts.zero) { var st = Math.pow(10, Math.floor(Math.log10(Math.max(1, hi - lo)))); lo = Math.floor(lo / st) * st; }
+    var lo = opts.zero ? 0 : Math.max(0, mn - (mx - mn) * 0.2), hi = opts.top130 ? axTop(mx) : niceMax(mx * 1.05);
+    if (!opts.zero && !opts.top130) { var st = Math.pow(10, Math.floor(Math.log10(Math.max(1, hi - lo)))); lo = Math.floor(lo / st) * st; }
     var f = frame(host, { min: lo, max: hi, ml: opts.ml || 48, fmtY: opts.fmtY, label: opts.label || '' });
     var n = labels.length, xOf = function (i) { return f.m.l + (n === 1 ? f.iw / 2 : f.iw * i / (n - 1)); };
     if (opts.hi != null && opts.hi >= 0) el('rect', { x: xOf(opts.hi) - Math.max(3, f.iw / Math.max(1, n - 1) / 2), y: f.m.t, width: Math.max(6, f.iw / Math.max(1, n - 1)), height: f.ih, fill: css('--accent'), opacity: 0.08 }, f.svg);
@@ -3130,11 +3132,11 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var ytdOn = ytdOpt('a'); $('#aYtdOpt').checked = ytdOn;
     if (ytdOn) ser.push({ name: 'MAU (YTD)', color: css('--s4'), dash: '5 4', vals: ps.map(function (p) { return aYtd(S, p, A.dev); }) });
     aLegend('#alUsers', ser);
-    aLineChart($('#achUsers'), labels, ser, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '활성 사용자 추이' });
+    aLineChart($('#achUsers'), labels, ser, { top130: true, zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '활성 사용자 추이' });
     // 조회수 막대
     (function () {
       var host = $('#achViews'), vals = get(A.dev, 'views');
-      var f = frame(host, { max: niceMax(Math.max.apply(null, vals.map(function (v) { return v || 0; })) || 1), ml: 52, label: '조회수 추이' });
+      var f = frame(host, { max: axTop(Math.max.apply(null, vals.map(function (v) { return v || 0; })) || 1), ml: 52, label: '조회수 추이' });
       var n = vals.length, bw = f.iw / n, gap = Math.min(2, bw * 0.25), xOf = function (i) { return f.m.l + bw * i + bw / 2; };
       var bars = vals.map(function (v, i) { return el('path', { d: barPath(f.m.l + bw * i + gap / 2, f.y(0), bw - gap, f.y(v || 0)), fill: css('--s1'), opacity: i === hi ? 1 : 0.55 }, f.svg); });
       xLabels(f, labels, xOf);
@@ -3144,10 +3146,10 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var devs = [{ d: '전체', c: css('--s1') }, { d: 'PC', c: css('--s2') }, { d: 'MO', c: css('--s3') }];
     var serR = devs.map(function (x) { return { name: x.d === 'MO' ? '모바일(MO)' : x.d, color: x.c, vals: get(x.d, 'dm') }; });
     aLegend('#alStick', serR);
-    aLineChart($('#achStick'), labels, serR, { hi: hi, title: ttl, fmtV: function (v) { return (+v).toFixed(1) + '%'; }, fmtY: function (v) { return Math.round(v) + '%'; }, label: 'DAU/MAU 추이' });
+    aLineChart($('#achStick'), labels, serR, { top130: true, hi: hi, title: ttl, fmtV: function (v) { return (+v).toFixed(1) + '%'; }, fmtY: function (v) { return Math.round(v) + '%'; }, label: 'DAU/MAU 추이' });
     var serS = devs.map(function (x) { return { name: x.d === 'MO' ? '모바일(MO)' : x.d, color: x.c, vals: get(x.d, 'sess') }; });
     aLegend('#alSess', serS);
-    aLineChart($('#achSess'), labels, serS, { zero: true, hi: hi, title: ttl, fmtV: minSec, fmtY: function (v) { return (+v).toFixed(v < 10 ? 1 : 0) + '분'; }, label: '평균 세션 시간 추이' });
+    aLineChart($('#achSess'), labels, serS, { top130: true, zero: true, hi: hi, title: ttl, fmtV: minSec, fmtY: function (v) { return (+v).toFixed(v < 10 ? 1 : 0) + '분'; }, label: '평균 세션 시간 추이' });
     $('#aTrendDesc').textContent = (wk ? '주 단위(월~일) · ' : '월 단위 · ') + '선택한 기간은 음영으로 표시 · 활성 사용자·조회수는 위 기기 선택 기준';
   }
   function renderAPages(S) {
@@ -3181,7 +3183,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var colors = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6'];
     var ser = top.map(function (pg, k) { return { name: pg, color: css(colors[k]), vals: pp.map(function (p) { var r = aRow(S.page.filter(function (x) { return x.page === pg; }), p); return r ? r.views : null; }) }; });
     aLegend('#alPages', ser);
-    aLineChart($('#achPages'), pp.map(aAxis), ser, { zero: true, hi: pp.indexOf(A.period), ml: 52, title: function (i) { return aLabel(pp[i]); }, fmtV: function (v) { return fmt(Math.round(v)) + '회'; }, label: '주요 페이지그룹 조회수 추이' });
+    aLineChart($('#achPages'), pp.map(aAxis), ser, { top130: true, zero: true, hi: pp.indexOf(A.period), ml: 52, title: function (i) { return aLabel(pp[i]); }, fmtV: function (v) { return fmt(Math.round(v)) + '회'; }, label: '주요 페이지그룹 조회수 추이' });
     $('#aPageTrendDesc').textContent = '전체 기간 조회수 합계 상위 6개 페이지그룹 · ' + (A.mode === 'week' ? '주 단위 (페이지별 데이터가 있는 주만 표시)' : '월 단위');
   }
   document.querySelectorAll('#aModeSeg button').forEach(function (b) { b.addEventListener('click', function () { if (A.mode === b.dataset.amode) return; A.mode = b.dataset.amode; A.period = null; try { localStorage.setItem('mv-act-mode', A.mode); } catch (e) {} renderActivity(); }); });
@@ -3316,14 +3318,14 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var ytdOn = ytdOpt('pa'); $('#paYtdOpt').checked = ytdOn; $('#paYtdDesc').hidden = !ytdOn;
     if (ytdOn) ser.push({ name: 'YTD 활성 사용자', color: css('--s4'), dash: '5 4', vals: get(PA.dev, 'YTD 활성사용자') });
     aLegend('#palUsers', ser);
-    aLineChart($('#pachUsers'), labels, ser, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '팜빌 활성 사용자 추이' });
+    aLineChart($('#pachUsers'), labels, ser, { top130: true, zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '팜빌 활성 사용자 추이' });
     var serV = [{ name: '방문수', color: css('--s1'), vals: get(PA.dev, '방문수') }, { name: '재방문수', color: css('--s3'), vals: get(PA.dev, '재방문수') }, { name: '신규', color: css('--s2'), vals: get(PA.dev, '신규') }];
     aLegend('#palVisits', serV);
-    aLineChart($('#pachVisits'), labels, serV, { zero: true, hi: hi, ml: 52, title: ttl, fmtV: function (v) { return fmt(Math.round(v)); }, label: '방문수 추이' });
+    aLineChart($('#pachVisits'), labels, serV, { top130: true, zero: true, hi: hi, ml: 52, title: ttl, fmtV: function (v) { return fmt(Math.round(v)); }, label: '방문수 추이' });
     $('#paVisitDesc').textContent = '기기: ' + PA.dev + ' · ' + (wk ? '주별' : '월별');
     (function () {   // 조회수 막대
       var host = $('#pachViews'), vals = get(PA.dev, '조회수');
-      var f = frame(host, { max: niceMax(Math.max.apply(null, vals.map(function (v) { return v || 0; })) || 1), ml: 52, label: '팜빌 조회수 추이' });
+      var f = frame(host, { max: axTop(Math.max.apply(null, vals.map(function (v) { return v || 0; })) || 1), ml: 52, label: '팜빌 조회수 추이' });
       var n = vals.length, bw = f.iw / Math.max(1, n), gap = Math.min(2, bw * 0.25), xOf = function (i) { return f.m.l + bw * i + bw / 2; };
       var bars = vals.map(function (v, i) { return el('path', { d: barPath(f.m.l + bw * i + gap / 2, f.y(0), bw - gap, f.y(v || 0)), fill: css('--s1'), opacity: i === hi ? 1 : 0.55 }, f.svg); });
       xLabels(f, labels, xOf);
@@ -3333,13 +3335,13 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var serS = [{ name: 'DAU/MAU', color: css('--s1'), vals: get(PA.dev, 'DAU/MAU') }, { name: 'WAU/MAU', color: css('--s2'), vals: get(PA.dev, 'WAU/MAU') }, { name: 'DAU/WAU', color: css('--s3'), vals: get(PA.dev, 'DAU/WAU') },
       { name: '재방문비율', color: css('--s4'), dash: '5 4', vals: get(PA.dev, '재방문비율') }];
     aLegend('#palStick', serS);
-    aLineChart($('#pachStick'), labels, serS, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return (+v).toFixed(1) + '%'; }, fmtY: function (v) { return Math.round(v) + '%'; }, label: '고착도 추이' });
+    aLineChart($('#pachStick'), labels, serS, { top130: true, zero: true, hi: hi, title: ttl, fmtV: function (v) { return (+v).toFixed(1) + '%'; }, fmtY: function (v) { return Math.round(v) + '%'; }, label: '고착도 추이' });
     var k = wk ? 'WAU' : 'MAU', devs = [{ d: 'PC', c: css('--s1') }, { d: 'MO', c: css('--s2') }, { d: '태블릿', c: css('--s3') }, { d: '전체', c: css('--muted'), dash: '4 4' }];
     var serD = devs.map(function (x) { return { name: x.d === 'MO' ? '모바일(MO)' : x.d, color: x.c, dash: x.dash, vals: get(x.d, k) }; });
     aLegend('#palDev', serD);
     $('#paDevTitle').textContent = '기기별 ' + k;
     $('#paDevDesc').textContent = '기기별 ' + k + ' (같은 사용자가 여러 기기를 쓰면 기기별 합계가 전체보다 클 수 있습니다)';
-    aLineChart($('#pachDev'), labels, serD, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '기기별 활성 사용자' });
+    aLineChart($('#pachDev'), labels, serD, { top130: true, zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '기기별 활성 사용자' });
     (function () {   // 회원수·목표 달성률 (월간지표 전체)
       var ms = []; S.monthly.forEach(function (r) { if (r['구분'] === '전체' && ms.indexOf(r['월']) < 0) ms.push(r['월']); }); ms.sort();
       var mr = function (m) { for (var j = S.monthly.length - 1; j >= 0; j--) if (S.monthly[j]['월'] === m && S.monthly[j]['구분'] === '전체') return S.monthly[j]; return {}; };
@@ -3349,7 +3351,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       $('#palGoal').innerHTML = '<li><i style="background:' + css('--s1') + '"></i>회원수</li>' + goals.map(function (g) { return '<li><i class="line" style="background:' + g[1] + '"></i>' + g[0] + '</li>'; }).join('');
       var host = $('#pachGoal');
       if (!ms.length) { host.innerHTML = '<p class="empty">월간지표가 없습니다.</p>'; return; }
-      var f = frame(host, { max: niceMax(Math.max.apply(null, mem.map(function (v) { return v || 0; })) || 1), ml: 52, label: '회원수·목표 달성률' });
+      var f = frame(host, { max: axTop(Math.max.apply(null, mem.map(function (v) { return v || 0; })) || 1), ml: 52, label: '회원수·목표 달성률' });
       var n = ms.length, bw = f.iw / n, gap = Math.min(3, bw * 0.3), xOf = function (i) { return f.m.l + bw * i + bw / 2; };
       mem.forEach(function (v, i) { el('path', { d: barPath(f.m.l + bw * i + gap / 2, f.y(0), bw - gap, f.y(v || 0)), fill: css('--s1'), opacity: i === hiM ? 0.9 : 0.4 }, f.svg); });
       var gmax = 0; goals.forEach(function (g) { ms.forEach(function (m) { var v = paN(mr(m)[g[0]]); if (v != null && v > gmax) gmax = v; }); });
@@ -3380,7 +3382,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var ser = cols.map(function (c) { return { name: c[0] === 'MO' ? '모바일(MO)' : c[0], color: c[1], vals: R.map(function (r) { return paN(r[c[0]]); }) }; });
     aLegend('#palDaily', ser);
     var labels = R.map(function (r) { return r['날짜'].slice(5).replace('-', '/'); });
-    aLineChart($('#pachDaily'), labels, ser, { zero: true, hi: -1, title: function (i) { var r = R[i]; return r['날짜'] + ' (' + (r['요일'] || '') + ')' + (r['메모'] ? ' · ' + r['메모'] : ''); }, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '일별 활성 사용자' });
+    aLineChart($('#pachDaily'), labels, ser, { top130: true, zero: true, hi: -1, title: function (i) { var r = R[i]; return r['날짜'] + ' (' + (r['요일'] || '') + ')' + (r['메모'] ? ' · ' + r['메모'] : ''); }, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '일별 활성 사용자' });
     var sum = function (k) { var t = 0, c = 0; R.forEach(function (r) { var v = paN(r[k]); if (v != null) { t += v; c++; } }); return c ? t / c : null; };
     var memos = R.filter(function (r) { return r['메모']; }).map(function (r) { return r['날짜'].slice(5) + ' ' + r['메모']; });
     $('#paDailyDesc').textContent = (PA.days === 'sel' ? '선택한 ' + (PA.mode === 'week' ? '주 포함 최근 8주' : '달 포함 최근 3개월') : PA.days === '90' ? '최근 90일' : '전체 기간') + ' · ' + (R.length ? R[0]['날짜'] + ' ~ ' + R[R.length - 1]['날짜'] : '데이터 없음');
