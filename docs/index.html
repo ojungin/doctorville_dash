@@ -653,6 +653,9 @@ th.sort.on { color: var(--accent); }
 .plan-tag { display: block; font-size: 10px; color: var(--muted); font-weight: 400; }
 .sl-search { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--ink); width: 200px; }
 .sl-search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ytd-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ytd-opt { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.ytd-opt input { accent-color: var(--accent); margin: 0; }
 .sl-cust-card + .sl-cust-card { margin-top: 14px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .sl-cust-h { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -1266,7 +1269,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
       <div class="sec-head"><div><h2>활동성 추이</h2><p id="paTrendDesc"></p></div>
         <div class="seg" id="paRangeSeg" role="group" aria-label="추이 기간"></div></div>
       <div class="grid2">
-        <div class="card"><h3>활성 사용자 (DAU · WAU · MAU)</h3><p class="desc">점선: YTD 활성 사용자(연초 누적)</p><ul class="legend" id="palUsers"></ul><div class="chart" id="pachUsers"></div></div>
+        <div class="card"><div class="ytd-h"><h3>활성 사용자 (DAU · WAU · MAU)</h3><label class="ytd-opt"><input type="checkbox" id="paYtdOpt"> YTD 활성 사용자 함께 보기</label></div><p class="desc" id="paYtdDesc" hidden>점선: YTD 활성 사용자(연초 누적)</p><ul class="legend" id="palUsers"></ul><div class="chart" id="pachUsers"></div></div>
         <div class="card"><h3>방문수 · 신규 · 재방문수</h3><p class="desc" id="paVisitDesc"></p><ul class="legend" id="palVisits"></ul><div class="chart" id="pachVisits"></div></div>
         <div class="card"><h3>조회수</h3><p class="desc">진한 막대: 선택한 기간</p><div class="chart" id="pachViews"></div></div>
         <div class="card"><h3>고착도 · 재방문 비율</h3><p class="desc">DAU/MAU · WAU/MAU · 재방문비율 (%)</p><ul class="legend" id="palStick"></ul><div class="chart" id="pachStick"></div></div>
@@ -1332,7 +1335,7 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     <section class="adata">
       <div class="sec-head"><div><h2>활동성 추이</h2><p id="aTrendDesc"></p></div></div>
       <div class="grid2">
-        <div class="card"><h3>활성 사용자 (DAU · WAU · MAU)</h3><ul class="legend" id="alUsers"></ul><div class="chart" id="achUsers"></div></div>
+        <div class="card"><div class="ytd-h"><h3>활성 사용자 (DAU · WAU · MAU)</h3><label class="ytd-opt"><input type="checkbox" id="aYtdOpt"> MAU (YTD) 함께 보기</label></div><ul class="legend" id="alUsers"></ul><div class="chart" id="achUsers"></div></div>
         <div class="card"><h3>조회수</h3><p class="desc">진한 막대: 선택한 기간</p><div class="chart" id="achViews"></div></div>
         <div class="card"><h3>고착도 (DAU/MAU) — 기기별</h3><ul class="legend" id="alStick"></ul><div class="chart" id="achStick"></div></div>
         <div class="card"><h3>평균 세션 시간 — 기기별</h3><ul class="legend" id="alSess"></ul><div class="chart" id="achSess"></div></div>
@@ -3110,11 +3113,22 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     }, function (h) { dots.forEach(function (dt, k) { var v = series[k].vals[h]; if (h < 0 || v == null) dt.setAttribute('opacity', 0); else { dt.setAttribute('cx', xOf(h)); dt.setAttribute('cy', f.y(+v)); dt.setAttribute('opacity', 1); } }); });
   }
   function aLegend(id, series) { $(id).innerHTML = series.map(function (s) { return '<li><i class="line" style="background:' + s.color + '"></i>' + esc(s.name) + '</li>'; }).join(''); }
+  // 활성 사용자 그래프의 YTD 선 표시 옵션 (화면별로 기억, 기본 끔)
+  var YTD_OPT = {};
+  function ytdOpt(k) { if (YTD_OPT[k] == null) { try { YTD_OPT[k] = localStorage.getItem('mv-ytd-' + k) === '1'; } catch (e) { YTD_OPT[k] = false; } } return YTD_OPT[k]; }
+  function setYtdOpt(k, on) { YTD_OPT[k] = on; try { localStorage.setItem('mv-ytd-' + k, on ? '1' : '0'); } catch (e) {} }
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'aYtdOpt') { setYtdOpt('a', e.target.checked); if (VIEW === 'activity' && A.data) renderActivity(); }
+    if (e.target && e.target.id === 'paYtdOpt') { setYtdOpt('pa', e.target.checked); if (VIEW === 'pactivity' && PA.data) renderPvActivity(); }
+  });
   function renderATrends(S, ps) {
     var wk = A.mode === 'week', labels = ps.map(aAxis), hi = ps.indexOf(A.period);
     var get = function (dev, k) { return ps.map(function (p) { var r = aRow(S.tot, p, dev); return r ? r[k] : null; }); };
     var ttl = function (i) { return aLabel(ps[i]); };
-    var ser = [{ name: 'DAU', color: css('--s1'), vals: get(A.dev, 'dau') }, { name: wk ? 'WAU' : 'WAU', color: css('--s2'), vals: get(A.dev, 'wau') }, { name: 'MAU', color: css('--s3'), vals: get(A.dev, 'mau') }, { name: 'MAU (YTD)', color: css('--s4'), dash: '5 4', vals: ps.map(function (p) { return aYtd(S, p, A.dev); }) }];
+    var ser = [{ name: 'DAU', color: css('--s1'), vals: get(A.dev, 'dau') }, { name: wk ? 'WAU' : 'WAU', color: css('--s2'), vals: get(A.dev, 'wau') }, { name: 'MAU', color: css('--s3'), vals: get(A.dev, 'mau') }];
+    // MAU(YTD) 는 선택 옵션 — 켜면 세로축이 YTD 값까지, 끄면 DAU·WAU·MAU 범위로 자동 조정(aLineChart가 보이는 계열 기준으로 축 계산)
+    var ytdOn = ytdOpt('a'); $('#aYtdOpt').checked = ytdOn;
+    if (ytdOn) ser.push({ name: 'MAU (YTD)', color: css('--s4'), dash: '5 4', vals: ps.map(function (p) { return aYtd(S, p, A.dev); }) });
     aLegend('#alUsers', ser);
     aLineChart($('#achUsers'), labels, ser, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '활성 사용자 추이' });
     // 조회수 막대
@@ -3298,8 +3312,9 @@ body.view-conf #memberMain, body.view-conf .member-only, body.view-conf #pdfBtn 
     var wk = PA.mode === 'week', cp = paCut(ps), labels = cp.map(paAxis), hi = cp.indexOf(PA.period);
     var get = function (dev, k) { return cp.map(function (p) { var r = paRow(S, p, dev); return r ? paN(r[k]) : null; }); };
     var ttl = function (i) { return paLabel(S, cp[i]); };
-    var ser = [{ name: 'DAU', color: css('--s1'), vals: get(PA.dev, 'DAU') }, { name: 'WAU', color: css('--s2'), vals: get(PA.dev, 'WAU') }, { name: 'MAU', color: css('--s3'), vals: get(PA.dev, 'MAU') },
-      { name: 'YTD 활성 사용자', color: css('--s4'), dash: '5 4', vals: get(PA.dev, 'YTD 활성사용자') }];
+    var ser = [{ name: 'DAU', color: css('--s1'), vals: get(PA.dev, 'DAU') }, { name: 'WAU', color: css('--s2'), vals: get(PA.dev, 'WAU') }, { name: 'MAU', color: css('--s3'), vals: get(PA.dev, 'MAU') }];
+    var ytdOn = ytdOpt('pa'); $('#paYtdOpt').checked = ytdOn; $('#paYtdDesc').hidden = !ytdOn;
+    if (ytdOn) ser.push({ name: 'YTD 활성 사용자', color: css('--s4'), dash: '5 4', vals: get(PA.dev, 'YTD 활성사용자') });
     aLegend('#palUsers', ser);
     aLineChart($('#pachUsers'), labels, ser, { zero: true, hi: hi, title: ttl, fmtV: function (v) { return fmt(Math.round(v)) + '명'; }, label: '팜빌 활성 사용자 추이' });
     var serV = [{ name: '방문수', color: css('--s1'), vals: get(PA.dev, '방문수') }, { name: '재방문수', color: css('--s3'), vals: get(PA.dev, '재방문수') }, { name: '신규', color: css('--s2'), vals: get(PA.dev, '신규') }];
